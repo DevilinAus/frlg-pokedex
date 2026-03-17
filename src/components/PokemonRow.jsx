@@ -83,7 +83,13 @@ function PokemonRow({
   leafGreenHitmon,
 }) {
   const pokemonId = String(entry.id).padStart(3, '0')
-  const comment = getComment(entry, fireRedStarter, leafGreenStarter)
+  const comment = getComment(
+    entry,
+    fireRedStarter,
+    leafGreenStarter,
+    fireRedEeveelution,
+    leafGreenEeveelution,
+  )
 
   const fireRedStarterLocked = isLockedByStarterChoice(entry, fireRedStarter)
   const leafGreenStarterLocked = isLockedByStarterChoice(entry, leafGreenStarter)

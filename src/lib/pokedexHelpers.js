@@ -49,7 +49,13 @@ export function needsChoiceExtraCopy(entry, versionChoices, tradeMode) {
   return isSelectedStarterBase || isSelectedHitmon
 }
 
-export function getComment(entry, fireRedStarter, leafGreenStarter) {
+export function getComment(
+  entry,
+  fireRedStarter,
+  leafGreenStarter,
+  fireRedEeveelution,
+  leafGreenEeveelution,
+) {
   if (entry.specialComment) {
     return entry.specialComment
   }
@@ -60,6 +66,14 @@ export function getComment(entry, fireRedStarter, leafGreenStarter) {
 
   if (entry.tradeEvolution && entry.evolvesFrom) {
     return `Trade ${entry.evolvesFrom} to evolve it`
+  }
+
+  if (
+    entry.eeveelutionFamily &&
+    entry.eeveelutionFamily !== fireRedEeveelution &&
+    entry.eeveelutionFamily !== leafGreenEeveelution
+  ) {
+    return 'Requires breeding for an Eevee egg postgame'
   }
 
   if (entry.stoneEvolution) {
