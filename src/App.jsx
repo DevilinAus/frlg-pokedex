@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { pokemon } from './data/pokemon'
 import AccountPanel from './components/AccountPanel'
@@ -18,6 +18,7 @@ const showOptions = [
 function App() {
   const [showFilter, setShowFilter] = useState('all')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsRef = useRef(null)
   const {
     mode,
     currentUser,
@@ -81,6 +82,32 @@ function App() {
     return true
   })
 
+  useEffect(() => {
+    if (!settingsOpen) {
+      return
+    }
+
+    function handlePointerDown(event) {
+      if (!settingsRef.current?.contains(event.target)) {
+        setSettingsOpen(false)
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setSettingsOpen(false)
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [settingsOpen])
+
   return (
     <main className={`app ${spriteFlood.length > 0 ? 'app-chaos' : ''}`}>
       <CelebrationLayer spriteFlood={spriteFlood} />
@@ -93,7 +120,7 @@ function App() {
             <p className="intro">A shared tracker for two players.</p>
           </div>
 
-          <div className="hero-settings">
+          <div className="hero-settings" ref={settingsRef}>
             <button
               type="button"
               className={`hero-settings-trigger ${settingsOpen ? 'hero-settings-trigger-open' : ''}`}
