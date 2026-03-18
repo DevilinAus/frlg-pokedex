@@ -32,6 +32,7 @@ db.pragma('journal_mode = WAL')
 const defaultTrackerState = {
   tradeMode: false,
   switchEventUnlocks: false,
+  baseGameComplete: false,
   fireRedStarter: '',
   leafGreenStarter: '',
   fireRedFossil: '',
@@ -262,6 +263,7 @@ function sanitizeTrackerState(input) {
   return {
     tradeMode: Boolean(input?.tradeMode),
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
+    baseGameComplete: Boolean(input?.baseGameComplete),
     fireRedStarter: sanitizeText(
       input?.fireRedStarter,
       defaultTrackerState.fireRedStarter,
@@ -333,6 +335,10 @@ function sanitizeTrackerPatch(input) {
 
   if (Object.hasOwn(input, 'switchEventUnlocks')) {
     patch.switchEventUnlocks = Boolean(input.switchEventUnlocks)
+  }
+
+  if (Object.hasOwn(input, 'baseGameComplete')) {
+    patch.baseGameComplete = Boolean(input.baseGameComplete)
   }
 
   if (Object.hasOwn(input, 'fireRedStarter')) {
