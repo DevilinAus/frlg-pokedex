@@ -73,6 +73,7 @@ function PokemonRow({
   checkboxState,
   updateCheckboxState,
   tradeMode,
+  switchEventUnlocks,
   fireRedStarter,
   leafGreenStarter,
   fireRedFossil,
@@ -85,6 +86,7 @@ function PokemonRow({
   const pokemonId = String(entry.id).padStart(3, '0')
   const comment = getComment(
     entry,
+    switchEventUnlocks,
     fireRedStarter,
     leafGreenStarter,
     fireRedFossil,

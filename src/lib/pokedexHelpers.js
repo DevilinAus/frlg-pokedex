@@ -59,6 +59,7 @@ export function needsChoiceExtraCopy(entry, versionChoices, tradeMode) {
 
 export function getComment(
   entry,
+  switchEventUnlocks,
   fireRedStarter,
   leafGreenStarter,
   fireRedFossil,
@@ -74,6 +75,12 @@ export function getComment(
     fireRedEeveelution && leafGreenEeveelution,
   )
   const bothHitmonsChosen = Boolean(fireRedHitmon && leafGreenHitmon)
+
+  if (entry.name === 'Mew') {
+    return switchEventUnlocks
+      ? 'Switch unlocks Lugia, Ho-Oh, and Deoxys after Hall of Fame, but not Mew'
+      : 'Not catchable in FireRed/LeafGreen'
+  }
 
   if (entry.specialComment) {
     return entry.specialComment
