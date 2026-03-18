@@ -369,6 +369,15 @@ button,
   min-width: min(320px, 100%);
 }
 
+.cloud-toolbar {
+  align-items: flex-end;
+}
+
+.cloud-logout-button {
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
 .cloud-select span {
   font-size: 0.78rem;
   font-weight: 700;
@@ -384,26 +393,39 @@ button,
 .share-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  background: rgba(248, 250, 252, 0.72);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.78) 0%, rgba(241, 245, 249, 0.9) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .account-panel-popover .share-panel {
-  background: rgba(248, 250, 252, 0.84);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.88) 0%, rgba(241, 245, 249, 0.96) 100%);
 }
 
 .share-panel-header {
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
 }
 
 .share-panel-header h3 {
   margin: 0 0 4px;
   font-size: 0.92rem;
   color: var(--text-strong);
+}
+
+.share-panel-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
+.share-generate-button {
+  min-width: 150px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
 }
 
 .share-code {
@@ -1172,9 +1194,21 @@ button,
   }
 
   .account-panel-header,
-  .migration-panel,
-  .share-panel-header {
+  .migration-panel {
     flex-direction: column;
+  }
+
+  .cloud-toolbar {
+    align-items: stretch;
+  }
+
+  .cloud-logout-button {
+    align-self: flex-start;
+  }
+
+  .share-generate-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .hero {

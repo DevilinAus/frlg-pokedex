@@ -108,7 +108,11 @@ function CloudSaveTools({
           </select>
         </label>
 
-        <button type="button" className="secondary-button" onClick={logOut}>
+        <button
+          type="button"
+          className="secondary-button cloud-logout-button"
+          onClick={logOut}
+        >
           Log Out
         </button>
       </div>
@@ -136,9 +140,15 @@ function CloudSaveTools({
                 invalidates the current code.
               </p>
             </div>
-            <button type="button" onClick={generateShareCodeForActiveSave}>
-              Generate Code
-            </button>
+            <div className="share-panel-actions">
+              <button
+                type="button"
+                className="share-generate-button"
+                onClick={generateShareCodeForActiveSave}
+              >
+                Generate Code
+              </button>
+            </div>
           </div>
 
           {generatedShareCode ? (
