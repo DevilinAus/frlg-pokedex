@@ -100,11 +100,11 @@ export function getComment(
     entry.starterFamily !== fireRedStarter &&
     entry.starterFamily !== leafGreenStarter
   ) {
-    return 'Requires trade from fresh game on new profile'
+    return `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. You will need another finished save or player, then trade it over.`
   }
 
   if (entry.roamingLegendary) {
-    return 'One roaming beast appears per save after the Sevii Islands postgame'
+    return `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. Only one of Raikou, Entei, or Suicune appears per save.`
   }
 
   if (entry.specialComment) {
