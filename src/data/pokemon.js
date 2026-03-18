@@ -1,4 +1,4 @@
-const pokemonNames = [
+const kantoPokemonNames = [
   'Bulbasaur',
   'Ivysaur',
   'Venusaur',
@@ -152,6 +152,84 @@ const pokemonNames = [
   'Mew',
 ]
 
+const postgamePokemonEntries = [
+  { id: 161, name: 'Sentret' },
+  { id: 162, name: 'Furret' },
+  { id: 165, name: 'Ledyba' },
+  { id: 166, name: 'Ledian' },
+  { id: 167, name: 'Spinarak' },
+  { id: 168, name: 'Ariados' },
+  { id: 169, name: 'Crobat' },
+  { id: 172, name: 'Pichu' },
+  { id: 173, name: 'Cleffa' },
+  { id: 174, name: 'Igglybuff' },
+  { id: 175, name: 'Togepi' },
+  { id: 176, name: 'Togetic' },
+  { id: 177, name: 'Natu' },
+  { id: 178, name: 'Xatu' },
+  { id: 182, name: 'Bellossom' },
+  { id: 183, name: 'Marill' },
+  { id: 184, name: 'Azumarill' },
+  { id: 186, name: 'Politoed' },
+  { id: 187, name: 'Hoppip' },
+  { id: 188, name: 'Skiploom' },
+  { id: 189, name: 'Jumpluff' },
+  { id: 193, name: 'Yanma' },
+  { id: 194, name: 'Wooper' },
+  { id: 195, name: 'Quagsire' },
+  { id: 198, name: 'Murkrow' },
+  { id: 199, name: 'Slowking' },
+  { id: 200, name: 'Misdreavus' },
+  { id: 201, name: 'Unown' },
+  { id: 202, name: 'Wobbuffet' },
+  { id: 206, name: 'Dunsparce' },
+  { id: 208, name: 'Steelix' },
+  { id: 211, name: 'Qwilfish' },
+  { id: 212, name: 'Scizor' },
+  { id: 214, name: 'Heracross' },
+  { id: 215, name: 'Sneasel' },
+  { id: 218, name: 'Slugma' },
+  { id: 219, name: 'Magcargo' },
+  { id: 220, name: 'Swinub' },
+  { id: 221, name: 'Piloswine' },
+  { id: 223, name: 'Remoraid' },
+  { id: 224, name: 'Octillery' },
+  { id: 225, name: 'Delibird' },
+  { id: 226, name: 'Mantine' },
+  { id: 227, name: 'Skarmory' },
+  { id: 230, name: 'Kingdra' },
+  { id: 231, name: 'Phanpy' },
+  { id: 232, name: 'Donphan' },
+  { id: 233, name: 'Porygon2' },
+  { id: 236, name: 'Tyrogue' },
+  { id: 237, name: 'Hitmontop' },
+  { id: 238, name: 'Smoochum' },
+  { id: 239, name: 'Elekid' },
+  { id: 240, name: 'Magby' },
+  { id: 242, name: 'Blissey' },
+  { id: 243, name: 'Raikou' },
+  { id: 244, name: 'Entei' },
+  { id: 245, name: 'Suicune' },
+  { id: 246, name: 'Larvitar' },
+  { id: 247, name: 'Pupitar' },
+  { id: 248, name: 'Tyranitar' },
+  { id: 249, name: 'Lugia' },
+  { id: 250, name: 'Ho-Oh' },
+  { id: 298, name: 'Azurill' },
+  { id: 360, name: 'Wynaut' },
+  { id: 386, name: 'Deoxys' },
+]
+
+const pokemonEntries = [
+  ...kantoPokemonNames.map((name, index) => ({
+    id: index + 1,
+    name,
+  })),
+  ...postgamePokemonEntries,
+]
+
+const postgamePokemonIds = new Set(postgamePokemonEntries.map((entry) => entry.id))
+
 const fireRedExclusives = new Set([
   'Ekans',
   'Arbok',
@@ -166,6 +244,15 @@ const fireRedExclusives = new Set([
   'Cloyster',
   'Scyther',
   'Electabuzz',
+  'Bellossom',
+  'Wooper',
+  'Quagsire',
+  'Murkrow',
+  'Qwilfish',
+  'Scizor',
+  'Delibird',
+  'Skarmory',
+  'Elekid',
 ])
 
 const leafGreenExclusives = new Set([
@@ -182,6 +269,16 @@ const leafGreenExclusives = new Set([
   'Starmie',
   'Magmar',
   'Pinsir',
+  'Marill',
+  'Azumarill',
+  'Slowking',
+  'Misdreavus',
+  'Sneasel',
+  'Remoraid',
+  'Octillery',
+  'Mantine',
+  'Magby',
+  'Azurill',
 ])
 
 const starterFamilies = {
@@ -194,6 +291,9 @@ const starterFamilies = {
   Squirtle: 'squirtle',
   Wartortle: 'squirtle',
   Blastoise: 'squirtle',
+  Entei: 'bulbasaur',
+  Suicune: 'charmander',
+  Raikou: 'squirtle',
 }
 
 const fossilFamilies = {
@@ -221,6 +321,21 @@ const tradeEvolutions = new Set([
   'Golem',
 ])
 
+const tradeEvolutionItems = {
+  Politoed: "King's Rock",
+  Slowking: "King's Rock",
+  Steelix: 'Metal Coat',
+  Scizor: 'Metal Coat',
+  Kingdra: 'Dragon Scale',
+  Porygon2: 'Up-Grade',
+}
+
+const friendshipEvolutions = new Set([
+  'Crobat',
+  'Togetic',
+  'Blissey',
+])
+
 const stoneEvolutions = {
   Raichu: 'Thunder Stone',
   Nidoqueen: 'Moon Stone',
@@ -238,6 +353,7 @@ const stoneEvolutions = {
   Vaporeon: 'Water Stone',
   Jolteon: 'Thunder Stone',
   Flareon: 'Fire Stone',
+  Bellossom: 'Sun Stone',
 }
 
 const inGameTrades = {
@@ -300,11 +416,49 @@ const levelEvolutions = {
   Kabutops: 40,
   Dragonair: 30,
   Dragonite: 55,
+  Furret: 15,
+  Ledian: 18,
+  Ariados: 22,
+  Xatu: 25,
+  Azumarill: 18,
+  Hoppip: 18,
+  Skiploom: 18,
+  Jumpluff: 27,
+  Quagsire: 20,
+  Magcargo: 38,
+  Piloswine: 33,
+  Octillery: 25,
+  Donphan: 25,
+  Hitmontop: 20,
+  Wobbuffet: 15,
+  Pupitar: 30,
+  Tyranitar: 55,
 }
 
 const specialComments = {
   Mewtwo: 'Available after postgame content on Sevii Islands',
+  Pichu: 'Requires breeding Pikachu or Raichu at the Four Island Day Care postgame',
+  Cleffa: 'Requires breeding Clefairy or Clefable at the Four Island Day Care postgame',
+  Igglybuff:
+    'Requires breeding Jigglypuff or Wigglytuff at the Four Island Day Care postgame',
+  Togepi: 'Gift egg from Water Labyrinth on Five Island after Hall of Fame',
+  Unown: 'Tanoby Ruins on Seven Island after the Sevii Islands postgame',
+  Tyrogue: 'Requires breeding Hitmonlee or Hitmonchan at the Four Island Day Care postgame',
+  Smoochum: 'Requires breeding Jynx at the Four Island Day Care postgame',
+  Elekid: 'Requires breeding Electabuzz at the Four Island Day Care postgame',
+  Magby: 'Requires breeding Magmar at the Four Island Day Care postgame',
+  Azurill:
+    'Requires breeding Marill or Azumarill holding Sea Incense at the Four Island Day Care postgame',
+  Wynaut:
+    'Requires breeding Wobbuffet holding Lax Incense at the Four Island Day Care postgame',
+  Lugia: 'Requires the postgame Mystic Ticket event',
+  'Ho-Oh': 'Requires the postgame Mystic Ticket event',
+  Deoxys: 'Requires the postgame Aurora Ticket event',
 }
+
+const roamingLegendaries = new Set(['Raikou', 'Entei', 'Suicune'])
+
+const switchEventLegendaries = new Set(['Lugia', 'Ho-Oh', 'Deoxys'])
 
 const evolvesFrom = {
   Ivysaur: 'Bulbasaur',
@@ -379,6 +533,32 @@ const evolvesFrom = {
   Kabutops: 'Kabuto',
   Dragonair: 'Dratini',
   Dragonite: 'Dragonair',
+  Furret: 'Sentret',
+  Ledian: 'Ledyba',
+  Ariados: 'Spinarak',
+  Crobat: 'Golbat',
+  Togetic: 'Togepi',
+  Xatu: 'Natu',
+  Bellossom: 'Gloom',
+  Azumarill: 'Marill',
+  Politoed: 'Poliwhirl',
+  Skiploom: 'Hoppip',
+  Jumpluff: 'Skiploom',
+  Quagsire: 'Wooper',
+  Slowking: 'Slowpoke',
+  Wobbuffet: 'Wynaut',
+  Steelix: 'Onix',
+  Scizor: 'Scyther',
+  Magcargo: 'Slugma',
+  Piloswine: 'Swinub',
+  Octillery: 'Remoraid',
+  Kingdra: 'Seadra',
+  Donphan: 'Phanpy',
+  Porygon2: 'Porygon',
+  Hitmontop: 'Tyrogue',
+  Blissey: 'Chansey',
+  Pupitar: 'Larvitar',
+  Tyranitar: 'Pupitar',
 }
 
 export function slugifyPokemonName(name) {
@@ -386,7 +566,7 @@ export function slugifyPokemonName(name) {
 }
 
 function getAvailability(name, version) {
-  if (name === 'Mew') {
+  if (name === 'Mew' || switchEventLegendaries.has(name)) {
     return version === 'fireRed' || version === 'leafGreen' ? 'event' : 'native'
   }
 
@@ -411,22 +591,35 @@ function getEvolutionBaseName(name) {
   return currentName === name ? null : currentName
 }
 
-export const pokemon = pokemonNames.map((name, index) => ({
-  id: index + 1,
-  name,
-  spriteSlug: slugifyPokemonName(name),
-  fireRedAvailability: getAvailability(name, 'fireRed'),
-  leafGreenAvailability: getAvailability(name, 'leafGreen'),
-  starterFamily: starterFamilies[name] ?? null,
-  fossilFamily: fossilFamilies[name] ?? null,
-  eeveelutionFamily: eeveelutionFamilies[name] ?? null,
-  hitmonFamily: hitmonFamilies[name] ?? null,
-  evolution: Boolean(evolvesFrom[name]),
-  evolvesFrom: evolvesFrom[name] ?? null,
-  evolutionBaseName: getEvolutionBaseName(name),
-  tradeEvolution: tradeEvolutions.has(name),
-  stoneEvolution: stoneEvolutions[name] ?? null,
-  inGameTrade: inGameTrades[name] ?? null,
-  levelEvolution: levelEvolutions[name] ?? null,
-  specialComment: specialComments[name] ?? null,
+export const pokemon = pokemonEntries.map((entry) => ({
+  id: entry.id,
+  name: entry.name,
+  spriteSlug: slugifyPokemonName(entry.name),
+  fireRedAvailability: getAvailability(entry.name, 'fireRed'),
+  leafGreenAvailability: getAvailability(entry.name, 'leafGreen'),
+  starterFamily: starterFamilies[entry.name] ?? null,
+  fossilFamily: fossilFamilies[entry.name] ?? null,
+  eeveelutionFamily: eeveelutionFamilies[entry.name] ?? null,
+  hitmonFamily: hitmonFamilies[entry.name] ?? null,
+  evolution: Boolean(evolvesFrom[entry.name]),
+  evolvesFrom: evolvesFrom[entry.name] ?? null,
+  evolutionBaseName: getEvolutionBaseName(entry.name),
+  tradeEvolution: tradeEvolutions.has(entry.name),
+  tradeEvolutionItem: tradeEvolutionItems[entry.name] ?? null,
+  friendshipEvolution: friendshipEvolutions.has(entry.name),
+  roamingLegendary: roamingLegendaries.has(entry.name),
+  switchEventLegendary: switchEventLegendaries.has(entry.name),
+  stoneEvolution: stoneEvolutions[entry.name] ?? null,
+  inGameTrade: inGameTrades[entry.name] ?? null,
+  levelEvolution: levelEvolutions[entry.name] ?? null,
+  specialComment: specialComments[entry.name] ?? null,
+  baseGameCompleteRequired: postgamePokemonIds.has(entry.id),
 }))
+
+export function isTrackablePokemon(entry, { baseGameComplete = false } = {}) {
+  return baseGameComplete || !entry.baseGameCompleteRequired
+}
+
+export function getTrackablePokemon(options = {}) {
+  return pokemon.filter((entry) => isTrackablePokemon(entry, options))
+}

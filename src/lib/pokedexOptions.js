@@ -36,6 +36,7 @@ export const defaultCelebrationState = {
 export const defaultAppState = {
   tradeMode: false,
   switchEventUnlocks: false,
+  baseGameComplete: false,
   fireRedStarter: '',
   leafGreenStarter: '',
   fireRedFossil: '',

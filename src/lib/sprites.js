@@ -1,4 +1,4 @@
-import { pokemon } from '../data/pokemon'
+import { getTrackablePokemon } from '../data/pokemon'
 
 const baseUrl = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
@@ -8,8 +8,8 @@ export function getSpriteSrc(spriteSlug) {
   return `${baseUrl}pokemon-sprites/${spriteSlug}.png`
 }
 
-export function createFullDexCelebration() {
-  return pokemon.map((entry, index) => ({
+export function createFullDexCelebration(options = {}) {
+  return getTrackablePokemon(options).map((entry, index) => ({
     id: `${Date.now()}-${entry.id}-${index}`,
     src: getSpriteSrc(entry.spriteSlug),
     size: `${44 + Math.random() * 34}px`,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { pokemon } from './data/pokemon'
+import { getTrackablePokemon } from './data/pokemon'
 import AccountPanel from './components/AccountPanel'
 import CelebrationLayer from './components/CelebrationLayer'
 import ChoicePanel from './components/ChoicePanel'
@@ -31,6 +31,8 @@ function App() {
     setTradeMode,
     switchEventUnlocks,
     setSwitchEventUnlocks,
+    baseGameComplete,
+    setBaseGameComplete,
     fireRedStarter,
     setFireRedStarter,
     leafGreenStarter,
@@ -68,7 +70,9 @@ function App() {
     removeCollaboratorFromActiveSave,
   } = usePokedexState()
 
-  const visiblePokemon = pokemon.filter((entry) => {
+  const trackablePokemon = getTrackablePokemon({ baseGameComplete })
+
+  const visiblePokemon = trackablePokemon.filter((entry) => {
     const pokemonId = String(entry.id).padStart(3, '0')
     const caughtByBoth =
       Boolean(checkboxState[`fire-red-${pokemonId}`]) &&
@@ -190,6 +194,8 @@ function App() {
             <ChoicePanel
               switchEventUnlocks={switchEventUnlocks}
               setSwitchEventUnlocks={setSwitchEventUnlocks}
+              baseGameComplete={baseGameComplete}
+              setBaseGameComplete={setBaseGameComplete}
               fireRedStarter={fireRedStarter}
               setFireRedStarter={setFireRedStarter}
               fireRedFossil={fireRedFossil}

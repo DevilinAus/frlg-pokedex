@@ -10,6 +10,7 @@ export function sanitizeTrackerState(input) {
   return {
     tradeMode: Boolean(input?.tradeMode),
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
+    baseGameComplete: Boolean(input?.baseGameComplete),
     fireRedStarter: sanitizeText(
       input?.fireRedStarter,
       defaultAppState.fireRedStarter,
@@ -99,6 +100,7 @@ export function hasMeaningfulTrackerState(state) {
   return (
     safeState.tradeMode ||
     safeState.switchEventUnlocks ||
+    safeState.baseGameComplete ||
     safeState.fireRedStarter !== defaultAppState.fireRedStarter ||
     safeState.leafGreenStarter !== defaultAppState.leafGreenStarter ||
     safeState.fireRedFossil !== defaultAppState.fireRedFossil ||

@@ -171,6 +171,8 @@ function ChoicePanel(props) {
   const {
     switchEventUnlocks,
     setSwitchEventUnlocks,
+    baseGameComplete,
+    setBaseGameComplete,
     fireRedStarter,
     setFireRedStarter,
     fireRedFossil,
@@ -205,28 +207,58 @@ function ChoicePanel(props) {
 
         <div className="choice-panel-grid">
           <section className="choice-card choice-card-shared">
-            <div className="choice-panel-toggle">
-              <div className="choice-panel-toggle-copy">
-                <span className="choice-panel-toggle-heading">
-                  <span className="choice-panel-toggle-title">Switch event unlocks</span>
-                  <InfoPopover label="About Switch event unlocks">
-                    Hall of Fame unlocks the Mystic Ticket and Aurora Ticket,
-                    letting you catch Lugia, Ho-Oh, and Deoxys. Mew is still not
-                    catchable in FireRed/LeafGreen.
-                  </InfoPopover>
-                </span>
-                <span className="choice-panel-toggle-text">
-                  Tick this if you are playing the 2026 Switch release.
-                </span>
+            <div className="choice-panel-toggle-grid">
+              <div className="choice-panel-toggle-card">
+                <div className="choice-panel-toggle">
+                  <div className="choice-panel-toggle-row">
+                    <span className="choice-panel-toggle-heading">
+                      <span className="choice-panel-toggle-title">Switch event unlocks</span>
+                      <InfoPopover label="About Switch event unlocks">
+                        Hall of Fame unlocks the Mystic Ticket and Aurora Ticket,
+                        letting you catch Lugia, Ho-Oh, and Deoxys. Mew is still not
+                        catchable in FireRed/LeafGreen.
+                      </InfoPopover>
+                    </span>
+                    <label className="choice-panel-toggle-input" htmlFor="switch-event-unlocks">
+                      <input
+                        id="switch-event-unlocks"
+                        type="checkbox"
+                        checked={switchEventUnlocks}
+                        onChange={(event) => setSwitchEventUnlocks(event.target.checked)}
+                      />
+                    </label>
+                  </div>
+                  <span className="choice-panel-toggle-text">
+                    Tick this if you are playing the 2026 Switch release.
+                  </span>
+                </div>
               </div>
-              <label className="choice-panel-toggle-input" htmlFor="switch-event-unlocks">
-                <input
-                  id="switch-event-unlocks"
-                  type="checkbox"
-                  checked={switchEventUnlocks}
-                  onChange={(event) => setSwitchEventUnlocks(event.target.checked)}
-                />
-              </label>
+
+              <div className="choice-panel-toggle-card">
+                <div className="choice-panel-toggle">
+                  <div className="choice-panel-toggle-row">
+                    <span className="choice-panel-toggle-heading">
+                      <span className="choice-panel-toggle-title">Base game complete</span>
+                      <InfoPopover label="About base game complete">
+                        Shows the post-Elite Four National Dex Pokemon that unlock
+                        through the Sevii Islands postgame, breeding, roaming
+                        legendaries, and event tickets.
+                      </InfoPopover>
+                    </span>
+                    <label className="choice-panel-toggle-input" htmlFor="base-game-complete">
+                      <input
+                        id="base-game-complete"
+                        type="checkbox"
+                        checked={baseGameComplete}
+                        onChange={(event) => setBaseGameComplete(event.target.checked)}
+                      />
+                    </label>
+                  </div>
+                  <span className="choice-panel-toggle-text">
+                    Tick this once you want to track the postgame roster too.
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
 

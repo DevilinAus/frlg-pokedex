@@ -1,4 +1,4 @@
-import { pokemon } from '../data/pokemon'
+import { getTrackablePokemon } from '../data/pokemon'
 import { starterLabels } from './pokedexOptions'
 
 export function isLockedByStarterChoice(entry, selectedStarter) {
@@ -82,6 +82,31 @@ export function getComment(
       : 'Not catchable in FireRed/LeafGreen'
   }
 
+  if (entry.switchEventLegendary) {
+    if (entry.name === 'Deoxys') {
+      return switchEventUnlocks
+        ? 'Switch unlocks Aurora Ticket after Hall of Fame'
+        : 'Requires the Aurora Ticket event after Hall of Fame'
+    }
+
+    return switchEventUnlocks
+      ? 'Switch unlocks Mystic Ticket after Hall of Fame'
+      : 'Requires the Mystic Ticket event after Hall of Fame'
+  }
+
+  if (
+    entry.roamingLegendary &&
+    bothStartersChosen &&
+    entry.starterFamily !== fireRedStarter &&
+    entry.starterFamily !== leafGreenStarter
+  ) {
+    return 'Requires trade from fresh game on new profile'
+  }
+
+  if (entry.roamingLegendary) {
+    return 'One roaming beast appears per save after the Sevii Islands postgame'
+  }
+
   if (entry.specialComment) {
     return entry.specialComment
   }
@@ -90,8 +115,16 @@ export function getComment(
     return entry.inGameTrade
   }
 
+  if (entry.tradeEvolutionItem && entry.evolvesFrom) {
+    return `Trade ${entry.evolvesFrom} holding ${entry.tradeEvolutionItem} to evolve it`
+  }
+
   if (entry.tradeEvolution && entry.evolvesFrom) {
     return `Trade ${entry.evolvesFrom} to evolve it`
+  }
+
+  if (entry.friendshipEvolution && entry.evolvesFrom) {
+    return `Level up ${entry.evolvesFrom} with high friendship`
   }
 
   if (
@@ -167,8 +200,8 @@ export function getPokemonDbUrl(entry) {
   return `https://pokemondb.net/pokedex/${entry.spriteSlug}#dex-locations`
 }
 
-export function hasCompletedDex(checkboxState, versionKey) {
-  return pokemon.every((entry) =>
+export function hasCompletedDex(checkboxState, versionKey, options = {}) {
+  return getTrackablePokemon(options).every((entry) =>
     Boolean(checkboxState[`${versionKey}-${String(entry.id).padStart(3, '0')}`]),
   )
 }

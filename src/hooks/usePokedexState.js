@@ -48,6 +48,9 @@ function usePokedexState() {
   const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
     defaultAppState.switchEventUnlocks,
   )
+  const [baseGameComplete, setBaseGameComplete] = useState(
+    defaultAppState.baseGameComplete,
+  )
   const [fireRedStarter, setFireRedStarter] = useState(defaultAppState.fireRedStarter)
   const [leafGreenStarter, setLeafGreenStarter] = useState(defaultAppState.leafGreenStarter)
   const [fireRedFossil, setFireRedFossil] = useState(defaultAppState.fireRedFossil)
@@ -108,6 +111,7 @@ function usePokedexState() {
     return sanitizeTrackerState({
       tradeMode,
       switchEventUnlocks,
+      baseGameComplete,
       fireRedStarter,
       leafGreenStarter,
       fireRedFossil,
@@ -130,6 +134,10 @@ function usePokedexState() {
 
     if (nextState.switchEventUnlocks !== baseState.switchEventUnlocks) {
       patch.switchEventUnlocks = nextState.switchEventUnlocks
+    }
+
+    if (nextState.baseGameComplete !== baseState.baseGameComplete) {
+      patch.baseGameComplete = nextState.baseGameComplete
     }
 
     if (nextState.fireRedStarter !== baseState.fireRedStarter) {
@@ -220,6 +228,7 @@ function usePokedexState() {
 
     setTradeMode(state.tradeMode)
     setSwitchEventUnlocks(state.switchEventUnlocks)
+    setBaseGameComplete(state.baseGameComplete)
     setFireRedStarter(state.fireRedStarter)
     setLeafGreenStarter(state.leafGreenStarter)
     setFireRedFossil(state.fireRedFossil)
@@ -457,6 +466,7 @@ function usePokedexState() {
     }
   }, [
     activeSaveId,
+    baseGameComplete,
     celebrationState,
     checkboxState,
     fireRedEeveelution,
@@ -477,11 +487,15 @@ function usePokedexState() {
       return
     }
 
-    const fireRedComplete = hasCompletedDex(checkboxState, 'fire-red')
-    const leafGreenComplete = hasCompletedDex(checkboxState, 'leaf-green')
+    const fireRedComplete = hasCompletedDex(checkboxState, 'fire-red', {
+      baseGameComplete,
+    })
+    const leafGreenComplete = hasCompletedDex(checkboxState, 'leaf-green', {
+      baseGameComplete,
+    })
 
     if (fireRedComplete && !celebrationState.fireRedCompleteCelebrated) {
-      setSpriteFlood(createFullDexCelebration())
+      setSpriteFlood(createFullDexCelebration({ baseGameComplete }))
       window.clearTimeout(floodTimeout.current)
       floodTimeout.current = window.setTimeout(() => {
         setSpriteFlood([])
@@ -495,7 +509,7 @@ function usePokedexState() {
     }
 
     if (leafGreenComplete && !celebrationState.leafGreenCompleteCelebrated) {
-      setSpriteFlood(createFullDexCelebration())
+      setSpriteFlood(createFullDexCelebration({ baseGameComplete }))
       window.clearTimeout(floodTimeout.current)
       floodTimeout.current = window.setTimeout(() => {
         setSpriteFlood([])
@@ -506,7 +520,7 @@ function usePokedexState() {
         leafGreenCompleteCelebrated: true,
       }))
     }
-  }, [celebrationState, checkboxState])
+  }, [baseGameComplete, celebrationState, checkboxState])
 
   useEffect(() => {
     if (!hasLoadedState.current || mode !== 'cloud' || isApplyingRemoteState.current) {
@@ -519,10 +533,12 @@ function usePokedexState() {
   }, [
     celebrationState,
     checkboxState,
+    baseGameComplete,
     fireRedEeveelution,
     fireRedFossil,
     fireRedHitmon,
     fireRedStarter,
+    baseGameComplete,
     leafGreenEeveelution,
     leafGreenFossil,
     leafGreenHitmon,
@@ -627,6 +643,11 @@ function usePokedexState() {
   function updateSwitchEventUnlocks(nextValue) {
     markCloudStateDirty()
     setSwitchEventUnlocks(nextValue)
+  }
+
+  function updateBaseGameComplete(nextValue) {
+    markCloudStateDirty()
+    setBaseGameComplete(nextValue)
   }
 
   function updateFireRedStarter(nextValue) {
@@ -837,6 +858,8 @@ function usePokedexState() {
     setTradeMode: updateTradeMode,
     switchEventUnlocks,
     setSwitchEventUnlocks: updateSwitchEventUnlocks,
+    baseGameComplete,
+    setBaseGameComplete: updateBaseGameComplete,
     fireRedStarter,
     setFireRedStarter: updateFireRedStarter,
     leafGreenStarter,
