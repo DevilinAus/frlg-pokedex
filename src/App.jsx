@@ -18,7 +18,8 @@ const showOptions = [
 function App() {
   const [showFilter, setShowFilter] = useState('all')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const settingsRef = useRef(null)
+  const settingsTriggerRef = useRef(null)
+  const settingsPopoverRef = useRef(null)
   const {
     mode,
     currentUser,
@@ -88,7 +89,10 @@ function App() {
     }
 
     function handlePointerDown(event) {
-      if (!settingsRef.current?.contains(event.target)) {
+      const clickedTrigger = settingsTriggerRef.current?.contains(event.target)
+      const clickedPopover = settingsPopoverRef.current?.contains(event.target)
+
+      if (!clickedTrigger && !clickedPopover) {
         setSettingsOpen(false)
       }
     }
@@ -120,9 +124,10 @@ function App() {
             <p className="intro">A shared tracker for two players.</p>
           </div>
 
-          <div className="hero-settings" ref={settingsRef}>
+          <div className="hero-settings">
             <button
               type="button"
+              ref={settingsTriggerRef}
               className={`hero-settings-trigger ${settingsOpen ? 'hero-settings-trigger-open' : ''}`}
               aria-expanded={settingsOpen}
               aria-label="Open account and cloud save settings"
@@ -132,8 +137,8 @@ function App() {
                 {mode === 'loading'
                   ? 'Loading'
                   : mode === 'guest'
-                    ? 'Guest Mode'
-                    : 'Cloud Mode'}
+                    ? 'LOCAL STORAGE'
+                    : 'CLOUD SAVE'}
               </span>
               <span className="hero-settings-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -145,7 +150,7 @@ function App() {
             </button>
 
             {settingsOpen ? (
-              <div className="hero-settings-popover">
+              <div className="hero-settings-popover" ref={settingsPopoverRef}>
                 <AccountPanel
                   mode={mode}
                   currentUser={currentUser}
