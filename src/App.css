@@ -708,8 +708,8 @@ button,
 
 .choice-panel-toggle-heading {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -750,40 +750,37 @@ button,
 
 .choice-panel-info {
   position: relative;
+  display: inline-block;
+  line-height: 1;
 }
 
 .choice-panel-info-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   padding: 0;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.34);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 0;
+  background: transparent;
   color: #475569;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
   cursor: pointer;
+  transform: translateY(-0.42em);
   transition:
-    border-color 0.18s ease,
     color 0.18s ease,
-    box-shadow 0.18s ease,
     transform 0.18s ease;
 }
 
 .choice-panel-info-button:hover,
 .choice-panel-info-button:focus-visible,
 .choice-panel-info-button[aria-expanded='true'] {
-  border-color: rgba(59, 130, 246, 0.34);
   color: #1d4ed8;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
-  transform: translateY(-1px);
+  transform: translateY(calc(-0.42em - 1px));
 }
 
 .choice-panel-info-button svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   stroke: currentColor;
   stroke-width: 1.8;
 }
