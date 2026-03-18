@@ -318,6 +318,133 @@ function sanitizeTrackerState(input) {
   }
 }
 
+function sanitizeTrackerPatch(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return null
+  }
+
+  const patch = {}
+
+  if (Object.hasOwn(input, 'tradeMode')) {
+    patch.tradeMode = Boolean(input.tradeMode)
+  }
+
+  if (Object.hasOwn(input, 'fireRedStarter')) {
+    patch.fireRedStarter = sanitizeText(
+      input.fireRedStarter,
+      defaultTrackerState.fireRedStarter,
+    )
+  }
+
+  if (Object.hasOwn(input, 'leafGreenStarter')) {
+    patch.leafGreenStarter = sanitizeText(
+      input.leafGreenStarter,
+      defaultTrackerState.leafGreenStarter,
+    )
+  }
+
+  if (Object.hasOwn(input, 'fireRedFossil')) {
+    patch.fireRedFossil = sanitizeText(
+      input.fireRedFossil,
+      defaultTrackerState.fireRedFossil,
+    )
+  }
+
+  if (Object.hasOwn(input, 'leafGreenFossil')) {
+    patch.leafGreenFossil = sanitizeText(
+      input.leafGreenFossil,
+      defaultTrackerState.leafGreenFossil,
+    )
+  }
+
+  if (Object.hasOwn(input, 'fireRedEeveelution')) {
+    patch.fireRedEeveelution = sanitizeText(
+      input.fireRedEeveelution,
+      defaultTrackerState.fireRedEeveelution,
+    )
+  }
+
+  if (Object.hasOwn(input, 'leafGreenEeveelution')) {
+    patch.leafGreenEeveelution = sanitizeText(
+      input.leafGreenEeveelution,
+      defaultTrackerState.leafGreenEeveelution,
+    )
+  }
+
+  if (Object.hasOwn(input, 'fireRedHitmon')) {
+    patch.fireRedHitmon = sanitizeText(
+      input.fireRedHitmon,
+      defaultTrackerState.fireRedHitmon,
+    )
+  }
+
+  if (Object.hasOwn(input, 'leafGreenHitmon')) {
+    patch.leafGreenHitmon = sanitizeText(
+      input.leafGreenHitmon,
+      defaultTrackerState.leafGreenHitmon,
+    )
+  }
+
+  if (
+    Object.hasOwn(input, 'checkboxState') &&
+    input.checkboxState &&
+    typeof input.checkboxState === 'object' &&
+    !Array.isArray(input.checkboxState)
+  ) {
+    patch.checkboxState = Object.fromEntries(
+      Object.entries(input.checkboxState)
+        .filter(([key]) => typeof key === 'string')
+        .map(([key, value]) => [key, Boolean(value)]),
+    )
+  }
+
+  if (
+    Object.hasOwn(input, 'celebrationState') &&
+    input.celebrationState &&
+    typeof input.celebrationState === 'object' &&
+    !Array.isArray(input.celebrationState)
+  ) {
+    patch.celebrationState = {}
+
+    if (Object.hasOwn(input.celebrationState, 'fireRedCompleteCelebrated')) {
+      patch.celebrationState.fireRedCompleteCelebrated = Boolean(
+        input.celebrationState.fireRedCompleteCelebrated,
+      )
+    }
+
+    if (Object.hasOwn(input.celebrationState, 'leafGreenCompleteCelebrated')) {
+      patch.celebrationState.leafGreenCompleteCelebrated = Boolean(
+        input.celebrationState.leafGreenCompleteCelebrated,
+      )
+    }
+  }
+
+  return patch
+}
+
+function mergeTrackerPatch(currentState, patch) {
+  if (!patch) {
+    return sanitizeTrackerState(currentState)
+  }
+
+  return sanitizeTrackerState({
+    ...currentState,
+    ...patch,
+    checkboxState: patch.checkboxState
+      ? {
+          ...currentState.checkboxState,
+          ...patch.checkboxState,
+        }
+      : currentState.checkboxState,
+    celebrationState: patch.celebrationState
+      ? {
+          ...currentState.celebrationState,
+          ...patch.celebrationState,
+        }
+      : currentState.celebrationState,
+  })
+}
+
 function hashShareCode(shareCode) {
   return crypto.createHash('sha256').update(shareCode).digest('hex')
 }
@@ -651,6 +778,39 @@ app.put('/api/saves/:saveId/state', requireAuth, (req, res) => {
       ...buildSaveSummary(refreshedSave),
       canManage: refreshedSave.role === 'owner',
     },
+    state,
+  })
+})
+
+app.patch('/api/saves/:saveId/state', requireAuth, (req, res) => {
+  const saveId = Number(req.params.saveId)
+  const save = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  if (!save) {
+    res.status(404).json({ error: 'Save not found.' })
+    return
+  }
+
+  const patch = sanitizeTrackerPatch(req.body?.patch)
+  const stateRow = findSaveState.get(saveId)
+  const currentState = stateRow ? JSON.parse(stateRow.stateJson) : defaultTrackerState
+  const nextState = mergeTrackerPatch(currentState, patch)
+
+  updateSaveState.run({
+    saveId,
+    stateJson: JSON.stringify(nextState),
+    updatedByUserId: req.currentUser.id,
+  })
+  touchSave.run(saveId)
+  const refreshedSave = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  res.json({
+    ok: true,
+    save: {
+      ...buildSaveSummary(refreshedSave),
+      canManage: refreshedSave.role === 'owner',
+    },
+    state: nextState,
   })
 })
 

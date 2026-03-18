@@ -70,6 +70,7 @@ function usePokedexState() {
   const hasUnsavedCloudChanges = useRef(false)
   const isCloudSaving = useRef(false)
   const isApplyingRemoteState = useRef(false)
+  const cloudBaselineState = useRef(sanitizeTrackerState(defaultAppState))
   const jumpTimeouts = useRef({})
   const floodTimeout = useRef(null)
 
@@ -107,12 +108,97 @@ function usePokedexState() {
     })
   }
 
+  function buildTrackerPatch(nextState, baseState) {
+    const patch = {}
+
+    if (nextState.tradeMode !== baseState.tradeMode) {
+      patch.tradeMode = nextState.tradeMode
+    }
+
+    if (nextState.fireRedStarter !== baseState.fireRedStarter) {
+      patch.fireRedStarter = nextState.fireRedStarter
+    }
+
+    if (nextState.leafGreenStarter !== baseState.leafGreenStarter) {
+      patch.leafGreenStarter = nextState.leafGreenStarter
+    }
+
+    if (nextState.fireRedFossil !== baseState.fireRedFossil) {
+      patch.fireRedFossil = nextState.fireRedFossil
+    }
+
+    if (nextState.leafGreenFossil !== baseState.leafGreenFossil) {
+      patch.leafGreenFossil = nextState.leafGreenFossil
+    }
+
+    if (nextState.fireRedEeveelution !== baseState.fireRedEeveelution) {
+      patch.fireRedEeveelution = nextState.fireRedEeveelution
+    }
+
+    if (nextState.leafGreenEeveelution !== baseState.leafGreenEeveelution) {
+      patch.leafGreenEeveelution = nextState.leafGreenEeveelution
+    }
+
+    if (nextState.fireRedHitmon !== baseState.fireRedHitmon) {
+      patch.fireRedHitmon = nextState.fireRedHitmon
+    }
+
+    if (nextState.leafGreenHitmon !== baseState.leafGreenHitmon) {
+      patch.leafGreenHitmon = nextState.leafGreenHitmon
+    }
+
+    const checkboxPatch = {}
+    const checkboxKeys = new Set([
+      ...Object.keys(baseState.checkboxState),
+      ...Object.keys(nextState.checkboxState),
+    ])
+
+    checkboxKeys.forEach((key) => {
+      const nextValue = Boolean(nextState.checkboxState[key])
+      const baseValue = Boolean(baseState.checkboxState[key])
+
+      if (nextValue !== baseValue) {
+        checkboxPatch[key] = nextValue
+      }
+    })
+
+    if (Object.keys(checkboxPatch).length > 0) {
+      patch.checkboxState = checkboxPatch
+    }
+
+    const celebrationPatch = {}
+
+    if (
+      nextState.celebrationState.fireRedCompleteCelebrated !==
+      baseState.celebrationState.fireRedCompleteCelebrated
+    ) {
+      celebrationPatch.fireRedCompleteCelebrated =
+        nextState.celebrationState.fireRedCompleteCelebrated
+    }
+
+    if (
+      nextState.celebrationState.leafGreenCompleteCelebrated !==
+      baseState.celebrationState.leafGreenCompleteCelebrated
+    ) {
+      celebrationPatch.leafGreenCompleteCelebrated =
+        nextState.celebrationState.leafGreenCompleteCelebrated
+    }
+
+    if (Object.keys(celebrationPatch).length > 0) {
+      patch.celebrationState = celebrationPatch
+    }
+
+    return Object.keys(patch).length > 0 ? patch : null
+  }
+
   function applyTrackerState(nextState, options = {}) {
     const state = sanitizeTrackerState(nextState)
     const { fromRemote = false } = options
 
     if (fromRemote) {
       isApplyingRemoteState.current = true
+      cloudBaselineState.current = state
+      hasUnsavedCloudChanges.current = false
     }
 
     setTradeMode(state.tradeMode)
@@ -182,6 +268,9 @@ function usePokedexState() {
     setGeneratedShareCode('')
     setShareError('')
     applyTrackerState(loadGuestTrackerState())
+    cloudBaselineState.current = sanitizeTrackerState(defaultAppState)
+    hasUnsavedCloudChanges.current = false
+    isCloudSaving.current = false
     hasLoadedState.current = true
     setSaveError('')
   }
@@ -280,14 +369,23 @@ function usePokedexState() {
         if (mode === 'guest') {
           saveGuestTrackerState(state)
         } else if (mode === 'cloud' && activeSaveId) {
+          const patch = buildTrackerPatch(state, cloudBaselineState.current)
+
+          if (!patch) {
+            hasUnsavedCloudChanges.current = false
+            setSaveError('')
+            return
+          }
+
           isCloudSaving.current = true
           const response = await requestJson(`/api/saves/${activeSaveId}/state`, {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify({
-              state,
+              patch,
             }),
           })
           applyRemoteSaveMeta(response.save)
+          applyTrackerState(response.state, { fromRemote: true })
           hasUnsavedCloudChanges.current = false
           isCloudSaving.current = false
         }
@@ -363,7 +461,9 @@ function usePokedexState() {
       return
     }
 
-    hasUnsavedCloudChanges.current = true
+    hasUnsavedCloudChanges.current = Boolean(
+      buildTrackerPatch(getTrackerState(), cloudBaselineState.current),
+    )
   }, [
     celebrationState,
     checkboxState,
@@ -427,10 +527,6 @@ function usePokedexState() {
   }, [activeSaveId, mode])
 
   function updateCheckboxState(key, checked) {
-    if (mode === 'cloud') {
-      hasUnsavedCloudChanges.current = true
-    }
-
     setCheckboxState((currentState) => ({
       ...currentState,
       [key]: checked,
