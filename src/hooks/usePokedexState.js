@@ -29,7 +29,9 @@ async function requestJson(url, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(payload?.error || 'Something went wrong.')
+    const error = new Error(payload?.error || 'Something went wrong.')
+    error.status = response.status
+    throw error
   }
 
   return payload
@@ -70,6 +72,7 @@ function usePokedexState() {
   const hasUnsavedCloudChanges = useRef(false)
   const isCloudSaving = useRef(false)
   const isApplyingRemoteState = useRef(false)
+  const isRecoveringCloudAccess = useRef(false)
   const cloudBaselineState = useRef(sanitizeTrackerState(defaultAppState))
   const jumpTimeouts = useRef({})
   const floodTimeout = useRef(null)
@@ -341,6 +344,31 @@ function usePokedexState() {
     }
   }
 
+  async function recoverFromLostCloudAccess() {
+    if (isRecoveringCloudAccess.current) {
+      return
+    }
+
+    isRecoveringCloudAccess.current = true
+
+    try {
+      await hydrateAuthenticatedMode({
+        suppressConflictPrompt: true,
+      })
+      setGeneratedShareCode('')
+      setShareError('')
+      setSaveError('')
+      setAuthNotice(
+        'Your access to that shared save was removed. We refreshed your available saves.',
+      )
+    } catch (error) {
+      console.error(error)
+      setSaveError('Your shared save access changed and the app could not refresh cleanly.')
+    } finally {
+      isRecoveringCloudAccess.current = false
+    }
+  }
+
   useEffect(() => {
     hydrateAuthenticatedMode().catch((error) => {
       console.error(error)
@@ -391,8 +419,16 @@ function usePokedexState() {
         }
 
         setSaveError('')
-      } catch {
+      } catch (error) {
         isCloudSaving.current = false
+
+        if (mode === 'cloud' && (error?.status === 401 || error?.status === 404)) {
+          recoverFromLostCloudAccess().catch((recoveryError) => {
+            console.error(recoveryError)
+          })
+          return
+        }
+
         setSaveError(
           mode === 'guest'
             ? 'Could not save guest progress'
@@ -513,11 +549,23 @@ function usePokedexState() {
 
     syncRemoteState().catch((error) => {
       console.error(error)
+
+      if (error?.status === 401 || error?.status === 404) {
+        recoverFromLostCloudAccess().catch((recoveryError) => {
+          console.error(recoveryError)
+        })
+      }
     })
 
     const intervalId = window.setInterval(() => {
       syncRemoteState().catch((error) => {
         console.error(error)
+
+        if (error?.status === 401 || error?.status === 404) {
+          recoverFromLostCloudAccess().catch((recoveryError) => {
+            console.error(recoveryError)
+          })
+        }
       })
     }, 4000)
 
