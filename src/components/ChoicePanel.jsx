@@ -1,9 +1,91 @@
+import { useEffect, useId, useRef, useState } from 'react'
+
 import {
   eeveelutionOptions,
   fossilOptions,
   hitmonOptions,
   starterOptions,
 } from '../lib/pokedexOptions'
+
+function InfoPopover({ label, children }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const wrapperRef = useRef(null)
+  const buttonRef = useRef(null)
+  const popoverRef = useRef(null)
+  const popoverId = useId()
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    function handlePointerDown(event) {
+      const clickedButton = buttonRef.current?.contains(event.target)
+      const clickedPopover = popoverRef.current?.contains(event.target)
+
+      if (!clickedButton && !clickedPopover) {
+        setIsOpen(false)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+        buttonRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  return (
+    <span
+      ref={wrapperRef}
+      className="choice-panel-info"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        className="choice-panel-info-button"
+        aria-label={label}
+        aria-describedby={isOpen ? popoverId : undefined}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((currentState) => !currentState)}
+        onFocus={() => setIsOpen(true)}
+        onBlur={(event) => {
+          if (!wrapperRef.current?.contains(event.relatedTarget)) {
+            setIsOpen(false)
+          }
+        }}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <circle cx="10" cy="10" r="8.25" fill="none" />
+          <path d="M10 8.2v4.4" />
+          <circle cx="10" cy="5.8" r="0.7" fill="currentColor" stroke="none" />
+        </svg>
+      </button>
+
+      {isOpen ? (
+        <span
+          ref={popoverRef}
+          id={popoverId}
+          role="tooltip"
+          className="choice-panel-info-popover"
+        >
+          {children}
+        </span>
+      ) : null}
+    </span>
+  )
+}
 
 function ChoiceSelect({
   label,
@@ -87,6 +169,8 @@ function VersionChoiceCard({
 
 function ChoicePanel(props) {
   const {
+    switchEventUnlocks,
+    setSwitchEventUnlocks,
     fireRedStarter,
     setFireRedStarter,
     fireRedFossil,
@@ -120,6 +204,32 @@ function ChoicePanel(props) {
         <p className="choice-panel-open-note">One-off choices for each version</p>
 
         <div className="choice-panel-grid">
+          <section className="choice-card choice-card-shared">
+            <div className="choice-panel-toggle">
+              <div className="choice-panel-toggle-copy">
+                <span className="choice-panel-toggle-heading">
+                  <span className="choice-panel-toggle-title">Switch event unlocks</span>
+                  <InfoPopover label="About Switch event unlocks">
+                    Hall of Fame unlocks the Mystic Ticket and Aurora Ticket,
+                    letting you catch Lugia, Ho-Oh, and Deoxys. Mew is still not
+                    catchable in FireRed/LeafGreen.
+                  </InfoPopover>
+                </span>
+                <span className="choice-panel-toggle-text">
+                  Tick this if you are playing the 2026 Switch release.
+                </span>
+              </div>
+              <label className="choice-panel-toggle-input" htmlFor="switch-event-unlocks">
+                <input
+                  id="switch-event-unlocks"
+                  type="checkbox"
+                  checked={switchEventUnlocks}
+                  onChange={(event) => setSwitchEventUnlocks(event.target.checked)}
+                />
+              </label>
+            </div>
+          </section>
+
           <VersionChoiceCard
             title="Fire Red"
             starter={fireRedStarter}

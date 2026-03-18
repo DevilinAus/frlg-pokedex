@@ -45,6 +45,9 @@ function usePokedexState() {
   const [activeSave, setActiveSave] = useState(null)
   const [collaborators, setCollaborators] = useState([])
   const [tradeMode, setTradeMode] = useState(defaultAppState.tradeMode)
+  const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
+    defaultAppState.switchEventUnlocks,
+  )
   const [fireRedStarter, setFireRedStarter] = useState(defaultAppState.fireRedStarter)
   const [leafGreenStarter, setLeafGreenStarter] = useState(defaultAppState.leafGreenStarter)
   const [fireRedFossil, setFireRedFossil] = useState(defaultAppState.fireRedFossil)
@@ -77,6 +80,12 @@ function usePokedexState() {
   const jumpTimeouts = useRef({})
   const floodTimeout = useRef(null)
 
+  function markCloudStateDirty() {
+    if (mode === 'cloud' && !isApplyingRemoteState.current) {
+      hasUnsavedCloudChanges.current = true
+    }
+  }
+
   function updateAccessibleSaveSummary(nextSave) {
     setAccessibleSaves((currentSaves) =>
       currentSaves.map((save) =>
@@ -98,6 +107,7 @@ function usePokedexState() {
   function getTrackerState() {
     return sanitizeTrackerState({
       tradeMode,
+      switchEventUnlocks,
       fireRedStarter,
       leafGreenStarter,
       fireRedFossil,
@@ -116,6 +126,10 @@ function usePokedexState() {
 
     if (nextState.tradeMode !== baseState.tradeMode) {
       patch.tradeMode = nextState.tradeMode
+    }
+
+    if (nextState.switchEventUnlocks !== baseState.switchEventUnlocks) {
+      patch.switchEventUnlocks = nextState.switchEventUnlocks
     }
 
     if (nextState.fireRedStarter !== baseState.fireRedStarter) {
@@ -205,6 +219,7 @@ function usePokedexState() {
     }
 
     setTradeMode(state.tradeMode)
+    setSwitchEventUnlocks(state.switchEventUnlocks)
     setFireRedStarter(state.fireRedStarter)
     setLeafGreenStarter(state.leafGreenStarter)
     setFireRedFossil(state.fireRedFossil)
@@ -453,6 +468,7 @@ function usePokedexState() {
     leafGreenHitmon,
     leafGreenStarter,
     mode,
+    switchEventUnlocks,
     tradeMode,
   ])
 
@@ -512,6 +528,7 @@ function usePokedexState() {
     leafGreenHitmon,
     leafGreenStarter,
     mode,
+    switchEventUnlocks,
     tradeMode,
   ])
 
@@ -575,6 +592,8 @@ function usePokedexState() {
   }, [activeSaveId, mode])
 
   function updateCheckboxState(key, checked) {
+    markCloudStateDirty()
+
     setCheckboxState((currentState) => ({
       ...currentState,
       [key]: checked,
@@ -598,6 +617,56 @@ function usePokedexState() {
         [pokemonId]: false,
       }))
     }, 700)
+  }
+
+  function updateTradeMode(nextValue) {
+    markCloudStateDirty()
+    setTradeMode(nextValue)
+  }
+
+  function updateSwitchEventUnlocks(nextValue) {
+    markCloudStateDirty()
+    setSwitchEventUnlocks(nextValue)
+  }
+
+  function updateFireRedStarter(nextValue) {
+    markCloudStateDirty()
+    setFireRedStarter(nextValue)
+  }
+
+  function updateLeafGreenStarter(nextValue) {
+    markCloudStateDirty()
+    setLeafGreenStarter(nextValue)
+  }
+
+  function updateFireRedFossil(nextValue) {
+    markCloudStateDirty()
+    setFireRedFossil(nextValue)
+  }
+
+  function updateLeafGreenFossil(nextValue) {
+    markCloudStateDirty()
+    setLeafGreenFossil(nextValue)
+  }
+
+  function updateFireRedEeveelution(nextValue) {
+    markCloudStateDirty()
+    setFireRedEeveelution(nextValue)
+  }
+
+  function updateLeafGreenEeveelution(nextValue) {
+    markCloudStateDirty()
+    setLeafGreenEeveelution(nextValue)
+  }
+
+  function updateFireRedHitmon(nextValue) {
+    markCloudStateDirty()
+    setFireRedHitmon(nextValue)
+  }
+
+  function updateLeafGreenHitmon(nextValue) {
+    markCloudStateDirty()
+    setLeafGreenHitmon(nextValue)
   }
 
   async function signUp(username, password) {
@@ -765,23 +834,25 @@ function usePokedexState() {
     activeSave,
     collaborators,
     tradeMode,
-    setTradeMode,
+    setTradeMode: updateTradeMode,
+    switchEventUnlocks,
+    setSwitchEventUnlocks: updateSwitchEventUnlocks,
     fireRedStarter,
-    setFireRedStarter,
+    setFireRedStarter: updateFireRedStarter,
     leafGreenStarter,
-    setLeafGreenStarter,
+    setLeafGreenStarter: updateLeafGreenStarter,
     fireRedFossil,
-    setFireRedFossil,
+    setFireRedFossil: updateFireRedFossil,
     leafGreenFossil,
-    setLeafGreenFossil,
+    setLeafGreenFossil: updateLeafGreenFossil,
     fireRedEeveelution,
-    setFireRedEeveelution,
+    setFireRedEeveelution: updateFireRedEeveelution,
     leafGreenEeveelution,
-    setLeafGreenEeveelution,
+    setLeafGreenEeveelution: updateLeafGreenEeveelution,
     fireRedHitmon,
-    setFireRedHitmon,
+    setFireRedHitmon: updateFireRedHitmon,
     leafGreenHitmon,
-    setLeafGreenHitmon,
+    setLeafGreenHitmon: updateLeafGreenHitmon,
     checkboxState,
     updateCheckboxState,
     jumpingSprites,
