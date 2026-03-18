@@ -29,6 +29,8 @@ function App() {
     collaborators,
     tradeMode,
     setTradeMode,
+    switchEventUnlocks,
+    setSwitchEventUnlocks,
     fireRedStarter,
     setFireRedStarter,
     leafGreenStarter,
@@ -186,6 +188,8 @@ function App() {
         <div className="controls">
           <div className="controls-left">
             <ChoicePanel
+              switchEventUnlocks={switchEventUnlocks}
+              setSwitchEventUnlocks={setSwitchEventUnlocks}
               fireRedStarter={fireRedStarter}
               setFireRedStarter={setFireRedStarter}
               fireRedFossil={fireRedFossil}
@@ -238,8 +242,14 @@ function App() {
         <div className="tracker">
           <div className="tracker-row tracker-header">
             <span>Pokemon</span>
-            <span className="fire-red-heading">Fire Red</span>
-            <span className="leaf-green-heading">Leaf Green</span>
+            <span className="fire-red-heading">
+              <span className="label-full">Fire Red</span>
+              <span className="label-short">FR</span>
+            </span>
+            <span className="leaf-green-heading">
+              <span className="label-full">Leaf Green</span>
+              <span className="label-short">LG</span>
+            </span>
             <span className="comments-heading">Comments</span>
           </div>
 
@@ -254,6 +264,7 @@ function App() {
                   checkboxState={checkboxState}
                   updateCheckboxState={updateCheckboxState}
                   tradeMode={tradeMode}
+                  switchEventUnlocks={switchEventUnlocks}
                   fireRedStarter={fireRedStarter}
                   leafGreenStarter={leafGreenStarter}
                   fireRedFossil={fireRedFossil}

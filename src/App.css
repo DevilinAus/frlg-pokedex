@@ -663,6 +663,108 @@ button,
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
 }
 
+.choice-panel-event-section {
+  display: grid;
+  gap: 8px;
+  padding: 0 14px 12px;
+}
+
+.choice-panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-strong);
+}
+
+.choice-panel-toggle-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.choice-panel-toggle-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.choice-panel-toggle-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.choice-panel-toggle-text {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: #64748b;
+}
+
+.choice-panel-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #0f172a;
+  cursor: pointer;
+}
+
+.choice-panel-help {
+  position: relative;
+}
+
+.choice-panel-help summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(241, 245, 249, 0.96);
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.choice-panel-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.choice-panel-help-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 5;
+  width: min(280px, 70vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  color: #475569;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .choice-panel-help:not(:hover):not(:focus-within) .choice-panel-help-card {
+    display: none;
+  }
+
+  .choice-panel-help[open] .choice-panel-help-card {
+    display: block;
+  }
+}
+
 .choice-panel-arrow {
   display: inline-flex;
   align-items: center;
@@ -869,6 +971,10 @@ button,
 .leaf-green-heading {
   color: #5ecf5a;
   text-shadow: 0 0 10px rgba(94, 207, 90, 0.28);
+}
+
+.label-short {
+  display: none;
 }
 
 .pokemon-list {
@@ -1095,8 +1201,70 @@ button,
     grid-template-columns: 1fr;
   }
 
-  .tracker-row {
-    grid-template-columns: minmax(0, 1fr) 92px 92px minmax(160px, 1fr);
+  .choice-panel-body {
+    padding: 8px 12px 12px;
+  }
+
+  .choice-panel-event-section {
+    padding: 0 12px 12px;
+  }
+
+  .choice-panel-grid {
+    padding: 0 12px 12px;
+    gap: 10px;
+  }
+
+  .choice-card {
+    padding: 10px;
+  }
+
+  .starter-select {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .starter-select span {
+    font-size: 0.84rem;
+  }
+
+  .starter-select select,
+  .filter-control select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .trade-mode-toggle,
+  .filter-control {
+    padding-inline: 14px;
+    font-size: 0.95rem;
+  }
+
+  .trade-mode-toggle {
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .tracker-header {
+    grid-template-columns: minmax(0, 1fr) 52px 52px;
+    padding: 12px 12px;
+    font-size: 0.76rem;
+  }
+
+  .tracker-header span:first-child {
+    min-width: 0;
+  }
+
+  .label-full {
+    display: none;
+  }
+
+  .label-short {
+    display: inline;
+  }
+
+  .comments-heading {
+    display: none;
   }
 
   .tracker-header,
@@ -1104,8 +1272,61 @@ button,
     padding-inline: 12px;
   }
 
+  .pokemon-row {
+    grid-template-columns: minmax(0, 1fr) 52px 52px;
+    align-items: start;
+    row-gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .pokemon-label {
+    gap: 10px;
+    align-items: center;
+  }
+
+  .sprite-placeholder,
+  .pokemon-sprite {
+    width: 34px;
+    height: 34px;
+  }
+
+  .pokemon-number {
+    font-size: 0.78rem;
+  }
+
   .pokemon-name {
-    font-size: 0.95rem;
+    font-size: 0.98rem;
+  }
+
+  .checkbox-cell {
+    padding-top: 4px;
+  }
+
+  .single-capture-box {
+    width: 30px;
+  }
+
+  .capture-boxes {
+    gap: 4px;
+  }
+
+  .capture-box input,
+  .single-capture-box input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .comment-cell {
+    grid-column: 1 / -1;
+    padding: 0 0 0 44px;
+  }
+
+  .comment-text {
+    min-height: 28px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 }
 
@@ -1237,6 +1458,10 @@ button,
 
   .choice-panel-open-note {
     padding: 0;
+  }
+
+  .choice-panel-event-section {
+    padding: 0 0 12px;
   }
 
   .choice-panel-body {
