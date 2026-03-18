@@ -70,6 +70,8 @@ export function getComment(
   leafGreenHitmon,
 ) {
   const bothStartersChosen = Boolean(fireRedStarter && leafGreenStarter)
+  const starterCoversEntry =
+    entry.starterFamily === fireRedStarter || entry.starterFamily === leafGreenStarter
   const bothFossilsChosen = Boolean(fireRedFossil && leafGreenFossil)
   const bothEeveelutionsChosen = Boolean(
     fireRedEeveelution && leafGreenEeveelution,
@@ -83,15 +85,15 @@ export function getComment(
   }
 
   if (entry.switchEventLegendary) {
-    if (entry.name === 'Deoxys') {
-      return switchEventUnlocks
-        ? 'Switch unlocks Aurora Ticket after Hall of Fame'
-        : 'Requires the Aurora Ticket event after Hall of Fame'
+    if (switchEventUnlocks) {
+      return ''
     }
 
-    return switchEventUnlocks
-      ? 'Switch unlocks Mystic Ticket after Hall of Fame'
-      : 'Requires the Mystic Ticket event after Hall of Fame'
+    if (entry.name === 'Deoxys') {
+      return 'Requires the Aurora Ticket event after Hall of Fame'
+    }
+
+    return 'Requires the Mystic Ticket event after Hall of Fame'
   }
 
   if (
@@ -104,6 +106,10 @@ export function getComment(
   }
 
   if (entry.roamingLegendary) {
+    if (starterCoversEntry) {
+      return ''
+    }
+
     return `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. Only one of Raikou, Entei, or Suicune appears per save.`
   }
 

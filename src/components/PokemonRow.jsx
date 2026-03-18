@@ -111,6 +111,8 @@ function PokemonRow({
   )
   const fireRedHitmonLocked = isLockedByChoice(entry.hitmonFamily, fireRedHitmon)
   const leafGreenHitmonLocked = isLockedByChoice(entry.hitmonFamily, leafGreenHitmon)
+  const switchEventLegendaryUnlocked =
+    entry.switchEventLegendary && switchEventUnlocks
 
   const fireRedLocked =
     ((entry.tradeEvolution || entry.tradeEvolutionItem) && !tradeMode) ||
@@ -119,7 +121,8 @@ function PokemonRow({
       fireRedEeveelutionLocked ||
       fireRedHitmonLocked) &&
       !tradeMode) ||
-    (entry.fireRedAvailability !== 'native' &&
+    (!switchEventLegendaryUnlocked &&
+      entry.fireRedAvailability !== 'native' &&
       !(tradeMode && entry.fireRedAvailability === 'trade'))
   const leafGreenLocked =
     ((entry.tradeEvolution || entry.tradeEvolutionItem) && !tradeMode) ||
@@ -128,7 +131,8 @@ function PokemonRow({
       leafGreenEeveelutionLocked ||
       leafGreenHitmonLocked) &&
       !tradeMode) ||
-    (entry.leafGreenAvailability !== 'native' &&
+    (!switchEventLegendaryUnlocked &&
+      entry.leafGreenAvailability !== 'native' &&
       !(tradeMode && entry.leafGreenAvailability === 'trade'))
 
   const showFireRedExtraCopy =
