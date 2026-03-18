@@ -7,6 +7,8 @@ import {
   needsExtraCopy,
 } from '../lib/pokedexHelpers'
 
+const compactPostgameSpriteNames = new Set(['Deoxys', 'Ho-Oh', 'Lugia', 'Steelix'])
+
 function CheckboxGroup({
   versionKey,
   pokemonId,
@@ -160,12 +162,29 @@ function PokemonRow({
     <li className="tracker-row pokemon-row">
       <label className="pokemon-label" htmlFor={`fire-red-${pokemonId}`}>
         {spriteSrc ? (
-          <img
-            className={`pokemon-sprite ${isJumping ? 'pokemon-sprite-jump' : ''}`}
-            src={spriteSrc}
-            alt=""
-            loading="lazy"
-          />
+          entry.baseGameCompleteRequired ? (
+            <span className="pokemon-sprite-frame" aria-hidden="true">
+              <img
+                className={`pokemon-sprite pokemon-sprite-postgame ${
+                  compactPostgameSpriteNames.has(entry.name)
+                    ? 'pokemon-sprite-postgame-compact'
+                    : ''
+                } ${
+                  isJumping ? 'pokemon-sprite-jump' : ''
+                }`}
+                src={spriteSrc}
+                alt=""
+                loading="lazy"
+              />
+            </span>
+          ) : (
+            <img
+              className={`pokemon-sprite ${isJumping ? 'pokemon-sprite-jump' : ''}`}
+              src={spriteSrc}
+              alt=""
+              loading="lazy"
+            />
+          )
         ) : (
           <span className="sprite-placeholder" aria-hidden="true">
             ?
