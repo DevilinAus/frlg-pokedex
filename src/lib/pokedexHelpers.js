@@ -2,16 +2,24 @@ import { pokemon } from '../data/pokemon'
 import { starterLabels } from './pokedexOptions'
 
 export function isLockedByStarterChoice(entry, selectedStarter) {
-  if (!entry.starterFamily || !selectedStarter) {
+  if (!entry.starterFamily) {
     return false
+  }
+
+  if (!selectedStarter) {
+    return true
   }
 
   return entry.starterFamily !== selectedStarter
 }
 
 export function isLockedByChoice(entryValue, selectedValue) {
-  if (!entryValue || !selectedValue) {
+  if (!entryValue) {
     return false
+  }
+
+  if (!selectedValue) {
+    return true
   }
 
   return entryValue !== selectedValue
@@ -53,9 +61,20 @@ export function getComment(
   entry,
   fireRedStarter,
   leafGreenStarter,
+  fireRedFossil,
+  leafGreenFossil,
   fireRedEeveelution,
   leafGreenEeveelution,
+  fireRedHitmon,
+  leafGreenHitmon,
 ) {
+  const bothStartersChosen = Boolean(fireRedStarter && leafGreenStarter)
+  const bothFossilsChosen = Boolean(fireRedFossil && leafGreenFossil)
+  const bothEeveelutionsChosen = Boolean(
+    fireRedEeveelution && leafGreenEeveelution,
+  )
+  const bothHitmonsChosen = Boolean(fireRedHitmon && leafGreenHitmon)
+
   if (entry.specialComment) {
     return entry.specialComment
   }
@@ -69,6 +88,7 @@ export function getComment(
   }
 
   if (
+    bothEeveelutionsChosen &&
     entry.eeveelutionFamily &&
     entry.eeveelutionFamily !== fireRedEeveelution &&
     entry.eeveelutionFamily !== leafGreenEeveelution
@@ -94,16 +114,37 @@ export function getComment(
   if (
     entry.starterFamily &&
     entry.name === starterLabels[entry.starterFamily] &&
-    (entry.starterFamily === fireRedStarter ||
-      entry.starterFamily === leafGreenStarter)
+    ((entry.starterFamily === fireRedStarter &&
+      entry.starterFamily !== leafGreenStarter) ||
+      (entry.starterFamily === leafGreenStarter &&
+        entry.starterFamily !== fireRedStarter))
   ) {
     return `Requires breeding for a ${starterLabels[entry.starterFamily]} egg postgame`
   }
 
   if (
+    bothStartersChosen &&
     entry.starterFamily &&
     entry.starterFamily !== fireRedStarter &&
     entry.starterFamily !== leafGreenStarter
+  ) {
+    return 'Requires trade from fresh game on new profile'
+  }
+
+  if (
+    bothFossilsChosen &&
+    entry.fossilFamily &&
+    entry.fossilFamily !== fireRedFossil &&
+    entry.fossilFamily !== leafGreenFossil
+  ) {
+    return 'Requires trade from fresh game on new profile'
+  }
+
+  if (
+    bothHitmonsChosen &&
+    entry.hitmonFamily &&
+    entry.hitmonFamily !== fireRedHitmon &&
+    entry.hitmonFamily !== leafGreenHitmon
   ) {
     return 'Requires trade from fresh game on new profile'
   }

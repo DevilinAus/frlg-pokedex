@@ -87,8 +87,12 @@ function PokemonRow({
     entry,
     fireRedStarter,
     leafGreenStarter,
+    fireRedFossil,
+    leafGreenFossil,
     fireRedEeveelution,
     leafGreenEeveelution,
+    fireRedHitmon,
+    leafGreenHitmon,
   )
 
   const fireRedStarterLocked = isLockedByStarterChoice(entry, fireRedStarter)

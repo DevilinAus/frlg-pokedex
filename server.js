@@ -1,35 +1,44 @@
+import 'dotenv/config'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import bcrypt from 'bcryptjs'
 import Database from 'better-sqlite3'
+import SQLiteStoreFactory from 'better-sqlite3-session-store'
 import express from 'express'
+import session from 'express-session'
 
 const app = express()
-const port = 3001
+const port = Number(process.env.PORT || 3001)
 const dataDir = path.join(process.cwd(), 'data')
-const dbPath = path.join(dataDir, 'lgfr.sqlite')
+const dbPath = process.env.DATABASE_PATH || path.join(dataDir, 'lgfr.sqlite')
+const distDir = path.join(process.cwd(), 'dist')
+const sessionSecret =
+  process.env.SESSION_SECRET || 'dev-only-session-secret-change-me'
+
+if (!process.env.SESSION_SECRET) {
+  console.warn('SESSION_SECRET is not set. Using a development fallback secret.')
+}
+
+app.set('trust proxy', 1)
 
 fs.mkdirSync(dataDir, { recursive: true })
 
 const db = new Database(dbPath)
+db.pragma('foreign_keys = ON')
+db.pragma('journal_mode = WAL')
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS app_state (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  )
-`)
-
-const defaultState = {
+const defaultTrackerState = {
   tradeMode: false,
-  fireRedStarter: 'charmander',
-  leafGreenStarter: 'bulbasaur',
-  fireRedFossil: 'omanyte',
-  leafGreenFossil: 'kabuto',
-  fireRedEeveelution: 'vaporeon',
-  leafGreenEeveelution: 'jolteon',
-  fireRedHitmon: 'hitmonlee',
-  leafGreenHitmon: 'hitmonchan',
+  fireRedStarter: '',
+  leafGreenStarter: '',
+  fireRedFossil: '',
+  leafGreenFossil: '',
+  fireRedEeveelution: '',
+  leafGreenEeveelution: '',
+  fireRedHitmon: '',
+  leafGreenHitmon: '',
   checkboxState: {},
   celebrationState: {
     fireRedCompleteCelebrated: false,
@@ -37,83 +46,670 @@ const defaultState = {
   },
 }
 
-const getState = db.prepare('SELECT value FROM app_state WHERE key = ?')
-const saveState = db.prepare(`
-  INSERT INTO app_state (key, value)
-  VALUES (?, ?)
-  ON CONFLICT(key) DO UPDATE SET value = excluded.value
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS saves (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    share_code_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS save_memberships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    save_id INTEGER NOT NULL REFERENCES saves(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'collaborator',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(save_id, user_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS save_states (
+    save_id INTEGER PRIMARY KEY REFERENCES saves(id) ON DELETE CASCADE,
+    state_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_saves_owner_user_id
+    ON saves(owner_user_id);
+
+  CREATE INDEX IF NOT EXISTS idx_save_memberships_user_id
+    ON save_memberships(user_id);
+
+  CREATE INDEX IF NOT EXISTS idx_save_memberships_save_id
+    ON save_memberships(save_id);
+
+  CREATE INDEX IF NOT EXISTS idx_saves_share_code_hash
+    ON saves(share_code_hash);
 `)
 
-if (!getState.get('pokedex')) {
-  saveState.run('pokedex', JSON.stringify(defaultState))
+const SQLiteStore = SQLiteStoreFactory(session)
+
+app.use(express.json({ limit: '1mb' }))
+app.use(
+  session({
+    secret: sessionSecret,
+    proxy: true,
+    store: new SQLiteStore({
+      client: db,
+    }),
+    name: 'lgfr.sid',
+    resave: false,
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production' ? 'auto' : false,
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+    },
+  }),
+)
+
+const createUser = db.prepare(`
+  INSERT INTO users (username, password_hash)
+  VALUES (@username, @passwordHash)
+`)
+const findUserByUsername = db.prepare(`
+  SELECT id, username, password_hash
+  FROM users
+  WHERE username = ?
+`)
+const findUserById = db.prepare(`
+  SELECT id, username
+  FROM users
+  WHERE id = ?
+`)
+const insertSave = db.prepare(`
+  INSERT INTO saves (name, owner_user_id, share_code_hash, updated_at)
+  VALUES (@name, @ownerUserId, NULL, CURRENT_TIMESTAMP)
+`)
+const insertSaveState = db.prepare(`
+  INSERT INTO save_states (save_id, state_json, updated_by_user_id, updated_at)
+  VALUES (@saveId, @stateJson, @updatedByUserId, CURRENT_TIMESTAMP)
+`)
+const updateSaveState = db.prepare(`
+  INSERT INTO save_states (save_id, state_json, updated_by_user_id, updated_at)
+  VALUES (@saveId, @stateJson, @updatedByUserId, CURRENT_TIMESTAMP)
+  ON CONFLICT(save_id) DO UPDATE SET
+    state_json = excluded.state_json,
+    updated_by_user_id = excluded.updated_by_user_id,
+    updated_at = excluded.updated_at
+`)
+const touchSave = db.prepare(`
+  UPDATE saves
+  SET updated_at = CURRENT_TIMESTAMP
+  WHERE id = ?
+`)
+const listAccessibleSaves = db.prepare(`
+  SELECT
+    saves.id,
+    saves.name,
+    saves.owner_user_id AS ownerUserId,
+    owners.username AS ownerUsername,
+    saves.updated_at AS updatedAt,
+    CASE
+      WHEN saves.owner_user_id = @userId THEN 'owner'
+      ELSE 'collaborator'
+    END AS role
+  FROM saves
+  JOIN users AS owners ON owners.id = saves.owner_user_id
+  WHERE saves.owner_user_id = @userId
+     OR EXISTS (
+       SELECT 1
+       FROM save_memberships
+       WHERE save_memberships.save_id = saves.id
+         AND save_memberships.user_id = @userId
+     )
+  ORDER BY datetime(saves.updated_at) DESC, saves.id DESC
+`)
+const findSaveAccess = db.prepare(`
+  SELECT
+    saves.id,
+    saves.name,
+    saves.owner_user_id AS ownerUserId,
+    owners.username AS ownerUsername,
+    saves.updated_at AS updatedAt,
+    saves.share_code_hash AS shareCodeHash,
+    CASE
+      WHEN saves.owner_user_id = @userId THEN 'owner'
+      ELSE 'collaborator'
+    END AS role
+  FROM saves
+  JOIN users AS owners ON owners.id = saves.owner_user_id
+  WHERE saves.id = @saveId
+    AND (
+      saves.owner_user_id = @userId
+      OR EXISTS (
+        SELECT 1
+        FROM save_memberships
+        WHERE save_memberships.save_id = saves.id
+          AND save_memberships.user_id = @userId
+      )
+    )
+`)
+const findOwnedSave = db.prepare(`
+  SELECT id, owner_user_id AS ownerUserId
+  FROM saves
+  WHERE id = ?
+`)
+const findSaveState = db.prepare(`
+  SELECT state_json AS stateJson
+  FROM save_states
+  WHERE save_id = ?
+`)
+const updateSaveShareCode = db.prepare(`
+  UPDATE saves
+  SET share_code_hash = @shareCodeHash,
+      updated_at = CURRENT_TIMESTAMP
+  WHERE id = @saveId
+`)
+const findSaveByShareCodeHash = db.prepare(`
+  SELECT id, owner_user_id AS ownerUserId
+  FROM saves
+  WHERE share_code_hash = ?
+`)
+const insertMembership = db.prepare(`
+  INSERT OR IGNORE INTO save_memberships (save_id, user_id, role)
+  VALUES (@saveId, @userId, 'collaborator')
+`)
+const listCollaborators = db.prepare(`
+  SELECT users.id, users.username
+  FROM save_memberships
+  JOIN users ON users.id = save_memberships.user_id
+  WHERE save_memberships.save_id = ?
+  ORDER BY users.username ASC
+`)
+const deleteCollaborator = db.prepare(`
+  DELETE FROM save_memberships
+  WHERE save_id = @saveId
+    AND user_id = @userId
+`)
+
+function normalizeUsername(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
 }
 
-app.use(express.json())
+function validateUsername(username) {
+  return /^[a-z0-9_-]{3,24}$/.test(username)
+}
 
-app.get('/api/state', (_req, res) => {
-  const row = getState.get('pokedex')
-  res.json(row ? JSON.parse(row.value) : defaultState)
-})
+function validatePassword(password) {
+  return typeof password === 'string' && password.length >= 8 && password.length <= 128
+}
 
-app.put('/api/state', (req, res) => {
-  const nextState = {
-    tradeMode: Boolean(req.body?.tradeMode),
-    fireRedStarter:
-      typeof req.body?.fireRedStarter === 'string'
-        ? req.body.fireRedStarter
-        : defaultState.fireRedStarter,
-    leafGreenStarter:
-      typeof req.body?.leafGreenStarter === 'string'
-        ? req.body.leafGreenStarter
-        : defaultState.leafGreenStarter,
-    fireRedFossil:
-      typeof req.body?.fireRedFossil === 'string'
-        ? req.body.fireRedFossil
-        : defaultState.fireRedFossil,
-    leafGreenFossil:
-      typeof req.body?.leafGreenFossil === 'string'
-        ? req.body.leafGreenFossil
-        : defaultState.leafGreenFossil,
-    fireRedEeveelution:
-      typeof req.body?.fireRedEeveelution === 'string'
-        ? req.body.fireRedEeveelution
-        : defaultState.fireRedEeveelution,
-    leafGreenEeveelution:
-      typeof req.body?.leafGreenEeveelution === 'string'
-        ? req.body.leafGreenEeveelution
-        : defaultState.leafGreenEeveelution,
-    fireRedHitmon:
-      typeof req.body?.fireRedHitmon === 'string'
-        ? req.body.fireRedHitmon
-        : defaultState.fireRedHitmon,
-    leafGreenHitmon:
-      typeof req.body?.leafGreenHitmon === 'string'
-        ? req.body.leafGreenHitmon
-        : defaultState.leafGreenHitmon,
-    checkboxState:
-      req.body?.checkboxState &&
-      typeof req.body.checkboxState === 'object' &&
-      !Array.isArray(req.body.checkboxState)
-        ? req.body.checkboxState
-        : {},
-    celebrationState:
-      req.body?.celebrationState &&
-      typeof req.body.celebrationState === 'object' &&
-      !Array.isArray(req.body.celebrationState)
-        ? {
-            fireRedCompleteCelebrated: Boolean(
-              req.body.celebrationState.fireRedCompleteCelebrated,
-            ),
-            leafGreenCompleteCelebrated: Boolean(
-              req.body.celebrationState.leafGreenCompleteCelebrated,
-            ),
-          }
-        : defaultState.celebrationState,
+function sanitizeText(value, fallback) {
+  if (typeof value !== 'string') {
+    return fallback
   }
 
-  saveState.run('pokedex', JSON.stringify(nextState))
+  return value
+}
+
+function sanitizeTrackerState(input) {
+  return {
+    tradeMode: Boolean(input?.tradeMode),
+    fireRedStarter: sanitizeText(
+      input?.fireRedStarter,
+      defaultTrackerState.fireRedStarter,
+    ),
+    leafGreenStarter: sanitizeText(
+      input?.leafGreenStarter,
+      defaultTrackerState.leafGreenStarter,
+    ),
+    fireRedFossil: sanitizeText(
+      input?.fireRedFossil,
+      defaultTrackerState.fireRedFossil,
+    ),
+    leafGreenFossil: sanitizeText(
+      input?.leafGreenFossil,
+      defaultTrackerState.leafGreenFossil,
+    ),
+    fireRedEeveelution: sanitizeText(
+      input?.fireRedEeveelution,
+      defaultTrackerState.fireRedEeveelution,
+    ),
+    leafGreenEeveelution: sanitizeText(
+      input?.leafGreenEeveelution,
+      defaultTrackerState.leafGreenEeveelution,
+    ),
+    fireRedHitmon: sanitizeText(
+      input?.fireRedHitmon,
+      defaultTrackerState.fireRedHitmon,
+    ),
+    leafGreenHitmon: sanitizeText(
+      input?.leafGreenHitmon,
+      defaultTrackerState.leafGreenHitmon,
+    ),
+    checkboxState:
+      input?.checkboxState &&
+      typeof input.checkboxState === 'object' &&
+      !Array.isArray(input.checkboxState)
+        ? Object.fromEntries(
+            Object.entries(input.checkboxState)
+              .filter(([key]) => typeof key === 'string')
+              .map(([key, value]) => [key, Boolean(value)]),
+          )
+        : {},
+    celebrationState:
+      input?.celebrationState &&
+      typeof input.celebrationState === 'object' &&
+      !Array.isArray(input.celebrationState)
+        ? {
+            fireRedCompleteCelebrated: Boolean(
+              input.celebrationState.fireRedCompleteCelebrated,
+            ),
+            leafGreenCompleteCelebrated: Boolean(
+              input.celebrationState.leafGreenCompleteCelebrated,
+            ),
+          }
+        : defaultTrackerState.celebrationState,
+  }
+}
+
+function hashShareCode(shareCode) {
+  return crypto.createHash('sha256').update(shareCode).digest('hex')
+}
+
+function generateShareCode() {
+  return crypto.randomBytes(18).toString('base64url')
+}
+
+function buildSaveSummary(save) {
+  return {
+    id: save.id,
+    name: save.name,
+    ownerUserId: save.ownerUserId,
+    ownerUsername: save.ownerUsername,
+    role: save.role,
+    updatedAt: save.updatedAt,
+  }
+}
+
+function getSessionUser(req) {
+  if (!req.session?.userId) {
+    return null
+  }
+
+  return findUserById.get(req.session.userId) ?? null
+}
+
+function requireAuth(req, res, next) {
+  const user = getSessionUser(req)
+
+  if (!user) {
+    res.status(401).json({ error: 'You need to log in first.' })
+    return
+  }
+
+  req.currentUser = user
+  next()
+}
+
+function getAccessibleSaveOrNull(userId, saveId) {
+  return findSaveAccess.get({
+    userId,
+    saveId,
+  })
+}
+
+function createSaveForUser(ownerUserId, name, initialState, updatedByUserId = ownerUserId) {
+  const insertResult = insertSave.run({
+    name,
+    ownerUserId,
+  })
+  const saveId = Number(insertResult.lastInsertRowid)
+
+  insertSaveState.run({
+    saveId,
+    stateJson: JSON.stringify(initialState),
+    updatedByUserId,
+  })
+
+  return saveId
+}
+
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      resolve()
+    })
+  })
+}
+
+app.get('/api/auth/session', (req, res) => {
+  const user = getSessionUser(req)
+
+  if (!user) {
+    res.json({
+      authenticated: false,
+      user: null,
+      saves: [],
+    })
+    return
+  }
+
+  const saves = listAccessibleSaves
+    .all({ userId: user.id })
+    .map(buildSaveSummary)
+
+  res.json({
+    authenticated: true,
+    user,
+    saves,
+  })
+})
+
+app.post('/api/auth/signup', async (req, res) => {
+  const username = normalizeUsername(req.body?.username)
+  const password = req.body?.password
+
+  if (!validateUsername(username)) {
+    res.status(400).json({
+      error: 'Choose a username with 3-24 letters, numbers, dashes, or underscores.',
+    })
+    return
+  }
+
+  if (!validatePassword(password)) {
+    res.status(400).json({
+      error: 'Choose a password with at least 8 characters.',
+    })
+    return
+  }
+
+  if (findUserByUsername.get(username)) {
+    res.status(409).json({ error: 'That username is already taken.' })
+    return
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12)
+
+  const insertResult = createUser.run({
+    username,
+    passwordHash,
+  })
+
+  await regenerateSession(req)
+  req.session.userId = Number(insertResult.lastInsertRowid)
+
+  res.status(201).json({
+    ok: true,
+    user: {
+      id: Number(insertResult.lastInsertRowid),
+      username,
+    },
+  })
+})
+
+app.post('/api/auth/login', async (req, res) => {
+  const username = normalizeUsername(req.body?.username)
+  const password = req.body?.password
+
+  if (!username || typeof password !== 'string') {
+    res.status(400).json({ error: 'Enter your username and password.' })
+    return
+  }
+
+  const user = findUserByUsername.get(username)
+
+  if (!user) {
+    res.status(401).json({ error: 'Invalid username or password.' })
+    return
+  }
+
+  const passwordMatches = await bcrypt.compare(password, user.password_hash)
+
+  if (!passwordMatches) {
+    res.status(401).json({ error: 'Invalid username or password.' })
+    return
+  }
+
+  await regenerateSession(req)
+  req.session.userId = user.id
+
+  res.json({
+    ok: true,
+    user: {
+      id: user.id,
+      username: user.username,
+    },
+  })
+})
+
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('lgfr.sid')
+    res.json({ ok: true })
+  })
+})
+
+app.get('/api/saves', requireAuth, (req, res) => {
+  const saves = listAccessibleSaves
+    .all({ userId: req.currentUser.id })
+    .map(buildSaveSummary)
+
+  res.json({ saves })
+})
+
+app.post('/api/saves', requireAuth, (req, res) => {
+  const name =
+    typeof req.body?.name === 'string' && req.body.name.trim()
+      ? req.body.name.trim().slice(0, 80)
+      : 'My Kanto Tracker'
+  const initialState = sanitizeTrackerState(req.body?.initialState ?? defaultTrackerState)
+  const saveId = createSaveForUser(req.currentUser.id, name, initialState)
+  const save = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  res.status(201).json({
+    ok: true,
+    save: buildSaveSummary(save),
+  })
+})
+
+app.post('/api/saves/migrate-local', requireAuth, (req, res) => {
+  const existingSaves = listAccessibleSaves.all({ userId: req.currentUser.id })
+
+  if (existingSaves.length > 0) {
+    res.status(409).json({
+      error: 'This account already has cloud saves, so local progress cannot be migrated automatically.',
+    })
+    return
+  }
+
+  const state = sanitizeTrackerState(req.body?.state)
+  const saveId = createSaveForUser(req.currentUser.id, 'My Kanto Tracker', state)
+  const save = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  res.status(201).json({
+    ok: true,
+    save: buildSaveSummary(save),
+  })
+})
+
+app.post('/api/saves/join', requireAuth, (req, res) => {
+  const shareCode = String(req.body?.shareCode || '').trim()
+
+  if (!shareCode) {
+    res.status(400).json({ error: 'Enter a share code.' })
+    return
+  }
+
+  const save = findSaveByShareCodeHash.get(hashShareCode(shareCode))
+
+  if (!save) {
+    res.status(404).json({ error: 'That share code is invalid.' })
+    return
+  }
+
+  if (save.ownerUserId === req.currentUser.id) {
+    res.json({ ok: true, joined: false, saveId: save.id })
+    return
+  }
+
+  insertMembership.run({
+    saveId: save.id,
+    userId: req.currentUser.id,
+  })
+  touchSave.run(save.id)
+
+  res.json({ ok: true, joined: true, saveId: save.id })
+})
+
+app.get('/api/saves/:saveId', requireAuth, (req, res) => {
+  const saveId = Number(req.params.saveId)
+  const save = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  if (!save) {
+    res.status(404).json({ error: 'Save not found.' })
+    return
+  }
+
+  const stateRow = findSaveState.get(saveId)
+  const collaborators =
+    save.role === 'owner'
+      ? listCollaborators.all(saveId).map((user) => ({
+          id: user.id,
+          username: user.username,
+        }))
+      : []
+
+  res.json({
+    save: {
+      ...buildSaveSummary(save),
+      canManage: save.role === 'owner',
+    },
+    collaborators,
+    state: stateRow ? JSON.parse(stateRow.stateJson) : defaultTrackerState,
+  })
+})
+
+app.get('/api/saves/:saveId/meta', requireAuth, (req, res) => {
+  const saveId = Number(req.params.saveId)
+  const save = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  if (!save) {
+    res.status(404).json({ error: 'Save not found.' })
+    return
+  }
+
+  const collaborators =
+    save.role === 'owner'
+      ? listCollaborators.all(saveId).map((user) => ({
+          id: user.id,
+          username: user.username,
+        }))
+      : []
+
+  res.json({
+    save: {
+      ...buildSaveSummary(save),
+      canManage: save.role === 'owner',
+    },
+    collaborators,
+  })
+})
+
+app.put('/api/saves/:saveId/state', requireAuth, (req, res) => {
+  const saveId = Number(req.params.saveId)
+  const save = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  if (!save) {
+    res.status(404).json({ error: 'Save not found.' })
+    return
+  }
+
+  const state = sanitizeTrackerState(req.body?.state)
+
+  updateSaveState.run({
+    saveId,
+    stateJson: JSON.stringify(state),
+    updatedByUserId: req.currentUser.id,
+  })
+  touchSave.run(saveId)
+  const refreshedSave = getAccessibleSaveOrNull(req.currentUser.id, saveId)
+
+  res.json({
+    ok: true,
+    save: {
+      ...buildSaveSummary(refreshedSave),
+      canManage: refreshedSave.role === 'owner',
+    },
+  })
+})
+
+app.post('/api/saves/:saveId/share-code', requireAuth, (req, res) => {
+  const saveId = Number(req.params.saveId)
+  const ownedSave = findOwnedSave.get(saveId)
+
+  if (!ownedSave || ownedSave.ownerUserId !== req.currentUser.id) {
+    res.status(404).json({ error: 'Save not found.' })
+    return
+  }
+
+  const shareCode = generateShareCode()
+
+  updateSaveShareCode.run({
+    saveId,
+    shareCodeHash: hashShareCode(shareCode),
+  })
+
+  res.json({
+    ok: true,
+    shareCode,
+  })
+})
+
+app.delete('/api/saves/:saveId/collaborators/:userId', requireAuth, (req, res) => {
+  const saveId = Number(req.params.saveId)
+  const collaboratorUserId = Number(req.params.userId)
+  const ownedSave = findOwnedSave.get(saveId)
+
+  if (!ownedSave || ownedSave.ownerUserId !== req.currentUser.id) {
+    res.status(404).json({ error: 'Save not found.' })
+    return
+  }
+
+  if (collaboratorUserId === req.currentUser.id) {
+    res.status(400).json({ error: 'The owner cannot remove themselves.' })
+    return
+  }
+
+  deleteCollaborator.run({
+    saveId,
+    userId: collaboratorUserId,
+  })
+  updateSaveShareCode.run({
+    saveId,
+    shareCodeHash: null,
+  })
+
   res.json({ ok: true })
 })
+
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir))
+
+  app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'))
+  })
+}
 
 app.listen(port, () => {
   console.log(`SQLite API listening on http://localhost:${port}`)

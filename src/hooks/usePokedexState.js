@@ -1,12 +1,47 @@
 import { useEffect, useRef, useState } from 'react'
 import { hasCompletedDex } from '../lib/pokedexHelpers'
+import { defaultAppState, defaultCelebrationState } from '../lib/pokedexOptions'
 import {
-  defaultAppState,
-  defaultCelebrationState,
-} from '../lib/pokedexOptions'
+  clearGuestTrackerState,
+  getActiveSaveStorageKey,
+  hasMeaningfulTrackerState,
+  loadGuestTrackerState,
+  sanitizeTrackerState,
+  saveGuestTrackerState,
+} from '../lib/guestStorage'
 import { createFullDexCelebration } from '../lib/sprites'
 
+async function requestJson(url, options = {}) {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers ?? {}),
+    },
+    ...options,
+  })
+
+  let payload = null
+
+  try {
+    payload = await response.json()
+  } catch {
+    payload = null
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Something went wrong.')
+  }
+
+  return payload
+}
+
 function usePokedexState() {
+  const [mode, setMode] = useState('loading')
+  const [currentUser, setCurrentUser] = useState(null)
+  const [accessibleSaves, setAccessibleSaves] = useState([])
+  const [activeSaveId, setActiveSaveId] = useState(null)
+  const [activeSave, setActiveSave] = useState(null)
+  const [collaborators, setCollaborators] = useState([])
   const [tradeMode, setTradeMode] = useState(defaultAppState.tradeMode)
   const [fireRedStarter, setFireRedStarter] = useState(defaultAppState.fireRedStarter)
   const [leafGreenStarter, setLeafGreenStarter] = useState(defaultAppState.leafGreenStarter)
@@ -25,9 +60,205 @@ function usePokedexState() {
   const [jumpingSprites, setJumpingSprites] = useState({})
   const [spriteFlood, setSpriteFlood] = useState([])
   const [saveError, setSaveError] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
+  const [shareError, setShareError] = useState('')
+  const [generatedShareCode, setGeneratedShareCode] = useState('')
+  const [migrationConflict, setMigrationConflict] = useState(null)
   const hasLoadedState = useRef(false)
+  const lastRemoteUpdatedAt = useRef('')
+  const hasUnsavedCloudChanges = useRef(false)
+  const isCloudSaving = useRef(false)
+  const isApplyingRemoteState = useRef(false)
   const jumpTimeouts = useRef({})
   const floodTimeout = useRef(null)
+
+  function updateAccessibleSaveSummary(nextSave) {
+    setAccessibleSaves((currentSaves) =>
+      currentSaves.map((save) =>
+        save.id === nextSave.id ? { ...save, ...nextSave } : save,
+      ),
+    )
+  }
+
+  function applyRemoteSaveMeta(nextSave, nextCollaborators = null) {
+    setActiveSave(nextSave)
+    lastRemoteUpdatedAt.current = nextSave?.updatedAt ?? ''
+    updateAccessibleSaveSummary(nextSave)
+
+    if (nextCollaborators) {
+      setCollaborators(nextCollaborators)
+    }
+  }
+
+  function getTrackerState() {
+    return sanitizeTrackerState({
+      tradeMode,
+      fireRedStarter,
+      leafGreenStarter,
+      fireRedFossil,
+      leafGreenFossil,
+      fireRedEeveelution,
+      leafGreenEeveelution,
+      fireRedHitmon,
+      leafGreenHitmon,
+      checkboxState,
+      celebrationState,
+    })
+  }
+
+  function applyTrackerState(nextState, options = {}) {
+    const state = sanitizeTrackerState(nextState)
+    const { fromRemote = false } = options
+
+    if (fromRemote) {
+      isApplyingRemoteState.current = true
+    }
+
+    setTradeMode(state.tradeMode)
+    setFireRedStarter(state.fireRedStarter)
+    setLeafGreenStarter(state.leafGreenStarter)
+    setFireRedFossil(state.fireRedFossil)
+    setLeafGreenFossil(state.leafGreenFossil)
+    setFireRedEeveelution(state.fireRedEeveelution)
+    setLeafGreenEeveelution(state.leafGreenEeveelution)
+    setFireRedHitmon(state.fireRedHitmon)
+    setLeafGreenHitmon(state.leafGreenHitmon)
+    setCheckboxState(state.checkboxState)
+    setCelebrationState(state.celebrationState)
+
+    if (fromRemote) {
+      window.setTimeout(() => {
+        isApplyingRemoteState.current = false
+      }, 0)
+    }
+  }
+
+  async function fetchSession() {
+    return requestJson('/api/auth/session', {
+      headers: {},
+    })
+  }
+
+  async function loadCloudSave(saveId, saveList, userId) {
+    const response = await requestJson(`/api/saves/${saveId}`)
+
+    setActiveSaveId(saveId)
+    applyRemoteSaveMeta(response.save, response.collaborators ?? [])
+    applyTrackerState(response.state, { fromRemote: true })
+    setGeneratedShareCode('')
+    setShareError('')
+    hasUnsavedCloudChanges.current = false
+    isCloudSaving.current = false
+    window.localStorage.setItem(getActiveSaveStorageKey(userId), String(saveId))
+
+    if (saveList) {
+      setAccessibleSaves(saveList)
+    }
+
+    hasLoadedState.current = true
+    setSaveError('')
+  }
+
+  async function refreshActiveSaveMeta() {
+    if (!activeSaveId) {
+      return
+    }
+
+    const response = await requestJson(`/api/saves/${activeSaveId}/meta`)
+    applyRemoteSaveMeta(response.save, response.collaborators ?? [])
+    return response
+  }
+
+  async function hydrateGuestMode() {
+    hasLoadedState.current = false
+    setMode('guest')
+    setCurrentUser(null)
+    setAccessibleSaves([])
+    setActiveSaveId(null)
+    setActiveSave(null)
+    setCollaborators([])
+    setMigrationConflict(null)
+    setGeneratedShareCode('')
+    setShareError('')
+    applyTrackerState(loadGuestTrackerState())
+    hasLoadedState.current = true
+    setSaveError('')
+  }
+
+  async function hydrateAuthenticatedMode({ suppressConflictPrompt = false } = {}) {
+    hasLoadedState.current = false
+    const session = await fetchSession()
+
+    if (!session.authenticated || !session.user) {
+      await hydrateGuestMode()
+      return
+    }
+
+    const localGuestState = loadGuestTrackerState()
+    const hasGuestState = hasMeaningfulTrackerState(localGuestState)
+    const hadExistingSaves = session.saves.length > 0
+    let saves = session.saves
+
+    setMode('cloud')
+    setCurrentUser(session.user)
+
+    if (saves.length === 0) {
+      if (hasGuestState) {
+        await requestJson('/api/saves/migrate-local', {
+          method: 'POST',
+          body: JSON.stringify({
+            state: localGuestState,
+          }),
+        })
+        clearGuestTrackerState()
+      } else {
+        await requestJson('/api/saves', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'My Kanto Tracker',
+            initialState: defaultAppState,
+          }),
+        })
+      }
+
+      const refreshedSession = await fetchSession()
+      saves = refreshedSession.saves
+      setCurrentUser(refreshedSession.user)
+    }
+
+    setAccessibleSaves(saves)
+
+    const storedSaveId = Number(
+      window.localStorage.getItem(getActiveSaveStorageKey(session.user.id)),
+    )
+    const nextActiveSave =
+      saves.find((save) => save.id === storedSaveId) ?? saves[0] ?? null
+
+    if (!nextActiveSave) {
+      applyTrackerState(defaultAppState, { fromRemote: true })
+      hasLoadedState.current = true
+      return
+    }
+
+    await loadCloudSave(nextActiveSave.id, saves, session.user.id)
+
+    if (!suppressConflictPrompt && hadExistingSaves && hasGuestState) {
+      setMigrationConflict({
+        localState: localGuestState,
+      })
+    } else {
+      setMigrationConflict(null)
+    }
+  }
+
+  useEffect(() => {
+    hydrateAuthenticatedMode().catch((error) => {
+      console.error(error)
+      setSaveError('Could not load saved progress')
+      hydrateGuestMode()
+    })
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -39,81 +270,36 @@ function usePokedexState() {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-
-    async function loadState() {
-      try {
-        const response = await fetch('/api/state')
-        const savedState = await response.json()
-
-        if (cancelled) {
-          return
-        }
-
-        setTradeMode(Boolean(savedState.tradeMode))
-        setFireRedStarter(savedState.fireRedStarter ?? defaultAppState.fireRedStarter)
-        setLeafGreenStarter(savedState.leafGreenStarter ?? defaultAppState.leafGreenStarter)
-        setFireRedFossil(savedState.fireRedFossil ?? defaultAppState.fireRedFossil)
-        setLeafGreenFossil(savedState.leafGreenFossil ?? defaultAppState.leafGreenFossil)
-        setFireRedEeveelution(
-          savedState.fireRedEeveelution ?? defaultAppState.fireRedEeveelution,
-        )
-        setLeafGreenEeveelution(
-          savedState.leafGreenEeveelution ?? defaultAppState.leafGreenEeveelution,
-        )
-        setFireRedHitmon(savedState.fireRedHitmon ?? defaultAppState.fireRedHitmon)
-        setLeafGreenHitmon(savedState.leafGreenHitmon ?? defaultAppState.leafGreenHitmon)
-        setCheckboxState(savedState.checkboxState ?? defaultAppState.checkboxState)
-        setCelebrationState(savedState.celebrationState ?? defaultCelebrationState)
-        setSaveError('')
-      } catch {
-        if (!cancelled) {
-          setSaveError('Could not load saved progress')
-        }
-      } finally {
-        if (!cancelled) {
-          hasLoadedState.current = true
-        }
-      }
-    }
-
-    loadState()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
     if (!hasLoadedState.current) {
       return
     }
 
+    const state = getTrackerState()
     const timeoutId = window.setTimeout(async () => {
       try {
-        await fetch('/api/state', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tradeMode,
-            fireRedStarter,
-            leafGreenStarter,
-            fireRedFossil,
-            leafGreenFossil,
-            fireRedEeveelution,
-            leafGreenEeveelution,
-            fireRedHitmon,
-            leafGreenHitmon,
-            checkboxState,
-            celebrationState,
-          }),
-        })
+        if (mode === 'guest') {
+          saveGuestTrackerState(state)
+        } else if (mode === 'cloud' && activeSaveId) {
+          isCloudSaving.current = true
+          const response = await requestJson(`/api/saves/${activeSaveId}/state`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              state,
+            }),
+          })
+          applyRemoteSaveMeta(response.save)
+          hasUnsavedCloudChanges.current = false
+          isCloudSaving.current = false
+        }
 
         setSaveError('')
       } catch {
-        setSaveError('Could not save progress')
+        isCloudSaving.current = false
+        setSaveError(
+          mode === 'guest'
+            ? 'Could not save guest progress'
+            : 'Could not save cloud progress',
+        )
       }
     }, 250)
 
@@ -121,6 +307,7 @@ function usePokedexState() {
       window.clearTimeout(timeoutId)
     }
   }, [
+    activeSaveId,
     celebrationState,
     checkboxState,
     fireRedEeveelution,
@@ -131,6 +318,7 @@ function usePokedexState() {
     leafGreenFossil,
     leafGreenHitmon,
     leafGreenStarter,
+    mode,
     tradeMode,
   ])
 
@@ -170,7 +358,79 @@ function usePokedexState() {
     }
   }, [celebrationState, checkboxState])
 
+  useEffect(() => {
+    if (!hasLoadedState.current || mode !== 'cloud' || isApplyingRemoteState.current) {
+      return
+    }
+
+    hasUnsavedCloudChanges.current = true
+  }, [
+    celebrationState,
+    checkboxState,
+    fireRedEeveelution,
+    fireRedFossil,
+    fireRedHitmon,
+    fireRedStarter,
+    leafGreenEeveelution,
+    leafGreenFossil,
+    leafGreenHitmon,
+    leafGreenStarter,
+    mode,
+    tradeMode,
+  ])
+
+  useEffect(() => {
+    if (mode !== 'cloud' || !activeSaveId) {
+      return
+    }
+
+    const syncRemoteState = async () => {
+      const previousRemoteUpdatedAt = lastRemoteUpdatedAt.current
+      const response = await refreshActiveSaveMeta()
+
+      if (!response?.save?.updatedAt) {
+        return
+      }
+
+      const remoteUpdatedAt = response.save.updatedAt
+
+      if (hasUnsavedCloudChanges.current || isCloudSaving.current) {
+        return
+      }
+
+      if (
+        previousRemoteUpdatedAt &&
+        remoteUpdatedAt <= previousRemoteUpdatedAt
+      ) {
+        return
+      }
+
+      const saveResponse = await requestJson(`/api/saves/${activeSaveId}`)
+      applyRemoteSaveMeta(saveResponse.save, saveResponse.collaborators ?? [])
+      applyTrackerState(saveResponse.state, { fromRemote: true })
+      hasUnsavedCloudChanges.current = false
+    }
+
+    syncRemoteState().catch((error) => {
+      console.error(error)
+    })
+
+    const intervalId = window.setInterval(() => {
+      syncRemoteState().catch((error) => {
+        console.error(error)
+      })
+    }, 4000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [activeSaveId, mode])
+
   function updateCheckboxState(key, checked) {
+    if (mode === 'cloud') {
+      hasUnsavedCloudChanges.current = true
+    }
+
     setCheckboxState((currentState) => ({
       ...currentState,
       [key]: checked,
@@ -196,7 +456,170 @@ function usePokedexState() {
     }, 700)
   }
 
+  async function signUp(username, password) {
+    setAuthError('')
+    setAuthNotice('')
+
+    try {
+      await requestJson('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      })
+      const session = await fetchSession()
+
+      if (!session.authenticated || !session.user) {
+        throw new Error(
+          'Your account was created, but the login session was not saved. Check your production cookie and proxy setup.',
+        )
+      }
+
+      await hydrateAuthenticatedMode()
+      setAuthNotice(`Signed in as ${session.user.username}.`)
+    } catch (error) {
+      setAuthError(error.message)
+    }
+  }
+
+  async function logIn(username, password) {
+    setAuthError('')
+    setAuthNotice('')
+
+    try {
+      await requestJson('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      })
+      const session = await fetchSession()
+
+      if (!session.authenticated || !session.user) {
+        throw new Error(
+          'Your username and password were accepted, but the login session was not saved. Check your production cookie and proxy setup.',
+        )
+      }
+
+      await hydrateAuthenticatedMode()
+      setAuthNotice(`Signed in as ${session.user.username}.`)
+    } catch (error) {
+      setAuthError(error.message)
+    }
+  }
+
+  async function logOut() {
+    setAuthError('')
+    setAuthNotice('')
+    setShareError('')
+
+    try {
+      await requestJson('/api/auth/logout', {
+        method: 'POST',
+      })
+    } catch {
+      // Even if logout fails on the server, we still fall back to guest mode locally.
+    }
+
+    await hydrateGuestMode()
+  }
+
+  async function switchActiveSave(nextSaveId) {
+    if (!currentUser || !nextSaveId || nextSaveId === activeSaveId) {
+      return
+    }
+
+    try {
+      hasLoadedState.current = false
+      await loadCloudSave(nextSaveId, accessibleSaves, currentUser.id)
+    } catch (error) {
+      setSaveError(error.message || 'Could not switch saves')
+    }
+  }
+
+  async function keepCloudVersion() {
+    clearGuestTrackerState()
+    setMigrationConflict(null)
+  }
+
+  async function replaceCloudWithLocalProgress() {
+    if (!migrationConflict?.localState || !activeSaveId) {
+      return
+    }
+
+    try {
+      hasLoadedState.current = false
+      await requestJson(`/api/saves/${activeSaveId}/state`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          state: migrationConflict.localState,
+        }),
+      })
+      clearGuestTrackerState()
+      setMigrationConflict(null)
+      await loadCloudSave(activeSaveId, accessibleSaves, currentUser.id)
+    } catch (error) {
+      setSaveError(error.message || 'Could not replace the cloud save')
+      hasLoadedState.current = true
+    }
+  }
+
+  async function joinSharedSave(shareCode) {
+    setShareError('')
+
+    try {
+      const response = await requestJson('/api/saves/join', {
+        method: 'POST',
+        body: JSON.stringify({ shareCode }),
+      })
+      await hydrateAuthenticatedMode({
+        suppressConflictPrompt: Boolean(migrationConflict),
+      })
+      if (response.saveId) {
+        await switchActiveSave(response.saveId)
+      }
+    } catch (error) {
+      setShareError(error.message)
+    }
+  }
+
+  async function generateShareCodeForActiveSave() {
+    if (!activeSave?.canManage || !activeSaveId) {
+      return
+    }
+
+    setShareError('')
+
+    try {
+      const response = await requestJson(`/api/saves/${activeSaveId}/share-code`, {
+        method: 'POST',
+      })
+      setGeneratedShareCode(response.shareCode)
+    } catch (error) {
+      setShareError(error.message)
+    }
+  }
+
+  async function removeCollaboratorFromActiveSave(userId) {
+    if (!activeSave?.canManage || !activeSaveId) {
+      return
+    }
+
+    setShareError('')
+
+    try {
+      await requestJson(`/api/saves/${activeSaveId}/collaborators/${userId}`, {
+        method: 'DELETE',
+      })
+      await loadCloudSave(activeSaveId, accessibleSaves, currentUser.id)
+    } catch (error) {
+      setShareError(error.message)
+    }
+  }
+
   return {
+    mode,
+    currentUser,
+    accessibleSaves,
+    activeSaveId,
+    activeSave,
+    collaborators,
     tradeMode,
     setTradeMode,
     fireRedStarter,
@@ -220,6 +643,20 @@ function usePokedexState() {
     jumpingSprites,
     spriteFlood,
     saveError,
+    authError,
+    authNotice,
+    shareError,
+    generatedShareCode,
+    migrationConflict,
+    signUp,
+    logIn,
+    logOut,
+    switchActiveSave,
+    keepCloudVersion,
+    replaceCloudWithLocalProgress,
+    joinSharedSave,
+    generateShareCodeForActiveSave,
+    removeCollaboratorFromActiveSave,
   }
 }
 

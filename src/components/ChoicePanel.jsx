@@ -108,36 +108,42 @@ function ChoicePanel(props) {
   return (
     <details className="choice-panel" open>
       <summary>
-        <span>Pokedex Decisions</span>
+        <span className="choice-panel-heading">
+          <span className="choice-panel-title">Pokedex Decisions</span>
+        </span>
         <span className="choice-panel-arrow" aria-hidden="true">
           ▾
         </span>
       </summary>
 
-      <div className="choice-panel-grid">
-        <VersionChoiceCard
-          title="Fire Red"
-          starter={fireRedStarter}
-          setStarter={setFireRedStarter}
-          fossil={fireRedFossil}
-          setFossil={setFireRedFossil}
-          eeveelution={fireRedEeveelution}
-          setEeveelution={setFireRedEeveelution}
-          hitmon={fireRedHitmon}
-          setHitmon={setFireRedHitmon}
-        />
+      <div className="choice-panel-body">
+        <p className="choice-panel-open-note">One-off choices for each version</p>
 
-        <VersionChoiceCard
-          title="Leaf Green"
-          starter={leafGreenStarter}
-          setStarter={setLeafGreenStarter}
-          fossil={leafGreenFossil}
-          setFossil={setLeafGreenFossil}
-          eeveelution={leafGreenEeveelution}
-          setEeveelution={setLeafGreenEeveelution}
-          hitmon={leafGreenHitmon}
-          setHitmon={setLeafGreenHitmon}
-        />
+        <div className="choice-panel-grid">
+          <VersionChoiceCard
+            title="Fire Red"
+            starter={fireRedStarter}
+            setStarter={setFireRedStarter}
+            fossil={fireRedFossil}
+            setFossil={setFireRedFossil}
+            eeveelution={fireRedEeveelution}
+            setEeveelution={setFireRedEeveelution}
+            hitmon={fireRedHitmon}
+            setHitmon={setFireRedHitmon}
+          />
+
+          <VersionChoiceCard
+            title="Leaf Green"
+            starter={leafGreenStarter}
+            setStarter={setLeafGreenStarter}
+            fossil={leafGreenFossil}
+            setFossil={setLeafGreenFossil}
+            eeveelution={leafGreenEeveelution}
+            setEeveelution={setLeafGreenEeveelution}
+            hitmon={leafGreenHitmon}
+            setHitmon={setLeafGreenHitmon}
+          />
+        </div>
       </div>
     </details>
   )
