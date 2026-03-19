@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -248,8 +249,79 @@ function validateUsername(username) {
 }
 
 function validatePassword(password) {
-  return typeof password === 'string' && password.length >= 8 && password.length <= 128
+  return (
+    typeof password === 'string' &&
+    password.length >= 8 &&
+    Buffer.byteLength(password, 'utf8') <= 72
+  )
 }
+
+function getClientIp(req) {
+  return req.ip || req.socket?.remoteAddress || 'unknown'
+}
+
+function createRateLimiter({
+  windowMs,
+  maxRequests,
+  message,
+  keyBuilder = (req) => getClientIp(req),
+}) {
+  const attempts = new Map()
+
+  return (req, res, next) => {
+    const now = Date.now()
+    const key = keyBuilder(req)
+    const entry = attempts.get(key)
+
+    if (!entry || entry.resetAt <= now) {
+      attempts.set(key, {
+        count: 1,
+        resetAt: now + windowMs,
+      })
+      next()
+      return
+    }
+
+    if (entry.count >= maxRequests) {
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((entry.resetAt - now) / 1000),
+      )
+      res.set('Retry-After', String(retryAfterSeconds))
+      res.status(429).json({ error: message })
+      return
+    }
+
+    entry.count += 1
+    next()
+  }
+}
+
+const signUpRateLimit = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many signup attempts. Please wait a bit and try again.',
+})
+
+const loginRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many login attempts. Please wait a bit and try again.',
+  keyBuilder: (req) => {
+    const username = normalizeUsername(req.body?.username)
+    return `${getClientIp(req)}:${username || 'anonymous'}`
+  },
+})
+
+const joinSaveRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many share code attempts. Please wait a bit and try again.',
+  keyBuilder: (req) => {
+    const userId = req.session?.userId || 'guest'
+    return `${getClientIp(req)}:${userId}`
+  },
+})
 
 function sanitizeText(value, fallback) {
   if (typeof value !== 'string') {
@@ -555,7 +627,7 @@ app.get('/api/auth/session', (req, res) => {
   })
 })
 
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/auth/signup', signUpRateLimit, async (req, res) => {
   const username = normalizeUsername(req.body?.username)
   const password = req.body?.password
 
@@ -568,7 +640,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
   if (!validatePassword(password)) {
     res.status(400).json({
-      error: 'Choose a password with at least 8 characters.',
+      error: 'Choose a password with at least 8 characters and no more than 72 bytes.',
     })
     return
   }
@@ -597,7 +669,7 @@ app.post('/api/auth/signup', async (req, res) => {
   })
 })
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginRateLimit, async (req, res) => {
   const username = normalizeUsername(req.body?.username)
   const password = req.body?.password
 
@@ -682,7 +754,7 @@ app.post('/api/saves/migrate-local', requireAuth, (req, res) => {
   })
 })
 
-app.post('/api/saves/join', requireAuth, (req, res) => {
+app.post('/api/saves/join', requireAuth, joinSaveRateLimit, (req, res) => {
   const shareCode = String(req.body?.shareCode || '').trim()
 
   if (!shareCode) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { hasCompletedDex } from '../lib/pokedexHelpers'
 import { defaultAppState, defaultCelebrationState } from '../lib/pokedexOptions'
 import {
@@ -107,8 +107,8 @@ function usePokedexState() {
     }
   }
 
-  function getTrackerState() {
-    return sanitizeTrackerState({
+  const readTrackerState = useEffectEvent(() =>
+    sanitizeTrackerState({
       tradeMode,
       switchEventUnlocks,
       baseGameComplete,
@@ -122,8 +122,8 @@ function usePokedexState() {
       leafGreenHitmon,
       checkboxState,
       celebrationState,
-    })
-  }
+    }),
+  )
 
   function buildTrackerPatch(nextState, baseState) {
     const patch = {}
@@ -273,16 +273,6 @@ function usePokedexState() {
     setSaveError('')
   }
 
-  async function refreshActiveSaveMeta() {
-    if (!activeSaveId) {
-      return
-    }
-
-    const response = await requestJson(`/api/saves/${activeSaveId}/meta`)
-    applyRemoteSaveMeta(response.save, response.collaborators ?? [])
-    return response
-  }
-
   async function hydrateGuestMode() {
     hasLoadedState.current = false
     setMode('guest')
@@ -368,7 +358,7 @@ function usePokedexState() {
     }
   }
 
-  async function recoverFromLostCloudAccess() {
+  const recoverFromLostCloudAccess = useEffectEvent(async () => {
     if (isRecoveringCloudAccess.current) {
       return
     }
@@ -391,19 +381,104 @@ function usePokedexState() {
     } finally {
       isRecoveringCloudAccess.current = false
     }
-  }
+  })
 
-  useEffect(() => {
-    hydrateAuthenticatedMode().catch((error) => {
+  const hydrateInitialState = useEffectEvent(async () => {
+    try {
+      await hydrateAuthenticatedMode()
+    } catch (error) {
       console.error(error)
       setSaveError('Could not load saved progress')
-      hydrateGuestMode()
-    })
+      await hydrateGuestMode()
+    }
+  })
+
+  const persistTrackerState = useEffectEvent(async (state) => {
+    try {
+      if (mode === 'guest') {
+        saveGuestTrackerState(state)
+      } else if (mode === 'cloud' && activeSaveId) {
+        const patch = buildTrackerPatch(state, cloudBaselineState.current)
+
+        if (!patch) {
+          hasUnsavedCloudChanges.current = false
+          setSaveError('')
+          return
+        }
+
+        isCloudSaving.current = true
+        const response = await requestJson(`/api/saves/${activeSaveId}/state`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            patch,
+          }),
+        })
+        applyRemoteSaveMeta(response.save)
+        applyTrackerState(response.state, { fromRemote: true })
+        hasUnsavedCloudChanges.current = false
+        isCloudSaving.current = false
+      }
+
+      setSaveError('')
+    } catch (error) {
+      isCloudSaving.current = false
+
+      if (mode === 'cloud' && (error?.status === 401 || error?.status === 404)) {
+        recoverFromLostCloudAccess().catch((recoveryError) => {
+          console.error(recoveryError)
+        })
+        return
+      }
+
+      setSaveError(
+        mode === 'guest'
+          ? 'Could not save guest progress'
+          : 'Could not save cloud progress',
+      )
+    }
+  })
+
+  const syncRemoteState = useEffectEvent(async () => {
+    if (!activeSaveId) {
+      return
+    }
+
+    const previousRemoteUpdatedAt = lastRemoteUpdatedAt.current
+    const response = await requestJson(`/api/saves/${activeSaveId}/meta`)
+    applyRemoteSaveMeta(response.save, response.collaborators ?? [])
+
+    if (!response?.save?.updatedAt) {
+      return
+    }
+
+    const remoteUpdatedAt = response.save.updatedAt
+
+    if (hasUnsavedCloudChanges.current || isCloudSaving.current) {
+      return
+    }
+
+    if (
+      previousRemoteUpdatedAt &&
+      remoteUpdatedAt <= previousRemoteUpdatedAt
+    ) {
+      return
+    }
+
+    const saveResponse = await requestJson(`/api/saves/${activeSaveId}`)
+    applyRemoteSaveMeta(saveResponse.save, saveResponse.collaborators ?? [])
+    applyTrackerState(saveResponse.state, { fromRemote: true })
+    hasUnsavedCloudChanges.current = false
+  })
+
+  useEffect(() => {
+    hydrateInitialState()
   }, [])
 
   useEffect(() => {
+    const activeJumpTimeouts = jumpTimeouts.current
+
     return () => {
-      Object.values(jumpTimeouts.current).forEach((timeoutId) => {
+      Object.values(activeJumpTimeouts).forEach((timeoutId) => {
         window.clearTimeout(timeoutId)
       })
       window.clearTimeout(floodTimeout.current)
@@ -415,50 +490,11 @@ function usePokedexState() {
       return
     }
 
-    const state = getTrackerState()
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        if (mode === 'guest') {
-          saveGuestTrackerState(state)
-        } else if (mode === 'cloud' && activeSaveId) {
-          const patch = buildTrackerPatch(state, cloudBaselineState.current)
-
-          if (!patch) {
-            hasUnsavedCloudChanges.current = false
-            setSaveError('')
-            return
-          }
-
-          isCloudSaving.current = true
-          const response = await requestJson(`/api/saves/${activeSaveId}/state`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              patch,
-            }),
-          })
-          applyRemoteSaveMeta(response.save)
-          applyTrackerState(response.state, { fromRemote: true })
-          hasUnsavedCloudChanges.current = false
-          isCloudSaving.current = false
-        }
-
-        setSaveError('')
-      } catch (error) {
-        isCloudSaving.current = false
-
-        if (mode === 'cloud' && (error?.status === 401 || error?.status === 404)) {
-          recoverFromLostCloudAccess().catch((recoveryError) => {
-            console.error(recoveryError)
-          })
-          return
-        }
-
-        setSaveError(
-          mode === 'guest'
-            ? 'Could not save guest progress'
-            : 'Could not save cloud progress',
-        )
-      }
+    const state = readTrackerState()
+    const timeoutId = window.setTimeout(() => {
+      persistTrackerState(state).catch((error) => {
+        console.error(error)
+      })
     }, 250)
 
     return () => {
@@ -528,7 +564,7 @@ function usePokedexState() {
     }
 
     hasUnsavedCloudChanges.current = Boolean(
-      buildTrackerPatch(getTrackerState(), cloudBaselineState.current),
+      buildTrackerPatch(readTrackerState(), cloudBaselineState.current),
     )
   }, [
     celebrationState,
@@ -538,7 +574,6 @@ function usePokedexState() {
     fireRedFossil,
     fireRedHitmon,
     fireRedStarter,
-    baseGameComplete,
     leafGreenEeveelution,
     leafGreenFossil,
     leafGreenHitmon,
@@ -551,33 +586,6 @@ function usePokedexState() {
   useEffect(() => {
     if (mode !== 'cloud' || !activeSaveId) {
       return
-    }
-
-    const syncRemoteState = async () => {
-      const previousRemoteUpdatedAt = lastRemoteUpdatedAt.current
-      const response = await refreshActiveSaveMeta()
-
-      if (!response?.save?.updatedAt) {
-        return
-      }
-
-      const remoteUpdatedAt = response.save.updatedAt
-
-      if (hasUnsavedCloudChanges.current || isCloudSaving.current) {
-        return
-      }
-
-      if (
-        previousRemoteUpdatedAt &&
-        remoteUpdatedAt <= previousRemoteUpdatedAt
-      ) {
-        return
-      }
-
-      const saveResponse = await requestJson(`/api/saves/${activeSaveId}`)
-      applyRemoteSaveMeta(saveResponse.save, saveResponse.collaborators ?? [])
-      applyTrackerState(saveResponse.state, { fromRemote: true })
-      hasUnsavedCloudChanges.current = false
     }
 
     syncRemoteState().catch((error) => {

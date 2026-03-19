@@ -4,6 +4,7 @@ function GuestAuthForm({ authError, authNotice, logIn, signUp }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState('')
+  const passwordBytes = new TextEncoder().encode(password).length
 
   function validate() {
     const trimmedUsername = username.trim().toLowerCase()
@@ -17,6 +18,11 @@ function GuestAuthForm({ authError, authNotice, logIn, signUp }) {
 
     if (password.length < 8) {
       setLocalError('Use a password with at least 8 characters.')
+      return false
+    }
+
+    if (passwordBytes > 72) {
+      setLocalError('Use a password that is no more than 72 bytes.')
       return false
     }
 
