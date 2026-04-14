@@ -7,11 +7,13 @@ import ChoicePanel from './components/ChoicePanel'
 import MigrationPanel from './components/MigrationPanel'
 import OnboardingSplash from './components/OnboardingSplash'
 import PokemonRow from './components/PokemonRow'
+import TradeQueueView from './components/TradeQueueView'
 import trackerSettingsCog from './assets/tracker-settings-cog.png'
 import usePokedexState from './hooks/usePokedexState'
 import { isVisibleInSingleVersion } from './lib/pokedexHelpers'
 import { ownedGameLabels, primaryGameOptions } from './lib/pokedexOptions'
 import { getSpriteSrc } from './lib/sprites'
+import { buildTradeQueue, getTradeConsumptionKey } from './lib/tradeQueue'
 
 const themeStorageKey = 'lgfr-theme'
 
@@ -36,34 +38,34 @@ function getVersionCaughtCount(versionKey, pokemonList, checkboxState) {
   }).length
 }
 
-function getTradeEvolutionSourceNames(pokemonList) {
-  const names = new Set(pokemonList.map((entry) => entry.name))
-  const sources = new Set()
+function getTradeCompletionUpdates(pair) {
+  const updates = [
+    {
+      key: `${pair.left.versionKey}-${pair.right.receivedPokemonId}`,
+      checked: true,
+    },
+    {
+      key: `${pair.right.versionKey}-${pair.left.receivedPokemonId}`,
+      checked: true,
+    },
+  ]
 
-  pokemonList.forEach((entry) => {
-    if ((entry.tradeEvolution || entry.tradeEvolutionItem) && entry.evolvesFrom && names.has(entry.evolvesFrom)) {
-      sources.add(entry.evolvesFrom)
+  ;[pair.left, pair.right].forEach((token) => {
+    if (token.type === 'extra-copy') {
+      updates.push({
+        key: `${token.versionKey}-extra-${token.pokemonId}`,
+        checked: false,
+      })
+      return
     }
+
+    updates.push({
+      key: getTradeConsumptionKey(token.versionKey, token.pokemonId),
+      checked: true,
+    })
   })
 
-  return sources
-}
-
-function getTradeReadyCountForVersion(
-  versionKey,
-  pokemonList,
-  checkboxState,
-  tradeEvolutionSourceNames,
-) {
-  return pokemonList.reduce((count, entry) => {
-    const pokemonId = String(entry.id).padStart(3, '0')
-    const hasExtraCopy = Boolean(checkboxState[`${versionKey}-extra-${pokemonId}`])
-    const hasTradeEvolutionSource =
-      tradeEvolutionSourceNames.has(entry.name) &&
-      Boolean(checkboxState[`${versionKey}-${pokemonId}`])
-
-    return count + (hasExtraCopy ? 1 : 0) + (hasTradeEvolutionSource ? 1 : 0)
-  }, 0)
+  return updates
 }
 
 function formatPercent(caughtCount, totalCount) {
@@ -157,6 +159,7 @@ function App() {
     setLeafGreenHitmon,
     checkboxState,
     updateCheckboxState,
+    updateCheckboxStates,
     jumpingSprites,
     spriteFlood,
     saveError,
@@ -239,24 +242,24 @@ function App() {
   const canConfirmNewGame =
     normalizeNewGameConfirmation(newGameConfirmationText) === 'new game'
   const shouldShowTradeReadyCard = trackerLayout === 'dual' && ownedGames !== 'both'
-  const tradeEvolutionSourceNames = getTradeEvolutionSourceNames(trackablePokemon)
-  const fireRedTradeReadyCount = shouldShowTradeReadyCard
-    ? getTradeReadyCountForVersion(
-        'fire-red',
-        trackablePokemon,
-        checkboxState,
-        tradeEvolutionSourceNames,
-      )
-    : 0
-  const leafGreenTradeReadyCount = shouldShowTradeReadyCard
-    ? getTradeReadyCountForVersion(
-        'leaf-green',
-        trackablePokemon,
-        checkboxState,
-        tradeEvolutionSourceNames,
-      )
-    : 0
-  const tradeReadyCount = Math.min(fireRedTradeReadyCount, leafGreenTradeReadyCount)
+  const tradeQueue = shouldShowTradeReadyCard
+    ? buildTradeQueue(trackablePokemon, checkboxState, trackerState, {
+        leftVersionKey: 'leaf-green',
+        rightVersionKey: 'fire-red',
+      })
+    : {
+        pairs: [],
+        pairableCount: 0,
+        readyByVersion: {
+          'leaf-green': [],
+          'fire-red': [],
+        },
+        unpairedByVersion: {
+          'leaf-green': [],
+          'fire-red': [],
+        },
+      }
+  const tradeReadyCount = tradeQueue.pairableCount
   const effectiveTrackerView =
     shouldShowTradeReadyCard && tradeReadyCount > 0 ? activeTrackerView : 'tracker'
   const isTradeViewActive = effectiveTrackerView === 'trade'
@@ -685,21 +688,16 @@ function App() {
               ) : null}
             </div>
 
-            {isTradeViewActive ? (
-              <section className="trade-view-panel trade-view-panel-sidebar">
-                <div className="trade-view-header">
-                  <h2>Trade View</h2>
-                  <p>
-                    {tradeReadyCount} {tradeReadyCount === 1 ? 'trade is' : 'trades are'} ready to
-                    be paired. The interactive trade list comes next.
-                  </p>
-                </div>
-              </section>
-            ) : null}
           </div>
         </div>
 
-        {!isTradeViewActive ? (
+        {isTradeViewActive ? (
+          <TradeQueueView
+            tradeQueue={tradeQueue}
+            className="trade-view-panel-main"
+            onCompleteTrade={(pair) => updateCheckboxStates(getTradeCompletionUpdates(pair))}
+          />
+        ) : (
           <div className={`tracker ${isSingleVersionView ? 'tracker-single' : ''}`}>
             <div
               className={`tracker-row tracker-header ${
@@ -752,7 +750,7 @@ function App() {
               ))}
             </ol>
           </div>
-        ) : null}
+        )}
       </section>
     </main>
   )

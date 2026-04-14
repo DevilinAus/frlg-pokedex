@@ -687,6 +687,47 @@ function usePokedexState() {
     }, 700)
   }
 
+  function updateCheckboxStates(updates) {
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return
+    }
+
+    markCloudStateDirty()
+
+    setCheckboxState((currentState) => {
+      const nextState = { ...currentState }
+
+      updates.forEach(({ key, checked }) => {
+        if (typeof key === 'string') {
+          nextState[key] = Boolean(checked)
+        }
+      })
+
+      return nextState
+    })
+
+    updates.forEach(({ key, checked }) => {
+      if (!checked || typeof key !== 'string') {
+        return
+      }
+
+      const pokemonId = key.split('-').at(-1)
+
+      setJumpingSprites((currentState) => ({
+        ...currentState,
+        [pokemonId]: true,
+      }))
+
+      window.clearTimeout(jumpTimeouts.current[pokemonId])
+      jumpTimeouts.current[pokemonId] = window.setTimeout(() => {
+        setJumpingSprites((currentState) => ({
+          ...currentState,
+          [pokemonId]: false,
+        }))
+      }, 700)
+    })
+  }
+
   function updateTradeMode(nextValue) {
     markCloudStateDirty()
     setTradeMode(nextValue)
@@ -1040,6 +1081,7 @@ function usePokedexState() {
     setLeafGreenHitmon: updateLeafGreenHitmon,
     checkboxState,
     updateCheckboxState,
+    updateCheckboxStates,
     jumpingSprites,
     spriteFlood,
     saveError,

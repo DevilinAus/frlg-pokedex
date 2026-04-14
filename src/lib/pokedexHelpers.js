@@ -84,6 +84,16 @@ function getVersionChoices(versionKey, trackerState) {
   }
 }
 
+export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
+  const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
+  const versionChoices = getVersionChoices(versionKey, trackerState)
+
+  return (
+    needsExtraCopy(entry, config.choiceVersion, false) ||
+    needsChoiceExtraCopy(entry, versionChoices, false)
+  )
+}
+
 export function getVersionTrackerState(entry, versionKey, trackerState) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
