@@ -11,6 +11,12 @@ import {
 } from '../lib/guestStorage'
 import { createFullDexCelebration } from '../lib/sprites'
 
+const starterPokemonIds = {
+  bulbasaur: '001',
+  charmander: '004',
+  squirtle: '007',
+}
+
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     headers: {
@@ -44,7 +50,13 @@ function usePokedexState() {
   const [activeSaveId, setActiveSaveId] = useState(null)
   const [activeSave, setActiveSave] = useState(null)
   const [collaborators, setCollaborators] = useState([])
+  const [ownedGames, setOwnedGames] = useState(defaultAppState.ownedGames)
+  const [trackerLayout, setTrackerLayout] = useState(defaultAppState.trackerLayout)
+  const [onboardingComplete, setOnboardingComplete] = useState(
+    defaultAppState.onboardingComplete,
+  )
   const [tradeMode, setTradeMode] = useState(defaultAppState.tradeMode)
+  const [primaryGame, setPrimaryGame] = useState(defaultAppState.primaryGame)
   const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
     defaultAppState.switchEventUnlocks,
   )
@@ -109,7 +121,11 @@ function usePokedexState() {
 
   const readTrackerState = useEffectEvent(() =>
     sanitizeTrackerState({
+      ownedGames,
+      trackerLayout,
+      onboardingComplete,
       tradeMode,
+      primaryGame,
       switchEventUnlocks,
       baseGameComplete,
       fireRedStarter,
@@ -128,8 +144,24 @@ function usePokedexState() {
   function buildTrackerPatch(nextState, baseState) {
     const patch = {}
 
+    if (nextState.ownedGames !== baseState.ownedGames) {
+      patch.ownedGames = nextState.ownedGames
+    }
+
+    if (nextState.trackerLayout !== baseState.trackerLayout) {
+      patch.trackerLayout = nextState.trackerLayout
+    }
+
+    if (nextState.onboardingComplete !== baseState.onboardingComplete) {
+      patch.onboardingComplete = nextState.onboardingComplete
+    }
+
     if (nextState.tradeMode !== baseState.tradeMode) {
       patch.tradeMode = nextState.tradeMode
+    }
+
+    if (nextState.primaryGame !== baseState.primaryGame) {
+      patch.primaryGame = nextState.primaryGame
     }
 
     if (nextState.switchEventUnlocks !== baseState.switchEventUnlocks) {
@@ -226,7 +258,11 @@ function usePokedexState() {
       hasUnsavedCloudChanges.current = false
     }
 
+    setOwnedGames(state.ownedGames)
+    setTrackerLayout(state.trackerLayout)
+    setOnboardingComplete(state.onboardingComplete)
     setTradeMode(state.tradeMode)
+    setPrimaryGame(state.primaryGame)
     setSwitchEventUnlocks(state.switchEventUnlocks)
     setBaseGameComplete(state.baseGameComplete)
     setFireRedStarter(state.fireRedStarter)
@@ -514,8 +550,12 @@ function usePokedexState() {
     leafGreenHitmon,
     leafGreenStarter,
     mode,
+    onboardingComplete,
+    ownedGames,
     switchEventUnlocks,
+    trackerLayout,
     tradeMode,
+    primaryGame,
   ])
 
   useEffect(() => {
@@ -579,8 +619,12 @@ function usePokedexState() {
     leafGreenHitmon,
     leafGreenStarter,
     mode,
+    onboardingComplete,
+    ownedGames,
     switchEventUnlocks,
+    trackerLayout,
     tradeMode,
+    primaryGame,
   ])
 
   useEffect(() => {
@@ -648,9 +692,29 @@ function usePokedexState() {
     setTradeMode(nextValue)
   }
 
+  function updateOwnedGames(nextValue) {
+    markCloudStateDirty()
+    setOwnedGames(nextValue)
+  }
+
+  function updateTrackerLayout(nextValue) {
+    markCloudStateDirty()
+    setTrackerLayout(nextValue)
+  }
+
+  function updateOnboardingComplete(nextValue) {
+    markCloudStateDirty()
+    setOnboardingComplete(nextValue)
+  }
+
   function updateSwitchEventUnlocks(nextValue) {
     markCloudStateDirty()
     setSwitchEventUnlocks(nextValue)
+  }
+
+  function updatePrimaryGame(nextValue) {
+    markCloudStateDirty()
+    setPrimaryGame(nextValue)
   }
 
   function updateBaseGameComplete(nextValue) {
@@ -696,6 +760,38 @@ function usePokedexState() {
   function updateLeafGreenHitmon(nextValue) {
     markCloudStateDirty()
     setLeafGreenHitmon(nextValue)
+  }
+
+  function completeOnboarding(setup) {
+    const nextFireRedStarter = setup.fireRedStarter ?? defaultAppState.fireRedStarter
+    const nextLeafGreenStarter = setup.leafGreenStarter ?? defaultAppState.leafGreenStarter
+    const starterCheckboxPatch = {}
+
+    if (nextFireRedStarter && starterPokemonIds[nextFireRedStarter]) {
+      starterCheckboxPatch[`fire-red-${starterPokemonIds[nextFireRedStarter]}`] = true
+    }
+
+    if (nextLeafGreenStarter && starterPokemonIds[nextLeafGreenStarter]) {
+      starterCheckboxPatch[`leaf-green-${starterPokemonIds[nextLeafGreenStarter]}`] = true
+    }
+
+    markCloudStateDirty()
+    setOwnedGames(setup.ownedGames)
+    setTrackerLayout(setup.trackerLayout)
+    setTradeMode(setup.tradeMode)
+    setPrimaryGame(setup.primaryGame ?? defaultAppState.primaryGame)
+    setSwitchEventUnlocks(setup.switchEventUnlocks)
+    setFireRedStarter(nextFireRedStarter)
+    setLeafGreenStarter(nextLeafGreenStarter)
+    setCheckboxState((currentState) => ({
+      ...currentState,
+      ...starterCheckboxPatch,
+    }))
+    setOnboardingComplete(true)
+  }
+
+  function reopenOnboarding() {
+    updateOnboardingComplete(false)
   }
 
   async function signUp(username, password) {
@@ -814,10 +910,20 @@ function usePokedexState() {
         suppressConflictPrompt: Boolean(migrationConflict),
       })
       if (response.saveId) {
-        await switchActiveSave(response.saveId)
+        if (currentUser?.id) {
+          await loadCloudSave(response.saveId, undefined, currentUser.id)
+        } else {
+          await switchActiveSave(response.saveId)
+        }
       }
+      return { ok: true, saveId: response.saveId }
     } catch (error) {
       setShareError(error.message)
+      return {
+        ok: false,
+        error: error.message,
+        status: error.status,
+      }
     }
   }
 
@@ -855,6 +961,44 @@ function usePokedexState() {
     }
   }
 
+  async function resetTrackerState() {
+    setSaveError('')
+    setShareError('')
+    setGeneratedShareCode('')
+    setMigrationConflict(null)
+
+    try {
+      if (mode === 'cloud' && activeSaveId) {
+        hasLoadedState.current = false
+        await requestJson(`/api/saves/${activeSaveId}/state`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            state: defaultAppState,
+          }),
+        })
+        await loadCloudSave(activeSaveId, accessibleSaves, currentUser?.id)
+      } else {
+        clearGuestTrackerState()
+        applyTrackerState(defaultAppState)
+        cloudBaselineState.current = sanitizeTrackerState(defaultAppState)
+        hasUnsavedCloudChanges.current = false
+        isCloudSaving.current = false
+        setSaveError('')
+      }
+
+      setJumpingSprites({})
+      setSpriteFlood([])
+      return { ok: true }
+    } catch (error) {
+      setSaveError(error.message || 'Could not reset this save')
+      hasLoadedState.current = true
+      return {
+        ok: false,
+        error: error.message || 'Could not reset this save',
+      }
+    }
+  }
+
   return {
     mode,
     currentUser,
@@ -862,8 +1006,18 @@ function usePokedexState() {
     activeSaveId,
     activeSave,
     collaborators,
+    ownedGames,
+    setOwnedGames: updateOwnedGames,
+    trackerLayout,
+    setTrackerLayout: updateTrackerLayout,
+    onboardingComplete,
+    setOnboardingComplete: updateOnboardingComplete,
+    completeOnboarding,
+    reopenOnboarding,
     tradeMode,
     setTradeMode: updateTradeMode,
+    primaryGame,
+    setPrimaryGame: updatePrimaryGame,
     switchEventUnlocks,
     setSwitchEventUnlocks: updateSwitchEventUnlocks,
     baseGameComplete,
@@ -903,6 +1057,7 @@ function usePokedexState() {
     joinSharedSave,
     generateShareCodeForActiveSave,
     removeCollaboratorFromActiveSave,
+    resetTrackerState,
   }
 }
 

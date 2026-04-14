@@ -1,6 +1,23 @@
 import { getTrackablePokemon } from '../data/pokemon'
 import { starterLabels } from './pokedexOptions'
 
+const versionConfigs = {
+  'fire-red': {
+    availabilityKey: 'fireRedAvailability',
+    starterKey: 'fireRedStarter',
+    fossilKey: 'fireRedFossil',
+    hitmonKey: 'fireRedHitmon',
+    choiceVersion: 'fireRed',
+  },
+  'leaf-green': {
+    availabilityKey: 'leafGreenAvailability',
+    starterKey: 'leafGreenStarter',
+    fossilKey: 'leafGreenFossil',
+    hitmonKey: 'leafGreenHitmon',
+    choiceVersion: 'leafGreen',
+  },
+}
+
 export function isLockedByStarterChoice(entry, selectedStarter) {
   if (!entry.starterFamily) {
     return false
@@ -57,6 +74,79 @@ export function needsChoiceExtraCopy(entry, versionChoices, tradeMode) {
   return isSelectedStarterBase || isSelectedHitmon
 }
 
+function getVersionChoices(versionKey, trackerState) {
+  const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
+
+  return {
+    starter: trackerState[config.starterKey],
+    fossil: trackerState[config.fossilKey],
+    hitmon: trackerState[config.hitmonKey],
+  }
+}
+
+export function getVersionTrackerState(entry, versionKey, trackerState) {
+  const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
+  const versionChoices = getVersionChoices(versionKey, trackerState)
+  const starterLocked = isLockedByStarterChoice(entry, versionChoices.starter)
+  const fossilLocked = isLockedByChoice(entry.fossilFamily, versionChoices.fossil)
+  const hitmonLocked = isLockedByChoice(entry.hitmonFamily, versionChoices.hitmon)
+  const versionAvailability = entry[config.availabilityKey]
+  const switchEventLegendaryUnlocked =
+    entry.switchEventLegendary && trackerState.switchEventUnlocks
+  const locked =
+    ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
+    ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
+    (!switchEventLegendaryUnlocked &&
+      versionAvailability !== 'native' &&
+      !(trackerState.tradeMode && versionAvailability === 'trade'))
+  const showExtraCopy =
+    needsExtraCopy(entry, config.choiceVersion, trackerState.tradeMode) ||
+    needsChoiceExtraCopy(entry, versionChoices, trackerState.tradeMode)
+
+  return {
+    locked,
+    showExtraCopy,
+    versionAvailability,
+  }
+}
+
+export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
+  const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
+  const versionChoices = getVersionChoices(versionKey, trackerState)
+  const versionAvailability = entry[config.availabilityKey]
+  const switchEventLegendaryUnlocked =
+    entry.switchEventLegendary && trackerState.switchEventUnlocks
+  const blockedByTradeEvolution =
+    (entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode
+  const blockedByStarterChoice =
+    Boolean(versionChoices.starter) &&
+    entry.starterFamily &&
+    entry.starterFamily !== versionChoices.starter &&
+    !trackerState.tradeMode
+  const blockedByFossilChoice =
+    Boolean(versionChoices.fossil) &&
+    entry.fossilFamily &&
+    entry.fossilFamily !== versionChoices.fossil &&
+    !trackerState.tradeMode
+  const blockedByHitmonChoice =
+    Boolean(versionChoices.hitmon) &&
+    entry.hitmonFamily &&
+    entry.hitmonFamily !== versionChoices.hitmon &&
+    !trackerState.tradeMode
+  const blockedByAvailability =
+    !switchEventLegendaryUnlocked &&
+    versionAvailability !== 'native' &&
+    !(trackerState.tradeMode && versionAvailability === 'trade')
+
+  return !(
+    blockedByTradeEvolution ||
+    blockedByStarterChoice ||
+    blockedByFossilChoice ||
+    blockedByHitmonChoice ||
+    blockedByAvailability
+  )
+}
+
 export function getComment(
   entry,
   switchEventUnlocks,
@@ -64,8 +154,6 @@ export function getComment(
   leafGreenStarter,
   fireRedFossil,
   leafGreenFossil,
-  fireRedEeveelution,
-  leafGreenEeveelution,
   fireRedHitmon,
   leafGreenHitmon,
 ) {
@@ -73,9 +161,6 @@ export function getComment(
   const starterCoversEntry =
     entry.starterFamily === fireRedStarter || entry.starterFamily === leafGreenStarter
   const bothFossilsChosen = Boolean(fireRedFossil && leafGreenFossil)
-  const bothEeveelutionsChosen = Boolean(
-    fireRedEeveelution && leafGreenEeveelution,
-  )
   const bothHitmonsChosen = Boolean(fireRedHitmon && leafGreenHitmon)
 
   if (entry.name === 'Mew') {
@@ -131,15 +216,6 @@ export function getComment(
 
   if (entry.friendshipEvolution && entry.evolvesFrom) {
     return `Level up ${entry.evolvesFrom} with high friendship`
-  }
-
-  if (
-    bothEeveelutionsChosen &&
-    entry.eeveelutionFamily &&
-    entry.eeveelutionFamily !== fireRedEeveelution &&
-    entry.eeveelutionFamily !== leafGreenEeveelution
-  ) {
-    return 'Requires breeding for an Eevee egg postgame'
   }
 
   if (entry.stoneEvolution) {

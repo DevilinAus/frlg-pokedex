@@ -1,10 +1,7 @@
 import {
   getComment,
   getPokemonDbUrl,
-  isLockedByChoice,
-  isLockedByStarterChoice,
-  needsChoiceExtraCopy,
-  needsExtraCopy,
+  getVersionTrackerState,
 } from '../lib/pokedexHelpers'
 
 const compactPostgameSpriteNames = new Set(['Deoxys', 'Ho-Oh', 'Lugia', 'Steelix'])
@@ -74,18 +71,29 @@ function PokemonRow({
   isJumping,
   checkboxState,
   updateCheckboxState,
+  trackerLayout,
+  singleVersionKey,
   tradeMode,
   switchEventUnlocks,
   fireRedStarter,
   leafGreenStarter,
   fireRedFossil,
   leafGreenFossil,
-  fireRedEeveelution,
-  leafGreenEeveelution,
   fireRedHitmon,
   leafGreenHitmon,
 }) {
   const pokemonId = String(entry.id).padStart(3, '0')
+  const primaryVersionKey = singleVersionKey ?? 'fire-red'
+  const trackerState = {
+    tradeMode,
+    switchEventUnlocks,
+    fireRedStarter,
+    leafGreenStarter,
+    fireRedFossil,
+    leafGreenFossil,
+    fireRedHitmon,
+    leafGreenHitmon,
+  }
   const comment = getComment(
     entry,
     switchEventUnlocks,
@@ -93,74 +101,25 @@ function PokemonRow({
     leafGreenStarter,
     fireRedFossil,
     leafGreenFossil,
-    fireRedEeveelution,
-    leafGreenEeveelution,
     fireRedHitmon,
     leafGreenHitmon,
   )
-
-  const fireRedStarterLocked = isLockedByStarterChoice(entry, fireRedStarter)
-  const leafGreenStarterLocked = isLockedByStarterChoice(entry, leafGreenStarter)
-  const fireRedFossilLocked = isLockedByChoice(entry.fossilFamily, fireRedFossil)
-  const leafGreenFossilLocked = isLockedByChoice(entry.fossilFamily, leafGreenFossil)
-  const fireRedEeveelutionLocked = isLockedByChoice(
-    entry.eeveelutionFamily,
-    fireRedEeveelution,
-  )
-  const leafGreenEeveelutionLocked = isLockedByChoice(
-    entry.eeveelutionFamily,
-    leafGreenEeveelution,
-  )
-  const fireRedHitmonLocked = isLockedByChoice(entry.hitmonFamily, fireRedHitmon)
-  const leafGreenHitmonLocked = isLockedByChoice(entry.hitmonFamily, leafGreenHitmon)
-  const switchEventLegendaryUnlocked =
-    entry.switchEventLegendary && switchEventUnlocks
-
-  const fireRedLocked =
-    ((entry.tradeEvolution || entry.tradeEvolutionItem) && !tradeMode) ||
-    ((fireRedStarterLocked ||
-      fireRedFossilLocked ||
-      fireRedEeveelutionLocked ||
-      fireRedHitmonLocked) &&
-      !tradeMode) ||
-    (!switchEventLegendaryUnlocked &&
-      entry.fireRedAvailability !== 'native' &&
-      !(tradeMode && entry.fireRedAvailability === 'trade'))
-  const leafGreenLocked =
-    ((entry.tradeEvolution || entry.tradeEvolutionItem) && !tradeMode) ||
-    ((leafGreenStarterLocked ||
-      leafGreenFossilLocked ||
-      leafGreenEeveelutionLocked ||
-      leafGreenHitmonLocked) &&
-      !tradeMode) ||
-    (!switchEventLegendaryUnlocked &&
-      entry.leafGreenAvailability !== 'native' &&
-      !(tradeMode && entry.leafGreenAvailability === 'trade'))
-
-  const showFireRedExtraCopy =
-    needsExtraCopy(entry, 'fireRed', tradeMode) ||
-    needsChoiceExtraCopy(
-      entry,
-      {
-        starter: fireRedStarter,
-        hitmon: fireRedHitmon,
-      },
-      tradeMode,
-    )
-  const showLeafGreenExtraCopy =
-    needsExtraCopy(entry, 'leafGreen', tradeMode) ||
-    needsChoiceExtraCopy(
-      entry,
-      {
-        starter: leafGreenStarter,
-        hitmon: leafGreenHitmon,
-      },
-      tradeMode,
-    )
+  const fireRedState = getVersionTrackerState(entry, 'fire-red', trackerState)
+  const leafGreenState = getVersionTrackerState(entry, 'leaf-green', trackerState)
+  const singleVersionState =
+    singleVersionKey && trackerLayout === 'single'
+      ? getVersionTrackerState(entry, singleVersionKey, trackerState)
+      : null
+  const singleVersionCellClass =
+    singleVersionKey === 'leaf-green' ? 'leaf-green-cell' : 'fire-red-cell'
 
   return (
-    <li className="tracker-row pokemon-row">
-      <label className="pokemon-label" htmlFor={`fire-red-${pokemonId}`}>
+    <li
+      className={`tracker-row pokemon-row ${
+        trackerLayout === 'single' ? 'tracker-row-single pokemon-row-single' : ''
+      }`.trim()}
+    >
+      <label className="pokemon-label" htmlFor={`${primaryVersionKey}-${pokemonId}`}>
         {spriteSrc ? (
           entry.baseGameCompleteRequired ? (
             <span className="pokemon-sprite-frame" aria-hidden="true">
@@ -202,37 +161,57 @@ function PokemonRow({
         </a>
       </label>
 
-      <div
-        className={`checkbox-cell fire-red-cell ${
-          fireRedLocked ? 'checkbox-cell-locked' : ''
-        }`}
-      >
-        <CheckboxGroup
-          versionKey="fire-red"
-          pokemonId={pokemonId}
-          checked={Boolean(checkboxState[`fire-red-${pokemonId}`])}
-          extraChecked={Boolean(checkboxState[`fire-red-extra-${pokemonId}`])}
-          showExtraCopy={showFireRedExtraCopy}
-          locked={fireRedLocked}
-          updateCheckboxState={updateCheckboxState}
-        />
-      </div>
+      {singleVersionState ? (
+        <div
+          className={`checkbox-cell ${singleVersionCellClass} ${
+            singleVersionState.locked ? 'checkbox-cell-locked' : ''
+          }`}
+        >
+          <CheckboxGroup
+            versionKey={singleVersionKey}
+            pokemonId={pokemonId}
+            checked={Boolean(checkboxState[`${singleVersionKey}-${pokemonId}`])}
+            extraChecked={false}
+            showExtraCopy={false}
+            locked={singleVersionState.locked}
+            updateCheckboxState={updateCheckboxState}
+          />
+        </div>
+      ) : (
+        <>
+          <div
+            className={`checkbox-cell fire-red-cell ${
+              fireRedState.locked ? 'checkbox-cell-locked' : ''
+            }`}
+          >
+            <CheckboxGroup
+              versionKey="fire-red"
+              pokemonId={pokemonId}
+              checked={Boolean(checkboxState[`fire-red-${pokemonId}`])}
+              extraChecked={Boolean(checkboxState[`fire-red-extra-${pokemonId}`])}
+              showExtraCopy={fireRedState.showExtraCopy}
+              locked={fireRedState.locked}
+              updateCheckboxState={updateCheckboxState}
+            />
+          </div>
 
-      <div
-        className={`checkbox-cell leaf-green-cell ${
-          leafGreenLocked ? 'checkbox-cell-locked' : ''
-        }`}
-      >
-        <CheckboxGroup
-          versionKey="leaf-green"
-          pokemonId={pokemonId}
-          checked={Boolean(checkboxState[`leaf-green-${pokemonId}`])}
-          extraChecked={Boolean(checkboxState[`leaf-green-extra-${pokemonId}`])}
-          showExtraCopy={showLeafGreenExtraCopy}
-          locked={leafGreenLocked}
-          updateCheckboxState={updateCheckboxState}
-        />
-      </div>
+          <div
+            className={`checkbox-cell leaf-green-cell ${
+              leafGreenState.locked ? 'checkbox-cell-locked' : ''
+            }`}
+          >
+            <CheckboxGroup
+              versionKey="leaf-green"
+              pokemonId={pokemonId}
+              checked={Boolean(checkboxState[`leaf-green-${pokemonId}`])}
+              extraChecked={Boolean(checkboxState[`leaf-green-extra-${pokemonId}`])}
+              showExtraCopy={leafGreenState.showExtraCopy}
+              locked={leafGreenState.locked}
+              updateCheckboxState={updateCheckboxState}
+            />
+          </div>
+        </>
+      )}
 
       <div className="comment-cell">
         {comment ? <span className="comment-text">{comment}</span> : null}
