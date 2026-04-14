@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
 import {
-  eeveelutionOptions,
   fossilOptions,
   hitmonOptions,
   starterOptions,
@@ -119,8 +118,6 @@ function VersionChoiceCard({
   setStarter,
   fossil,
   setFossil,
-  eeveelution,
-  setEeveelution,
   hitmon,
   setHitmon,
 }) {
@@ -147,15 +144,6 @@ function VersionChoiceCard({
       />
 
       <ChoiceSelect
-        label="Eeveelution"
-        value={eeveelution}
-        onChange={setEeveelution}
-        options={eeveelutionOptions}
-        className={`starter-select choice-select-${eeveelution}`}
-        optionClassPrefix="choice-option-"
-      />
-
-      <ChoiceSelect
         label="Hitmon"
         value={hitmon}
         onChange={setHitmon}
@@ -169,30 +157,27 @@ function VersionChoiceCard({
 
 function ChoicePanel(props) {
   const {
-    switchEventUnlocks,
-    setSwitchEventUnlocks,
+    ownedGames,
+    trackerLayout,
     baseGameComplete,
     setBaseGameComplete,
     fireRedStarter,
     setFireRedStarter,
     fireRedFossil,
     setFireRedFossil,
-    fireRedEeveelution,
-    setFireRedEeveelution,
     fireRedHitmon,
     setFireRedHitmon,
     leafGreenStarter,
     setLeafGreenStarter,
     leafGreenFossil,
     setLeafGreenFossil,
-    leafGreenEeveelution,
-    setLeafGreenEeveelution,
     leafGreenHitmon,
     setLeafGreenHitmon,
   } = props
+  const isSingleVersionView = trackerLayout === 'single' && ownedGames !== 'both'
 
   return (
-    <details className="choice-panel" open>
+    <details className="choice-panel">
       <summary>
         <span className="choice-panel-heading">
           <span className="choice-panel-title">Pokedex Decisions</span>
@@ -203,37 +188,19 @@ function ChoicePanel(props) {
       </summary>
 
       <div className="choice-panel-body">
-        <p className="choice-panel-open-note">One-off choices for each version</p>
+        <p className="choice-panel-open-note">
+          {isSingleVersionView
+            ? 'One-off choices for your current version'
+            : 'One-off choices for each version'}
+        </p>
 
-        <div className="choice-panel-grid">
+        <div
+          className={`choice-panel-grid ${
+            isSingleVersionView ? 'choice-panel-grid-single' : ''
+          }`.trim()}
+        >
           <section className="choice-card choice-card-shared">
-            <div className="choice-panel-toggle-grid">
-              <div className="choice-panel-toggle-card">
-                <div className="choice-panel-toggle">
-                  <div className="choice-panel-toggle-row">
-                    <span className="choice-panel-toggle-heading">
-                      <span className="choice-panel-toggle-title">Switch event unlocks</span>
-                      <InfoPopover label="About Switch event unlocks">
-                        Hall of Fame unlocks the Mystic Ticket and Aurora Ticket,
-                        letting you catch Lugia, Ho-Oh, and Deoxys. Mew is still not
-                        catchable in FireRed/LeafGreen.
-                      </InfoPopover>
-                    </span>
-                    <label className="choice-panel-toggle-input" htmlFor="switch-event-unlocks">
-                      <input
-                        id="switch-event-unlocks"
-                        type="checkbox"
-                        checked={switchEventUnlocks}
-                        onChange={(event) => setSwitchEventUnlocks(event.target.checked)}
-                      />
-                    </label>
-                  </div>
-                  <span className="choice-panel-toggle-text">
-                    Tick this if you are playing the 2026 Switch release.
-                  </span>
-                </div>
-              </div>
-
+            <div className="choice-panel-toggle-grid choice-panel-toggle-grid-single-card">
               <div className="choice-panel-toggle-card">
                 <div className="choice-panel-toggle">
                   <div className="choice-panel-toggle-row">
@@ -262,29 +229,29 @@ function ChoicePanel(props) {
             </div>
           </section>
 
-          <VersionChoiceCard
-            title="Fire Red"
-            starter={fireRedStarter}
-            setStarter={setFireRedStarter}
-            fossil={fireRedFossil}
-            setFossil={setFireRedFossil}
-            eeveelution={fireRedEeveelution}
-            setEeveelution={setFireRedEeveelution}
-            hitmon={fireRedHitmon}
-            setHitmon={setFireRedHitmon}
-          />
+          {!isSingleVersionView || ownedGames === 'fire-red' ? (
+            <VersionChoiceCard
+              title="Fire Red"
+              starter={fireRedStarter}
+              setStarter={setFireRedStarter}
+              fossil={fireRedFossil}
+              setFossil={setFireRedFossil}
+              hitmon={fireRedHitmon}
+              setHitmon={setFireRedHitmon}
+            />
+          ) : null}
 
-          <VersionChoiceCard
-            title="Leaf Green"
-            starter={leafGreenStarter}
-            setStarter={setLeafGreenStarter}
-            fossil={leafGreenFossil}
-            setFossil={setLeafGreenFossil}
-            eeveelution={leafGreenEeveelution}
-            setEeveelution={setLeafGreenEeveelution}
-            hitmon={leafGreenHitmon}
-            setHitmon={setLeafGreenHitmon}
-          />
+          {!isSingleVersionView || ownedGames === 'leaf-green' ? (
+            <VersionChoiceCard
+              title="Leaf Green"
+              starter={leafGreenStarter}
+              setStarter={setLeafGreenStarter}
+              fossil={leafGreenFossil}
+              setFossil={setLeafGreenFossil}
+              hitmon={leafGreenHitmon}
+              setHitmon={setLeafGreenHitmon}
+            />
+          ) : null}
         </div>
       </div>
     </details>

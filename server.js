@@ -31,7 +31,11 @@ db.pragma('foreign_keys = ON')
 db.pragma('journal_mode = WAL')
 
 const defaultTrackerState = {
+  ownedGames: 'both',
+  trackerLayout: 'dual',
+  onboardingComplete: false,
   tradeMode: false,
+  primaryGame: '',
   switchEventUnlocks: false,
   baseGameComplete: false,
   fireRedStarter: '',
@@ -48,6 +52,10 @@ const defaultTrackerState = {
     leafGreenCompleteCelebrated: false,
   },
 }
+
+const ownedGameValues = new Set(['fire-red', 'leaf-green', 'both'])
+const primaryGameValues = new Set(['', 'fire-red', 'leaf-green'])
+const trackerLayoutValues = new Set(['single', 'dual'])
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -331,9 +339,48 @@ function sanitizeText(value, fallback) {
   return value
 }
 
+function sanitizeEnum(value, allowedValues, fallback) {
+  return allowedValues.has(value) ? value : fallback
+}
+
+function hasMeaningfulTrackerData(state) {
+  return (
+    state.ownedGames !== defaultTrackerState.ownedGames ||
+    state.trackerLayout !== defaultTrackerState.trackerLayout ||
+    state.tradeMode ||
+    state.primaryGame !== defaultTrackerState.primaryGame ||
+    state.switchEventUnlocks ||
+    state.baseGameComplete ||
+    state.fireRedStarter !== defaultTrackerState.fireRedStarter ||
+    state.leafGreenStarter !== defaultTrackerState.leafGreenStarter ||
+    state.fireRedFossil !== defaultTrackerState.fireRedFossil ||
+    state.leafGreenFossil !== defaultTrackerState.leafGreenFossil ||
+    state.fireRedEeveelution !== defaultTrackerState.fireRedEeveelution ||
+    state.leafGreenEeveelution !== defaultTrackerState.leafGreenEeveelution ||
+    state.fireRedHitmon !== defaultTrackerState.fireRedHitmon ||
+    state.leafGreenHitmon !== defaultTrackerState.leafGreenHitmon ||
+    Object.values(state.checkboxState).some(Boolean)
+  )
+}
+
 function sanitizeTrackerState(input) {
-  return {
+  const safeState = {
+    ownedGames: sanitizeEnum(
+      input?.ownedGames,
+      ownedGameValues,
+      defaultTrackerState.ownedGames,
+    ),
+    trackerLayout: sanitizeEnum(
+      input?.trackerLayout,
+      trackerLayoutValues,
+      defaultTrackerState.trackerLayout,
+    ),
     tradeMode: Boolean(input?.tradeMode),
+    primaryGame: sanitizeEnum(
+      input?.primaryGame,
+      primaryGameValues,
+      defaultTrackerState.primaryGame,
+    ),
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
     baseGameComplete: Boolean(input?.baseGameComplete),
     fireRedStarter: sanitizeText(
@@ -392,6 +439,14 @@ function sanitizeTrackerState(input) {
           }
         : defaultTrackerState.celebrationState,
   }
+
+  return {
+    ...safeState,
+    onboardingComplete:
+      typeof input?.onboardingComplete === 'boolean'
+        ? input.onboardingComplete
+        : hasMeaningfulTrackerData(safeState),
+  }
 }
 
 function sanitizeTrackerPatch(input) {
@@ -401,8 +456,36 @@ function sanitizeTrackerPatch(input) {
 
   const patch = {}
 
+  if (Object.hasOwn(input, 'ownedGames')) {
+    patch.ownedGames = sanitizeEnum(
+      input.ownedGames,
+      ownedGameValues,
+      defaultTrackerState.ownedGames,
+    )
+  }
+
+  if (Object.hasOwn(input, 'trackerLayout')) {
+    patch.trackerLayout = sanitizeEnum(
+      input.trackerLayout,
+      trackerLayoutValues,
+      defaultTrackerState.trackerLayout,
+    )
+  }
+
+  if (Object.hasOwn(input, 'onboardingComplete')) {
+    patch.onboardingComplete = Boolean(input.onboardingComplete)
+  }
+
   if (Object.hasOwn(input, 'tradeMode')) {
     patch.tradeMode = Boolean(input.tradeMode)
+  }
+
+  if (Object.hasOwn(input, 'primaryGame')) {
+    patch.primaryGame = sanitizeEnum(
+      input.primaryGame,
+      primaryGameValues,
+      defaultTrackerState.primaryGame,
+    )
   }
 
   if (Object.hasOwn(input, 'switchEventUnlocks')) {

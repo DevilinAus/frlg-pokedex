@@ -2,13 +2,56 @@ import { defaultAppState } from './pokedexOptions'
 
 export const guestStateStorageKey = 'lgfr-guest-state'
 
+const ownedGameValues = new Set(['fire-red', 'leaf-green', 'both'])
+const primaryGameValues = new Set(['', 'fire-red', 'leaf-green'])
+const trackerLayoutValues = new Set(['single', 'dual'])
+
 function sanitizeText(value, fallback) {
   return typeof value === 'string' ? value : fallback
 }
 
+function sanitizeEnum(value, allowedValues, fallback) {
+  return allowedValues.has(value) ? value : fallback
+}
+
+function hasMeaningfulTrackerData(state) {
+  return (
+    state.ownedGames !== defaultAppState.ownedGames ||
+    state.trackerLayout !== defaultAppState.trackerLayout ||
+    state.tradeMode ||
+    state.primaryGame !== defaultAppState.primaryGame ||
+    state.switchEventUnlocks ||
+    state.baseGameComplete ||
+    state.fireRedStarter !== defaultAppState.fireRedStarter ||
+    state.leafGreenStarter !== defaultAppState.leafGreenStarter ||
+    state.fireRedFossil !== defaultAppState.fireRedFossil ||
+    state.leafGreenFossil !== defaultAppState.leafGreenFossil ||
+    state.fireRedEeveelution !== defaultAppState.fireRedEeveelution ||
+    state.leafGreenEeveelution !== defaultAppState.leafGreenEeveelution ||
+    state.fireRedHitmon !== defaultAppState.fireRedHitmon ||
+    state.leafGreenHitmon !== defaultAppState.leafGreenHitmon ||
+    Object.values(state.checkboxState).some(Boolean)
+  )
+}
+
 export function sanitizeTrackerState(input) {
-  return {
+  const safeState = {
+    ownedGames: sanitizeEnum(
+      input?.ownedGames,
+      ownedGameValues,
+      defaultAppState.ownedGames,
+    ),
+    trackerLayout: sanitizeEnum(
+      input?.trackerLayout,
+      trackerLayoutValues,
+      defaultAppState.trackerLayout,
+    ),
     tradeMode: Boolean(input?.tradeMode),
+    primaryGame: sanitizeEnum(
+      input?.primaryGame,
+      primaryGameValues,
+      defaultAppState.primaryGame,
+    ),
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
     baseGameComplete: Boolean(input?.baseGameComplete),
     fireRedStarter: sanitizeText(
@@ -67,6 +110,14 @@ export function sanitizeTrackerState(input) {
           }
         : defaultAppState.celebrationState,
   }
+
+  return {
+    ...safeState,
+    onboardingComplete:
+      typeof input?.onboardingComplete === 'boolean'
+        ? input.onboardingComplete
+        : hasMeaningfulTrackerData(safeState),
+  }
 }
 
 export function loadGuestTrackerState() {
@@ -95,22 +146,7 @@ export function clearGuestTrackerState() {
 }
 
 export function hasMeaningfulTrackerState(state) {
-  const safeState = sanitizeTrackerState(state)
-
-  return (
-    safeState.tradeMode ||
-    safeState.switchEventUnlocks ||
-    safeState.baseGameComplete ||
-    safeState.fireRedStarter !== defaultAppState.fireRedStarter ||
-    safeState.leafGreenStarter !== defaultAppState.leafGreenStarter ||
-    safeState.fireRedFossil !== defaultAppState.fireRedFossil ||
-    safeState.leafGreenFossil !== defaultAppState.leafGreenFossil ||
-    safeState.fireRedEeveelution !== defaultAppState.fireRedEeveelution ||
-    safeState.leafGreenEeveelution !== defaultAppState.leafGreenEeveelution ||
-    safeState.fireRedHitmon !== defaultAppState.fireRedHitmon ||
-    safeState.leafGreenHitmon !== defaultAppState.leafGreenHitmon ||
-    Object.values(safeState.checkboxState).some(Boolean)
-  )
+  return hasMeaningfulTrackerData(sanitizeTrackerState(state))
 }
 
 export function getActiveSaveStorageKey(userId) {
