@@ -4,6 +4,7 @@ import { getTrackablePokemon } from './data/pokemon'
 import AccountPanel from './components/AccountPanel'
 import CelebrationLayer from './components/CelebrationLayer'
 import ChoicePanel from './components/ChoicePanel'
+import GoalsView from './components/GoalsView'
 import MigrationPanel from './components/MigrationPanel'
 import OnboardingSplash from './components/OnboardingSplash'
 import PokemonRow from './components/PokemonRow'
@@ -12,6 +13,7 @@ import trackerSettingsCog from './assets/tracker-settings-cog.png'
 import usePokedexState from './hooks/usePokedexState'
 import { isVisibleInSingleVersion } from './lib/pokedexHelpers'
 import { ownedGameLabels, primaryGameOptions } from './lib/pokedexOptions'
+import { buildGoalsByVersion } from './lib/goals'
 import { getSpriteSrc } from './lib/sprites'
 import { buildTradeQueue, getTradeConsumptionKey } from './lib/tradeQueue'
 
@@ -190,6 +192,7 @@ function App() {
     leafGreenFossil,
     fireRedHitmon,
     leafGreenHitmon,
+    checkboxState,
   }
   const isSingleVersionView = trackerLayout === 'single' && ownedGames !== 'both'
   const singleVersionKey = isSingleVersionView ? ownedGames : null
@@ -260,9 +263,24 @@ function App() {
         },
       }
   const tradeReadyCount = tradeQueue.pairableCount
+  const goalVersionKeys = isSingleVersionView ? [singleVersionKey] : ['fire-red', 'leaf-green']
+  const goalsByVersion = buildGoalsByVersion(trackablePokemon, trackerState, goalVersionKeys)
+  const goalPanels = goalVersionKeys.map((versionKey) => ({
+    versionKey,
+    label: versionLabels[versionKey].label,
+    headingClass: versionLabels[versionKey].headingClass,
+    ...goalsByVersion[versionKey],
+  }))
+  const goalCount = goalPanels.reduce(
+    (count, panel) => count + Number(Boolean(panel.huntGoal)) + Number(Boolean(panel.partyGoal)),
+    0,
+  )
   const effectiveTrackerView =
-    shouldShowTradeReadyCard && tradeReadyCount > 0 ? activeTrackerView : 'tracker'
+    activeTrackerView === 'trade' && !(shouldShowTradeReadyCard && tradeReadyCount > 0)
+      ? 'tracker'
+      : activeTrackerView
   const isTradeViewActive = effectiveTrackerView === 'trade'
+  const isGoalsViewActive = effectiveTrackerView === 'goals'
 
   useEffect(() => {
     if (!settingsOpen && !trackerSettingsOpen) {
@@ -434,17 +452,35 @@ function App() {
 
             <div className="hero-stats">
               {isSingleVersionView ? (
-                <div className="hero-stat-card">
-                  <span className="hero-stat-label">
-                    {ownedGameLabels[singleVersionKey]} Progress
-                  </span>
-                  <strong>
-                    {singleVersionCaughtCount} / {trackerPokemon.length}
-                  </strong>
-                  <span className="hero-stat-meta">
-                    {formatPercent(singleVersionCaughtCount, trackerPokemon.length)}
-                  </span>
-                </div>
+                <>
+                  <div className="hero-stat-card">
+                    <span className="hero-stat-label">
+                      {ownedGameLabels[singleVersionKey]} Progress
+                    </span>
+                    <strong>
+                      {singleVersionCaughtCount} / {trackerPokemon.length}
+                    </strong>
+                    <span className="hero-stat-meta">
+                      {formatPercent(singleVersionCaughtCount, trackerPokemon.length)}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="hero-stat-card hero-stat-card-button"
+                    onClick={() =>
+                      setActiveTrackerView((currentView) =>
+                        currentView === 'goals' ? 'tracker' : 'goals',
+                      )
+                    }
+                  >
+                    <span className="hero-stat-label">Goals</span>
+                    <strong>{goalCount > 0 ? `${goalCount} ACTIVE GOALS` : 'ALL CLEAR'}</strong>
+                    <span className="hero-stat-meta hero-stat-link">
+                      {isGoalsViewActive ? 'BACK TO TRACKER' : 'CLICK TO VIEW'}
+                    </span>
+                  </button>
+                </>
               ) : (
                 <>
                   <div className="hero-stat-card">
@@ -495,6 +531,22 @@ function App() {
                       </div>
                     )
                   ) : null}
+
+                  <button
+                    type="button"
+                    className="hero-stat-card hero-stat-card-button"
+                    onClick={() =>
+                      setActiveTrackerView((currentView) =>
+                        currentView === 'goals' ? 'tracker' : 'goals',
+                      )
+                    }
+                  >
+                    <span className="hero-stat-label">Goals</span>
+                    <strong>{goalCount > 0 ? `${goalCount} ACTIVE GOALS` : 'ALL CLEAR'}</strong>
+                    <span className="hero-stat-meta hero-stat-link">
+                      {isGoalsViewActive ? 'BACK TO TRACKER' : 'CLICK TO VIEW'}
+                    </span>
+                  </button>
                 </>
               )}
             </div>
@@ -697,6 +749,8 @@ function App() {
             className="trade-view-panel-main"
             onCompleteTrade={(pair) => updateCheckboxStates(getTradeCompletionUpdates(pair))}
           />
+        ) : isGoalsViewActive ? (
+          <GoalsView panels={goalPanels} className="trade-view-panel-main" />
         ) : (
           <div className={`tracker ${isSingleVersionView ? 'tracker-single' : ''}`}>
             <div
