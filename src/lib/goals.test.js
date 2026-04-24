@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { getTrackablePokemon } from '../data/pokemon.js'
-import { getVersionGoals } from './goals.js'
+import { getVersionGoals, XP_SHARE_POKEDEX_REQUIREMENT } from './goals.js'
 
 const pokemonList = getTrackablePokemon({ baseGameComplete: true })
 
@@ -24,13 +24,22 @@ function createTrackerState(checkboxState = {}) {
   }
 }
 
+function createCaughtState(versionKey, pokemonIds) {
+  return Object.fromEntries(
+    pokemonIds.map((pokemonId) => [getCaughtKey(versionKey, pokemonId), true]),
+  )
+}
+
 test('prefers an owned trade-unlock leveling line for the party goal', () => {
   const goals = getVersionGoals(
     pokemonList,
     'fire-red',
-    createTrackerState({
-      [getCaughtKey('fire-red', 63)]: true,
-    }),
+    createTrackerState(
+      createCaughtState('fire-red', [
+        ...Array.from({ length: XP_SHARE_POKEDEX_REQUIREMENT - 1 }, (_, index) => index + 1),
+        63,
+      ]),
+    ),
   )
 
   assert.equal(goals.partyGoal.sourceEntry.name, 'Abra')
@@ -39,16 +48,55 @@ test('prefers an owned trade-unlock leveling line for the party goal', () => {
   assert.equal(goals.partyGoal.badgeLabel, 'Trade unlock')
 })
 
+test('waits to show the XP Share target until 50 Pokemon are registered', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      createCaughtState('fire-red', [
+        ...Array.from({ length: XP_SHARE_POKEDEX_REQUIREMENT - 2 }, (_, index) => index + 1),
+        63,
+      ]),
+    ),
+  )
+
+  assert.equal(goals.caughtCount, XP_SHARE_POKEDEX_REQUIREMENT - 1)
+  assert.equal(goals.xpShareUnlocked, false)
+  assert.equal(goals.xpShareRemaining, 1)
+  assert.equal(goals.partyGoal, null)
+})
+
+test('shows the XP Share target once 50 Pokemon are registered', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      createCaughtState('fire-red', [
+        ...Array.from({ length: XP_SHARE_POKEDEX_REQUIREMENT - 1 }, (_, index) => index + 1),
+        63,
+      ]),
+    ),
+  )
+
+  assert.equal(goals.caughtCount, XP_SHARE_POKEDEX_REQUIREMENT)
+  assert.equal(goals.xpShareUnlocked, true)
+  assert.equal(goals.xpShareRemaining, 0)
+  assert.equal(goals.partyGoal?.sourceEntry.name, 'Abra')
+})
+
 test('falls back to the next owned trade-unlock line once an earlier one is complete', () => {
   const goals = getVersionGoals(
     pokemonList,
     'fire-red',
-    createTrackerState({
-      [getCaughtKey('fire-red', 63)]: true,
-      [getCaughtKey('fire-red', 64)]: true,
-      [getCaughtKey('fire-red', 65)]: true,
-      [getCaughtKey('fire-red', 74)]: true,
-    }),
+    createTrackerState(
+      createCaughtState('fire-red', [
+        ...Array.from({ length: XP_SHARE_POKEDEX_REQUIREMENT - 4 }, (_, index) => index + 1),
+        63,
+        64,
+        65,
+        74,
+      ]),
+    ),
   )
 
   assert.equal(goals.partyGoal.sourceEntry.name, 'Geodude')
@@ -72,9 +120,12 @@ test('uses the same leveling logic for Leaf Green goals', () => {
   const goals = getVersionGoals(
     pokemonList,
     'leaf-green',
-    createTrackerState({
-      [getCaughtKey('leaf-green', 116)]: true,
-    }),
+    createTrackerState(
+      createCaughtState('leaf-green', [
+        ...Array.from({ length: XP_SHARE_POKEDEX_REQUIREMENT - 1 }, (_, index) => index + 1),
+        116,
+      ]),
+    ),
   )
 
   assert.equal(goals.partyGoal.sourceEntry.name, 'Horsea')

@@ -1,11 +1,17 @@
 import { getVersionTrackerState } from './pokedexHelpers.js'
 
+export const XP_SHARE_POKEDEX_REQUIREMENT = 50
+
 function getCaughtKey(versionKey, pokemonId) {
   return `${versionKey}-${String(pokemonId).padStart(3, '0')}`
 }
 
 function isCaught(entry, versionKey, checkboxState) {
   return Boolean(checkboxState?.[getCaughtKey(versionKey, entry.id)])
+}
+
+function getCaughtCount(pokemonList, versionKey, checkboxState) {
+  return pokemonList.filter((entry) => isCaught(entry, versionKey, checkboxState)).length
 }
 
 function createPokemonIndexes(pokemonList) {
@@ -126,6 +132,8 @@ function formatGoal(goal, type) {
 
 export function getVersionGoals(pokemonList, versionKey, trackerState) {
   const checkboxState = trackerState.checkboxState ?? {}
+  const caughtCount = getCaughtCount(pokemonList, versionKey, checkboxState)
+  const xpShareUnlocked = caughtCount >= XP_SHARE_POKEDEX_REQUIREMENT
   const localTrackerState = {
     ...trackerState,
     tradeMode: false,
@@ -183,8 +191,11 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
   huntCandidates.sort(compareCandidates)
 
   return {
-    partyGoal: formatGoal(partyCandidates[0] ?? null, 'party'),
+    partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party') : null,
     huntGoal: formatGoal(huntCandidates[0] ?? null, 'hunt'),
+    caughtCount,
+    xpShareUnlocked,
+    xpShareRemaining: Math.max(XP_SHARE_POKEDEX_REQUIREMENT - caughtCount, 0),
   }
 }
 

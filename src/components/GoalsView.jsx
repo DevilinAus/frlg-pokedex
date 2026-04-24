@@ -35,6 +35,10 @@ function GoalFocusCard({ title, goal, emptyCopy, tone }) {
 }
 
 function GoalsVersionCard({ panel }) {
+  const partyEmptyCopy = panel.xpShareUnlocked
+    ? 'Nothing needs leveling right now.'
+    : `XP Share unlocks after 50 Pokemon. Catch ${panel.xpShareRemaining} more first.`
+
   return (
     <section className={`goals-version-card goals-version-card-${panel.versionKey}`}>
       <h3 className={panel.headingClass}>{panel.label}</h3>
@@ -50,7 +54,7 @@ function GoalsVersionCard({ panel }) {
         <GoalFocusCard
           title="XP Share Target"
           goal={panel.partyGoal}
-          emptyCopy="Nothing needs leveling right now."
+          emptyCopy={partyEmptyCopy}
           tone="party"
         />
       </div>
