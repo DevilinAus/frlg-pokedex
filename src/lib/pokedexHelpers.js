@@ -1,5 +1,9 @@
-import { getTrackablePokemon } from '../data/pokemon'
-import { starterLabels } from './pokedexOptions'
+import { getTrackablePokemon } from '../data/pokemon.js'
+import { starterLabels } from './pokedexOptions.js'
+import {
+  getPairedTradeFamilyState,
+  getTradeVersionLabel,
+} from './pairedTradeFamilies.js'
 
 const versionConfigs = {
   'fire-red': {
@@ -18,8 +22,40 @@ const versionConfigs = {
   },
 }
 
-export function isLockedByStarterChoice(entry, selectedStarter) {
+const starterBasePokemonIds = {
+  bulbasaur: '001',
+  charmander: '004',
+  squirtle: '007',
+}
+
+function isStarterLine(entry) {
+  return Boolean(entry.starterFamily) && !entry.roamingLegendary
+}
+
+function isStarterBaseCaught(entry, versionKey, checkboxState) {
+  if (!isStarterLine(entry)) {
+    return false
+  }
+
+  const basePokemonId = starterBasePokemonIds[entry.starterFamily]
+
+  return Boolean(checkboxState?.[`${versionKey}-${basePokemonId}`])
+}
+
+export function isLockedByStarterChoice(entry, selectedStarter, versionKey, checkboxState) {
   if (!entry.starterFamily) {
+    return false
+  }
+
+  if (entry.roamingLegendary) {
+    if (!selectedStarter) {
+      return true
+    }
+
+    return entry.starterFamily !== selectedStarter
+  }
+
+  if (isStarterBaseCaught(entry, versionKey, checkboxState)) {
     return false
   }
 
@@ -97,7 +133,12 @@ export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
 export function getVersionTrackerState(entry, versionKey, trackerState) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
-  const starterLocked = isLockedByStarterChoice(entry, versionChoices.starter)
+  const starterLocked = isLockedByStarterChoice(
+    entry,
+    versionChoices.starter,
+    versionKey,
+    trackerState.checkboxState,
+  )
   const fossilLocked = isLockedByChoice(entry.fossilFamily, versionChoices.fossil)
   const hitmonLocked = isLockedByChoice(entry.hitmonFamily, versionChoices.hitmon)
   const versionAvailability = entry[config.availabilityKey]
@@ -129,10 +170,13 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
   const blockedByTradeEvolution =
     (entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode
   const blockedByStarterChoice =
-    Boolean(versionChoices.starter) &&
-    entry.starterFamily &&
-    entry.starterFamily !== versionChoices.starter &&
-    !trackerState.tradeMode
+    !trackerState.tradeMode &&
+    isLockedByStarterChoice(
+      entry,
+      versionChoices.starter,
+      versionKey,
+      trackerState.checkboxState,
+    )
   const blockedByFossilChoice =
     Boolean(versionChoices.fossil) &&
     entry.fossilFamily &&
@@ -157,6 +201,55 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
   )
 }
 
+function combineComments(...comments) {
+  return comments.filter(Boolean).join(' ')
+}
+
+function getTradeTargetVersionKey(entry) {
+  if (
+    entry.leafGreenAvailability === 'native' &&
+    entry.fireRedAvailability === 'trade'
+  ) {
+    return 'fire-red'
+  }
+
+  if (
+    entry.fireRedAvailability === 'native' &&
+    entry.leafGreenAvailability === 'trade'
+  ) {
+    return 'leaf-green'
+  }
+
+  return null
+}
+
+function getPairedTradeFamilyComment(entry, checkboxState) {
+  const targetVersionKey = getTradeTargetVersionKey(entry)
+
+  if (!targetVersionKey) {
+    return ''
+  }
+
+  const familyState = getPairedTradeFamilyState(entry.name, targetVersionKey, checkboxState)
+
+  if (!familyState || familyState.hasBoth) {
+    return ''
+  }
+
+  const targetLabel = getTradeVersionLabel(targetVersionKey)
+  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
+
+  if (!familyState.hasAny) {
+    return `${targetLabel} only needs one ${familyState.familyTradeLabel} handoff. ${familyState.preferredTradeName} is the default trade, but ${familyState.babyName} works too if you already bred one${breedingRequirementLabel}.`
+  }
+
+  if (familyState.hasAdult) {
+    return `${targetLabel} already has ${familyState.adultSeedLabel}. Another family trade is optional now, and ${familyState.babyName} would only save breeding${breedingRequirementLabel} there.`
+  }
+
+  return `${targetLabel} already has ${familyState.babyName}. Another family trade is optional now, and ${familyState.adultName} would only save evolving there.`
+}
+
 export function getComment(
   entry,
   switchEventUnlocks,
@@ -166,29 +259,40 @@ export function getComment(
   leafGreenFossil,
   fireRedHitmon,
   leafGreenHitmon,
+  checkboxState,
 ) {
   const bothStartersChosen = Boolean(fireRedStarter && leafGreenStarter)
   const starterCoversEntry =
     entry.starterFamily === fireRedStarter || entry.starterFamily === leafGreenStarter
   const bothFossilsChosen = Boolean(fireRedFossil && leafGreenFossil)
   const bothHitmonsChosen = Boolean(fireRedHitmon && leafGreenHitmon)
+  const familyComment = getPairedTradeFamilyComment(entry, checkboxState)
 
   if (entry.name === 'Mew') {
-    return switchEventUnlocks
-      ? 'Switch unlocks Lugia, Ho-Oh, and Deoxys after Hall of Fame, but not Mew'
-      : 'Not catchable in FireRed/LeafGreen'
+    return combineComments(
+      switchEventUnlocks
+        ? 'Switch unlocks Lugia, Ho-Oh, and Deoxys after Hall of Fame, but not Mew'
+        : 'Not catchable in FireRed/LeafGreen',
+      familyComment,
+    )
   }
 
   if (entry.switchEventLegendary) {
     if (switchEventUnlocks) {
-      return ''
+      return familyComment
     }
 
     if (entry.name === 'Deoxys') {
-      return 'Requires the Aurora Ticket event after Hall of Fame'
+      return combineComments(
+        'Requires the Aurora Ticket event after Hall of Fame',
+        familyComment,
+      )
     }
 
-    return 'Requires the Mystic Ticket event after Hall of Fame'
+    return combineComments(
+      'Requires the Mystic Ticket event after Hall of Fame',
+      familyComment,
+    )
   }
 
   if (
@@ -197,39 +301,54 @@ export function getComment(
     entry.starterFamily !== fireRedStarter &&
     entry.starterFamily !== leafGreenStarter
   ) {
-    return `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. You will need another finished save or player, then trade it over.`
+    return combineComments(
+      `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. You will need another finished save or player, then trade it over.`,
+      familyComment,
+    )
   }
 
   if (entry.roamingLegendary) {
     if (starterCoversEntry) {
-      return ''
+      return familyComment
     }
 
-    return `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. Only one of Raikou, Entei, or Suicune appears per save.`
+    return combineComments(
+      `${entry.name} only appears on a completed save that chose ${starterLabels[entry.starterFamily]} as its starter. Only one of Raikou, Entei, or Suicune appears per save.`,
+      familyComment,
+    )
   }
 
   if (entry.specialComment) {
-    return entry.specialComment
+    return combineComments(entry.specialComment, familyComment)
   }
 
   if (entry.inGameTrade) {
-    return entry.inGameTrade
+    return combineComments(entry.inGameTrade, familyComment)
   }
 
   if (entry.tradeEvolutionItem && entry.evolvesFrom) {
-    return `Trade ${entry.evolvesFrom} holding ${entry.tradeEvolutionItem} to evolve it`
+    return combineComments(
+      `Trade ${entry.evolvesFrom} holding ${entry.tradeEvolutionItem} to evolve it`,
+      familyComment,
+    )
   }
 
   if (entry.tradeEvolution && entry.evolvesFrom) {
-    return `Trade ${entry.evolvesFrom} to evolve it`
+    return combineComments(
+      `Trade ${entry.evolvesFrom} to evolve it`,
+      familyComment,
+    )
   }
 
   if (entry.friendshipEvolution && entry.evolvesFrom) {
-    return `Level up ${entry.evolvesFrom} with high friendship`
+    return combineComments(
+      `Level up ${entry.evolvesFrom} with high friendship`,
+      familyComment,
+    )
   }
 
   if (entry.stoneEvolution) {
-    return `Evolves via ${entry.stoneEvolution}`
+    return combineComments(`Evolves via ${entry.stoneEvolution}`, familyComment)
   }
 
   if (
@@ -240,7 +359,10 @@ export function getComment(
       (entry.leafGreenAvailability === 'native' &&
         entry.fireRedAvailability === 'trade'))
   ) {
-    return `Trade for ${entry.evolutionBaseName} and evolve it`
+    return combineComments(
+      `Trade for ${entry.evolutionBaseName} and evolve it`,
+      familyComment,
+    )
   }
 
   if (
@@ -251,7 +373,10 @@ export function getComment(
       (entry.starterFamily === leafGreenStarter &&
         entry.starterFamily !== fireRedStarter))
   ) {
-    return `Requires breeding for a ${starterLabels[entry.starterFamily]} egg postgame`
+    return combineComments(
+      `Requires breeding for a ${starterLabels[entry.starterFamily]} egg postgame`,
+      familyComment,
+    )
   }
 
   if (
@@ -260,7 +385,7 @@ export function getComment(
     entry.starterFamily !== fireRedStarter &&
     entry.starterFamily !== leafGreenStarter
   ) {
-    return 'Requires trade from fresh game on new profile'
+    return combineComments('Requires trade from fresh game on new profile', familyComment)
   }
 
   if (
@@ -269,7 +394,7 @@ export function getComment(
     entry.fossilFamily !== fireRedFossil &&
     entry.fossilFamily !== leafGreenFossil
   ) {
-    return 'Requires trade from fresh game on new profile'
+    return combineComments('Requires trade from fresh game on new profile', familyComment)
   }
 
   if (
@@ -278,14 +403,14 @@ export function getComment(
     entry.hitmonFamily !== fireRedHitmon &&
     entry.hitmonFamily !== leafGreenHitmon
   ) {
-    return 'Requires trade from fresh game on new profile'
+    return combineComments('Requires trade from fresh game on new profile', familyComment)
   }
 
   if (entry.levelEvolution) {
-    return `Evolves at level ${entry.levelEvolution}`
+    return combineComments(`Evolves at level ${entry.levelEvolution}`, familyComment)
   }
 
-  return ''
+  return familyComment
 }
 
 export function getPokemonDbUrl(entry) {

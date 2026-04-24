@@ -1,4 +1,8 @@
-import { hasTradeQueueExtraCopy } from './pokedexHelpers'
+import { hasTradeQueueExtraCopy } from './pokedexHelpers.js'
+import {
+  getPairedTradeFamilyState,
+  getTradeVersionLabel,
+} from './pairedTradeFamilies.js'
 
 function getTradeEvolutionTargetsBySource(pokemonList) {
   const targets = new Map()
@@ -54,7 +58,118 @@ function createTradeToken(entry, versionKey, type, receivedEntry) {
   }
 }
 
-function buildTradeReadyTokensForVersion(versionKey, pokemonList, checkboxState, trackerState) {
+function withQueueNote(token, queueNote) {
+  if (!queueNote) {
+    return token
+  }
+
+  return {
+    ...token,
+    queueNote,
+  }
+}
+
+function getFamilySeedQueueNote(token, familyState, targetVersionKey) {
+  const targetLabel = getTradeVersionLabel(targetVersionKey)
+  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
+
+  if (token.name === familyState.babyName) {
+    return `Seeds this family. ${targetLabel} can skip trading ${familyState.preferredTradeName} and evolve this instead.`
+  }
+
+  return `Seeds this family. ${targetLabel} can breed ${familyState.babyName}${breedingRequirementLabel} after this instead of trading one over.`
+}
+
+function getFamilyShortcutQueueNote(token, familyState, targetVersionKey) {
+  const targetLabel = getTradeVersionLabel(targetVersionKey)
+  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
+
+  if (token.name === familyState.babyName) {
+    return `Optional shortcut. ${targetLabel} already has ${familyState.adultSeedLabel}, so this only saves breeding${breedingRequirementLabel} there.`
+  }
+
+  return `Optional shortcut. ${targetLabel} already has ${familyState.babyName}, so this only saves evolving there.`
+}
+
+function applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState) {
+  let nextTokens = [...tokens]
+  const familyTokensByKey = new Map()
+
+  nextTokens.forEach((token) => {
+    if (token.type !== 'extra-copy') {
+      return
+    }
+
+    const familyState = getPairedTradeFamilyState(token.name, targetVersionKey, checkboxState)
+
+    if (!familyState) {
+      return
+    }
+
+    const existingFamily = familyTokensByKey.get(familyState.key)
+
+    if (existingFamily) {
+      existingFamily.tokens.push(token)
+      return
+    }
+
+    familyTokensByKey.set(familyState.key, {
+      familyState,
+      tokens: [token],
+    })
+  })
+
+  familyTokensByKey.forEach(({ familyState, tokens: familyTokens }) => {
+    if (familyState.hasBoth) {
+      return
+    }
+
+    const familyTokenKeys = new Set(familyTokens.map((token) => token.key))
+
+    if (!familyState.hasAny) {
+      const chosenToken =
+        familyTokens.find((token) => token.name === familyState.preferredTradeName) ??
+        familyTokens[0]
+
+      nextTokens = nextTokens
+        .filter((token) => !familyTokenKeys.has(token.key) || token.key === chosenToken.key)
+        .map((token) =>
+          token.key === chosenToken.key
+            ? withQueueNote(
+                token,
+                getFamilySeedQueueNote(token, familyState, targetVersionKey),
+              )
+            : token,
+        )
+
+      return
+    }
+
+    nextTokens = nextTokens
+      .filter(
+        (token) =>
+          !familyTokenKeys.has(token.key) || token.name === familyState.missingName,
+      )
+      .map((token) =>
+        familyTokenKeys.has(token.key) && token.name === familyState.missingName
+          ? withQueueNote(
+              token,
+              getFamilyShortcutQueueNote(token, familyState, targetVersionKey),
+            )
+          : token,
+      )
+  })
+
+  return nextTokens
+}
+
+function buildTradeReadyTokensForVersion(
+  versionKey,
+  targetVersionKey,
+  pokemonList,
+  checkboxState,
+  trackerState,
+) {
   const tradeEvolutionSourceNames = getTradeEvolutionSourceNames(pokemonList)
   const tradeEvolutionTargets = getTradeEvolutionTargetsBySource(pokemonList)
   const tokens = []
@@ -85,20 +200,21 @@ function buildTradeReadyTokensForVersion(versionKey, pokemonList, checkboxState,
     }
   })
 
-  return tokens.sort((leftToken, rightToken) => {
+  return applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState).sort(
+    (leftToken, rightToken) => {
     if (leftToken.id !== rightToken.id) {
       return leftToken.id - rightToken.id
     }
 
     return leftToken.name.localeCompare(rightToken.name)
-  })
+    },
+  )
 }
 
-function buildPair(leftToken, rightToken, reason) {
+function buildPair(leftToken, rightToken) {
   return {
     left: leftToken,
     right: rightToken,
-    reason,
   }
 }
 
@@ -122,7 +238,7 @@ function isBetterCandidate(candidate, bestCandidate) {
   return candidate.leftToken.name.localeCompare(bestCandidate.leftToken.name) < 0
 }
 
-function pullPairs(leftTokens, rightTokens, matchFn, reason) {
+function pullPairs(leftTokens, rightTokens, matchFn) {
   const pairs = []
 
   while (true) {
@@ -154,13 +270,7 @@ function pullPairs(leftTokens, rightTokens, matchFn, reason) {
 
     const { leftIndex, rightIndex, leftToken, rightToken } = bestCandidate
 
-    pairs.push(
-      buildPair(
-        leftToken,
-        rightToken,
-        typeof reason === 'function' ? reason(leftToken, rightToken) : reason,
-      ),
-    )
+    pairs.push(buildPair(leftToken, rightToken))
     leftTokens.splice(leftIndex, 1)
     rightTokens.splice(rightIndex, 1)
   }
@@ -178,12 +288,14 @@ export function buildTradeQueue(
   const readyByVersion = {
     [leftVersionKey]: buildTradeReadyTokensForVersion(
       leftVersionKey,
+      rightVersionKey,
       pokemonList,
       checkboxState,
       trackerState,
     ),
     [rightVersionKey]: buildTradeReadyTokensForVersion(
       rightVersionKey,
+      leftVersionKey,
       pokemonList,
       checkboxState,
       trackerState,
@@ -196,15 +308,13 @@ export function buildTradeQueue(
       leftRemaining,
       rightRemaining,
       (leftToken, rightToken) => leftToken.isStarter && rightToken.isStarter,
-      'Starter swap',
     ),
     ...pullPairs(
       leftRemaining,
       rightRemaining,
       (leftToken, rightToken) => leftToken.name === rightToken.name,
-      'Same Pokemon',
     ),
-    ...pullPairs(leftRemaining, rightRemaining, () => true, 'Closest dex match'),
+    ...pullPairs(leftRemaining, rightRemaining, () => true),
   ]
 
   return {
