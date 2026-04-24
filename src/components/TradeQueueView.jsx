@@ -13,6 +13,9 @@ function TradeQueuePokemonCard({ token, tone }) {
       <div className="trade-queue-pokemon-copy">
         <strong>{token.name}</strong>
         <span>{token.tagLabel}</span>
+        {token.queueNote ? (
+          <small>{token.queueNote}</small>
+        ) : null}
       </div>
     </div>
   )
@@ -39,9 +42,7 @@ function TradeQueueView({ tradeQueue, className = '', onCompleteTrade }) {
       <div className="trade-view-header">
         <h2>Trade Queue</h2>
         <p>
-          {pairCount} {pairCount === 1 ? 'trade is' : 'trades are'} ready. Pairings
-          prioritise starters first, then matching Pokemon, then the closest dex
-          numbers.
+          {pairCount} {pairCount === 1 ? 'trade is' : 'trades are'} ready to complete.
         </p>
       </div>
 
@@ -57,7 +58,6 @@ function TradeQueueView({ tradeQueue, className = '', onCompleteTrade }) {
           <li key={`${pair.left.key}-${pair.right.key}`} className="trade-queue-row">
             <div className="trade-queue-row-top">
               <span className="trade-queue-row-number">{index + 1}</span>
-              <span className="trade-queue-match-reason">{pair.reason}</span>
             </div>
 
             <TradeQueuePokemonCard token={pair.left} tone="leaf-green" />

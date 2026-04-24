@@ -93,6 +93,7 @@ function PokemonRow({
     leafGreenFossil,
     fireRedHitmon,
     leafGreenHitmon,
+    checkboxState,
   }
   const comment = getComment(
     entry,
@@ -103,6 +104,7 @@ function PokemonRow({
     leafGreenFossil,
     fireRedHitmon,
     leafGreenHitmon,
+    checkboxState,
   )
   const fireRedState = getVersionTrackerState(entry, 'fire-red', trackerState)
   const leafGreenState = getVersionTrackerState(entry, 'leaf-green', trackerState)
