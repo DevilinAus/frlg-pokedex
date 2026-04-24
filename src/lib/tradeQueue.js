@@ -71,19 +71,21 @@ function withQueueNote(token, queueNote) {
 
 function getFamilySeedQueueNote(token, familyState, targetVersionKey) {
   const targetLabel = getTradeVersionLabel(targetVersionKey)
+  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
 
   if (token.name === familyState.babyName) {
-    return `Seeds this family. ${targetLabel} can skip trading ${familyState.adultName} and evolve this instead.`
+    return `Seeds this family. ${targetLabel} can skip trading ${familyState.preferredTradeName} and evolve this instead.`
   }
 
-  return `Seeds this family. ${targetLabel} can breed ${familyState.babyName} after this instead of trading one over.`
+  return `Seeds this family. ${targetLabel} can breed ${familyState.babyName}${breedingRequirementLabel} after this instead of trading one over.`
 }
 
 function getFamilyShortcutQueueNote(token, familyState, targetVersionKey) {
   const targetLabel = getTradeVersionLabel(targetVersionKey)
+  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
 
   if (token.name === familyState.babyName) {
-    return `Optional shortcut. ${targetLabel} already has ${familyState.adultName}, so this only saves breeding there.`
+    return `Optional shortcut. ${targetLabel} already has ${familyState.adultSeedLabel}, so this only saves breeding${breedingRequirementLabel} there.`
   }
 
   return `Optional shortcut. ${targetLabel} already has ${familyState.babyName}, so this only saves evolving there.`

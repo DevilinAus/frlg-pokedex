@@ -237,13 +237,14 @@ function getPairedTradeFamilyComment(entry, checkboxState) {
   }
 
   const targetLabel = getTradeVersionLabel(targetVersionKey)
+  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
 
   if (!familyState.hasAny) {
-    return `${targetLabel} only needs one ${familyState.adultName}/${familyState.babyName} handoff. ${familyState.preferredTradeName} is the default trade, but ${familyState.babyName} works too if you already bred one.`
+    return `${targetLabel} only needs one ${familyState.familyTradeLabel} handoff. ${familyState.preferredTradeName} is the default trade, but ${familyState.babyName} works too if you already bred one${breedingRequirementLabel}.`
   }
 
   if (familyState.hasAdult) {
-    return `${targetLabel} already has ${familyState.adultName}. Another family trade is optional now, and ${familyState.babyName} would only save breeding there.`
+    return `${targetLabel} already has ${familyState.adultSeedLabel}. Another family trade is optional now, and ${familyState.babyName} would only save breeding${breedingRequirementLabel} there.`
   }
 
   return `${targetLabel} already has ${familyState.babyName}. Another family trade is optional now, and ${familyState.adultName} would only save evolving there.`
