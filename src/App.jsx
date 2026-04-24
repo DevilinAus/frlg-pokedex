@@ -98,7 +98,9 @@ function getInitialTheme() {
 
 function getIntroCopy(ownedGames, trackerLayout, isCombinedView, primaryGame) {
   if (ownedGames !== 'both') {
-    return 'A cleaner one-column tracker that hides Pokemon your current save cannot reach.'
+    return trackerLayout === 'single'
+      ? 'A cleaner one-column tracker that hides Pokemon your current save cannot reach.'
+      : 'Built for a paired run where both versions stay visible and progress can be compared at a glance.'
   }
 
   if (isCombinedView) {
@@ -194,10 +196,11 @@ function App() {
   }
   const shouldShowOnboarding = mode !== 'loading' && (!onboardingComplete || setupOpen)
   const canUseSingleVersionView = ownedGames === 'both' && Boolean(primaryGame)
-  const isCombinedView =
-    ownedGames === 'both' ? tradeMode || !canUseSingleVersionView : false
   const isSingleVersionView =
-    ownedGames !== 'both' || (canUseSingleVersionView && !isCombinedView)
+    ownedGames === 'both'
+      ? canUseSingleVersionView && !tradeMode
+      : trackerLayout === 'single'
+  const isCombinedView = ownedGames === 'both' && !isSingleVersionView
   const singleVersionKey = isSingleVersionView ? (ownedGames === 'both' ? primaryGame : ownedGames) : null
   const trackablePokemon = getTrackablePokemon({ baseGameComplete })
   const trackerPokemon = isSingleVersionView
@@ -248,7 +251,8 @@ function App() {
     normalizeNewGameConfirmation(newGameConfirmationText) === 'new game'
   const shouldShowMainGameSetting =
     ownedGames === 'both' && (Boolean(primaryGame) || tradeMode)
-  const shouldShowTradeReadyCard = ownedGames === 'both' && isCombinedView
+  const shouldShowTradeReadyCard =
+    trackerLayout === 'dual' && (ownedGames !== 'both' || tradeMode)
   const tradeQueue = shouldShowTradeReadyCard
     ? buildTradeQueue(trackablePokemon, checkboxState, trackerState, {
         leftVersionKey: 'leaf-green',
