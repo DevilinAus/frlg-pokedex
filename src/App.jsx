@@ -271,9 +271,12 @@ function App() {
         },
       }
   const tradeReadyCount = tradeQueue.pairableCount
-  const goalVersionKeys = isSingleVersionView
-    ? [singleVersionKey]
-    : ['fire-red', 'leaf-green']
+  const goalVersionKeys =
+    ownedGames === 'both'
+      ? isSingleVersionView
+        ? [singleVersionKey]
+        : ['fire-red', 'leaf-green']
+      : [ownedGames]
   const goalsByVersion = buildGoalsByVersion(trackablePokemon, trackerState, goalVersionKeys)
   const goalPanels = goalVersionKeys.map((versionKey) => ({
     versionKey,
@@ -767,7 +770,12 @@ function App() {
             onCompleteTrade={(pair) => updateCheckboxStates(getTradeCompletionUpdates(pair))}
           />
         ) : isGoalsViewActive ? (
-          <GoalsView panels={goalPanels} className="trade-view-panel-main" />
+          <GoalsView
+            panels={goalPanels}
+            className="trade-view-panel-main"
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+          />
         ) : (
           <div className={`tracker ${isSingleVersionView ? 'tracker-single' : ''}`}>
             <div

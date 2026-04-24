@@ -87,25 +87,19 @@ function compareCandidates(leftCandidate, rightCandidate) {
   return leftCandidate.targetEntry.id - rightCandidate.targetEntry.id
 }
 
-function buildGoalCopy(goal) {
-  const baseCopy = `${goal.targetEntry.name} at Lv. ${goal.targetEntry.levelEvolution}.`
-
+function buildTradeFollowUpCopy(goal) {
   if (goal.tradeFollowUp) {
     if (goal.tradeFollowUp.tradeEvolutionItem) {
-      return `${baseCopy} Then trade it holding ${goal.tradeFollowUp.tradeEvolutionItem} for ${goal.tradeFollowUp.name}.`
+      return `Then trade it holding ${goal.tradeFollowUp.tradeEvolutionItem} for ${goal.tradeFollowUp.name}.`
     }
 
-    return `${baseCopy} Then trade it for ${goal.tradeFollowUp.name}.`
+    return `Then trade it for ${goal.tradeFollowUp.name}.`
   }
 
-  if (goal.levelFollowUp) {
-    return `${baseCopy} ${goal.levelFollowUp.name} comes after that.`
-  }
-
-  return baseCopy
+  return ''
 }
 
-function formatGoal(goal, type) {
+function formatGoal(goal, type, versionKey) {
   if (!goal) {
     return null
   }
@@ -114,19 +108,23 @@ function formatGoal(goal, type) {
     type,
     key: `${type}-${goal.sourceEntry.name}-${goal.targetEntry.name}`,
     priorityBand: getPriorityBand(goal),
+    versionKey,
     sourceEntry: goal.sourceEntry,
     targetEntry: goal.targetEntry,
     tradeFollowUp: goal.tradeFollowUp,
     levelFollowUp: goal.levelFollowUp,
+    sourceCaughtKey: getCaughtKey(versionKey, goal.sourceEntry.id),
+    targetCaughtKey: getCaughtKey(versionKey, goal.targetEntry.id),
+    levelLabel: `Lv. ${goal.targetEntry.levelEvolution}`,
     badgeLabel:
       getPriorityBand(goal) === 0
         ? 'Trade unlock'
         : getPriorityBand(goal) === 1
           ? 'Trade item'
-          : getPriorityBand(goal) === 2
-            ? 'Chain evo'
-            : 'Level evo',
-    detailCopy: buildGoalCopy(goal),
+          : getPriorityBand(goal) === 3
+            ? 'Level evo'
+            : '',
+    tradeFollowUpCopy: buildTradeFollowUpCopy(goal),
   }
 }
 
@@ -191,8 +189,8 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
   huntCandidates.sort(compareCandidates)
 
   return {
-    partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party') : null,
-    huntGoal: formatGoal(huntCandidates[0] ?? null, 'hunt'),
+    partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party', versionKey) : null,
+    huntGoal: formatGoal(huntCandidates[0] ?? null, 'hunt', versionKey),
     caughtCount,
     xpShareUnlocked,
     xpShareRemaining: Math.max(XP_SHARE_POKEDEX_REQUIREMENT - caughtCount, 0),

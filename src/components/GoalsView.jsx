@@ -1,11 +1,38 @@
+import { getPokemonDbUrl } from '../lib/pokedexHelpers'
 import { getSpriteSrc } from '../lib/sprites'
 
-function GoalFocusCard({ title, goal, emptyCopy, tone }) {
+function GoalPokemonLink({ entry }) {
+  return (
+    <a
+      className="goal-focus-link"
+      href={getPokemonDbUrl(entry)}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {entry.name}
+    </a>
+  )
+}
+
+function GoalFocusCard({
+  title,
+  goal,
+  emptyCopy,
+  tone,
+  checkboxState,
+  updateCheckboxState,
+}) {
+  const actionChecked = goal
+    ? Boolean(
+        checkboxState[goal.type === 'hunt' ? goal.sourceCaughtKey : goal.targetCaughtKey],
+      )
+    : false
+
   return (
     <section className={`goal-focus-card goal-focus-card-${tone}`}>
       <div className="goal-focus-header">
         <span className="goal-focus-title">{title}</span>
-        {goal ? <span className="goal-focus-badge">{goal.badgeLabel}</span> : null}
+        {goal?.badgeLabel ? <span className="goal-focus-badge">{goal.badgeLabel}</span> : null}
       </div>
 
       {goal ? (
@@ -18,13 +45,46 @@ function GoalFocusCard({ title, goal, emptyCopy, tone }) {
           />
 
           <div className="goal-focus-copy">
-            <strong>{goal.sourceEntry.name}</strong>
-            <p>
-              {goal.type === 'party'
-                ? `Keep ${goal.sourceEntry.name} in the party with XP Share.`
-                : `Hunt ${goal.sourceEntry.name}.`}{' '}
-              {goal.detailCopy}
-            </p>
+            <strong>
+              <GoalPokemonLink entry={goal.sourceEntry} />
+            </strong>
+
+            {goal.type === 'hunt' ? (
+              <label className="goal-focus-toggle">
+                <input
+                  type="checkbox"
+                  checked={actionChecked}
+                  onChange={(event) =>
+                    updateCheckboxState(goal.sourceCaughtKey, event.target.checked)
+                  }
+                />
+                <span>Caught</span>
+              </label>
+            ) : (
+              <>
+                <div className="goal-focus-evolution">
+                  <div className="goal-focus-evolution-copy">
+                    <GoalPokemonLink entry={goal.targetEntry} />
+                    <span className="goal-focus-level">{goal.levelLabel}</span>
+                  </div>
+
+                  <label className="goal-focus-toggle">
+                    <input
+                      type="checkbox"
+                      checked={actionChecked}
+                      onChange={(event) =>
+                        updateCheckboxState(goal.targetCaughtKey, event.target.checked)
+                      }
+                    />
+                    <span>Evolved</span>
+                  </label>
+                </div>
+
+                {goal.tradeFollowUpCopy ? (
+                  <p className="goal-focus-note">{goal.tradeFollowUpCopy}</p>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -34,7 +94,7 @@ function GoalFocusCard({ title, goal, emptyCopy, tone }) {
   )
 }
 
-function GoalsVersionCard({ panel }) {
+function GoalsVersionCard({ panel, checkboxState, updateCheckboxState }) {
   const partyEmptyCopy = panel.xpShareUnlocked
     ? 'Nothing needs leveling right now.'
     : `XP Share unlocks after 50 Pokemon. Catch ${panel.xpShareRemaining} more first.`
@@ -49,6 +109,8 @@ function GoalsVersionCard({ panel }) {
           goal={panel.huntGoal}
           emptyCopy="No strong hunt target right now."
           tone="hunt"
+          checkboxState={checkboxState}
+          updateCheckboxState={updateCheckboxState}
         />
 
         <GoalFocusCard
@@ -56,32 +118,29 @@ function GoalsVersionCard({ panel }) {
           goal={panel.partyGoal}
           emptyCopy={partyEmptyCopy}
           tone="party"
+          checkboxState={checkboxState}
+          updateCheckboxState={updateCheckboxState}
         />
       </div>
     </section>
   )
 }
 
-function GoalsView({ panels, className = '' }) {
-  const goalCount = panels.reduce(
-    (count, panel) => count + Number(Boolean(panel.huntGoal)) + Number(Boolean(panel.partyGoal)),
-    0,
-  )
-
+function GoalsView({ panels, className = '', checkboxState, updateCheckboxState }) {
   return (
     <section className={`trade-view-panel ${className}`.trim()}>
       <div className="trade-view-header">
         <h2>Goals</h2>
-        <p>
-          {goalCount > 0
-            ? 'Plan the next hunt and the best XP Share target for each active save.'
-            : 'No leveling goals are active right now. You are clear to keep catching, trading, or tidy up optional lines.'}
-        </p>
       </div>
 
       <div className={`goals-grid ${panels.length === 1 ? 'goals-grid-single' : ''}`.trim()}>
         {panels.map((panel) => (
-          <GoalsVersionCard key={panel.versionKey} panel={panel} />
+          <GoalsVersionCard
+            key={panel.versionKey}
+            panel={panel}
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+          />
         ))}
       </div>
     </section>
