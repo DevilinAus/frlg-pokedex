@@ -96,22 +96,20 @@ function getInitialTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function getIntroCopy(ownedGames, trackerLayout, tradeMode, primaryGame) {
-  if (trackerLayout === 'single' && ownedGames !== 'both') {
+function getIntroCopy(ownedGames, trackerLayout, isCombinedView, primaryGame) {
+  if (ownedGames !== 'both') {
     return 'A cleaner one-column tracker that hides Pokemon your current save cannot reach.'
   }
 
-  if (ownedGames === 'both' && tradeMode) {
+  if (isCombinedView) {
     return primaryGame
-      ? `Built for finishing one dex efficiently across both versions, with ${ownedGameLabels[primaryGame]} treated as the main save.`
-      : 'Built for finishing one dex efficiently across both versions.'
+      ? `Built for a combined view across both versions, with ${ownedGameLabels[primaryGame]} treated as the main save.`
+      : 'Built for a combined view across both versions.'
   }
 
-  if (ownedGames === 'both') {
-    return 'Built for tracking both save files properly, with duplicate requirements intact.'
-  }
-
-  return 'Built for a paired run where both versions stay visible and progress can be compared at a glance.'
+  return primaryGame
+    ? `Built for a single-view focus on ${ownedGameLabels[primaryGame]}, while keeping the second version available.`
+    : 'Built for a single-view focus on one version, while keeping the second version available.'
 }
 
 function App() {
@@ -194,8 +192,13 @@ function App() {
     leafGreenHitmon,
     checkboxState,
   }
-  const isSingleVersionView = trackerLayout === 'single' && ownedGames !== 'both'
-  const singleVersionKey = isSingleVersionView ? ownedGames : null
+  const shouldShowOnboarding = mode !== 'loading' && (!onboardingComplete || setupOpen)
+  const canUseSingleVersionView = ownedGames === 'both' && Boolean(primaryGame)
+  const isCombinedView =
+    ownedGames === 'both' ? tradeMode || !canUseSingleVersionView : false
+  const isSingleVersionView =
+    ownedGames !== 'both' || (canUseSingleVersionView && !isCombinedView)
+  const singleVersionKey = isSingleVersionView ? (ownedGames === 'both' ? primaryGame : ownedGames) : null
   const trackablePokemon = getTrackablePokemon({ baseGameComplete })
   const trackerPokemon = isSingleVersionView
     ? trackablePokemon.filter((entry) =>
@@ -230,8 +233,7 @@ function App() {
 
     return true
   })
-  const shouldShowOnboarding = mode !== 'loading' && (!onboardingComplete || setupOpen)
-  const introCopy = getIntroCopy(ownedGames, trackerLayout, tradeMode, primaryGame)
+  const introCopy = getIntroCopy(ownedGames, trackerLayout, isCombinedView, primaryGame)
   const fireRedCaughtCount = getVersionCaughtCount('fire-red', trackablePokemon, checkboxState)
   const leafGreenCaughtCount = getVersionCaughtCount(
     'leaf-green',
@@ -244,7 +246,9 @@ function App() {
   const isDarkMode = themeMode === 'dark'
   const canConfirmNewGame =
     normalizeNewGameConfirmation(newGameConfirmationText) === 'new game'
-  const shouldShowTradeReadyCard = trackerLayout === 'dual' && ownedGames !== 'both'
+  const shouldShowMainGameSetting =
+    ownedGames === 'both' && (Boolean(primaryGame) || tradeMode)
+  const shouldShowTradeReadyCard = ownedGames === 'both' && isCombinedView
   const tradeQueue = shouldShowTradeReadyCard
     ? buildTradeQueue(trackablePokemon, checkboxState, trackerState, {
         leftVersionKey: 'leaf-green',
@@ -263,7 +267,9 @@ function App() {
         },
       }
   const tradeReadyCount = tradeQueue.pairableCount
-  const goalVersionKeys = isSingleVersionView ? [singleVersionKey] : ['fire-red', 'leaf-green']
+  const goalVersionKeys = isSingleVersionView
+    ? [singleVersionKey]
+    : ['fire-red', 'leaf-green']
   const goalsByVersion = buildGoalsByVersion(trackablePokemon, trackerState, goalVersionKeys)
   const goalPanels = goalVersionKeys.map((versionKey) => ({
     versionKey,
@@ -366,7 +372,6 @@ function App() {
             completeOnboarding(setup)
             setSetupOpen(false)
           }}
-          onJoinedSave={() => setSetupOpen(false)}
           signUp={signUp}
         />
       ) : null}
@@ -621,6 +626,30 @@ function App() {
                       <span>Dark Mode</span>
                     </label>
 
+                    {shouldShowMainGameSetting ? (
+                      <>
+                        <label className="filter-control">
+                          <span>Main game</span>
+                          <select
+                            value={primaryGame}
+                            onChange={(event) => setPrimaryGame(event.target.value)}
+                          >
+                            {primaryGameOptions.map((option) => (
+                              <option key={option.value || 'blank'} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        {!primaryGame ? (
+                          <p className="save-status">
+                            Choose a main game so future trade suggestions stay focused.
+                          </p>
+                        ) : null}
+                      </>
+                    ) : null}
+
                     <button
                       type="button"
                       className="secondary-button setup-launcher"
@@ -709,35 +738,19 @@ function App() {
                 </select>
               </label>
 
-              <label className="trade-mode-toggle">
-                <input
-                  type="checkbox"
-                  checked={tradeMode}
-                  onChange={(event) => setTradeMode(event.target.checked)}
-                />
-                <span>Trade Mode</span>
-              </label>
-
-              {ownedGames === 'both' && tradeMode ? (
-                <label className="filter-control">
-                  <span>Main game</span>
-                  <select
-                    value={primaryGame}
-                    onChange={(event) => setPrimaryGame(event.target.value)}
-                  >
-                    {primaryGameOptions.map((option) => (
-                      <option key={option.value || 'blank'} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+              {ownedGames === 'both' ? (
+                <label className="trade-mode-toggle">
+                  <input
+                    type="checkbox"
+                    checked={isCombinedView}
+                    onChange={(event) => setTradeMode(event.target.checked)}
+                    disabled={!canUseSingleVersionView}
+                  />
+                  <span>{isCombinedView ? 'Combined View' : 'Single View'}</span>
                 </label>
               ) : null}
 
               {saveError ? <p className="save-status save-status-error">{saveError}</p> : null}
-              {ownedGames === 'both' && tradeMode && !primaryGame ? (
-                <p className="save-status">Choose a main game so future trade suggestions stay focused.</p>
-              ) : null}
             </div>
 
           </div>

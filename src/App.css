@@ -456,7 +456,6 @@
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .trade-queue-row-number {
@@ -514,12 +513,18 @@
   text-overflow: ellipsis;
 }
 
-.trade-queue-pokemon-copy span {
+.trade-queue-pokemon-tag {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.trade-queue-pokemon-note {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--text-subtle);
 }
 
 .trade-queue-arrow-lane {
@@ -532,16 +537,6 @@
   color: var(--text-strong);
   font-size: 1.3rem;
   line-height: 1;
-}
-
-.trade-queue-match-reason {
-  min-width: 0;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
 }
 
 .trade-queue-done-heading {
@@ -1958,9 +1953,15 @@ button,
   padding: 0 12px;
   border: 1px solid var(--border-soft);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--input-bg);
   color: var(--text-strong);
   font: inherit;
+  caret-color: var(--text-strong);
+}
+
+.onboarding-link-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .onboarding-link-note {
@@ -2086,6 +2087,65 @@ button,
 .app-theme-dark .onboarding-choice-selected {
   box-shadow:
     inset 0 0 0 1px rgba(148, 163, 184, 0.2),
+    0 18px 34px rgba(2, 6, 23, 0.28);
+}
+
+.app-theme-dark .onboarding-choice-tone-red.onboarding-choice-selected {
+  border-color: rgba(207, 106, 79, 0.42);
+  background: #33201c;
+  box-shadow:
+    inset 0 0 0 1px rgba(207, 106, 79, 0.18),
+    0 18px 34px rgba(2, 6, 23, 0.28);
+}
+
+.app-theme-dark .onboarding-choice-tone-green.onboarding-choice-selected {
+  border-color: rgba(111, 143, 78, 0.42);
+  background: #1d2d19;
+  box-shadow:
+    inset 0 0 0 1px rgba(111, 143, 78, 0.18),
+    0 18px 34px rgba(2, 6, 23, 0.28);
+}
+
+.app-theme-dark .onboarding-choice-tone-blue.onboarding-choice-selected {
+  border-color: rgba(77, 143, 190, 0.42);
+  background: #1c3044;
+  box-shadow:
+    inset 0 0 0 1px rgba(77, 143, 190, 0.18),
+    0 18px 34px rgba(2, 6, 23, 0.28);
+}
+
+.app-theme-dark .onboarding-choice-tone-neutral.onboarding-choice-selected {
+  border-color: rgba(148, 163, 184, 0.34);
+  background:
+    linear-gradient(
+      90deg,
+      #33201c 0 50%,
+      #1d2d19 50% 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.16),
+    0 18px 34px rgba(2, 6, 23, 0.28);
+}
+
+.app-theme-dark .onboarding-choice-tone-plain.onboarding-choice-selected {
+  border-color: rgba(148, 163, 184, 0.34);
+  background: linear-gradient(180deg, rgba(24, 35, 52, 0.98), rgba(12, 20, 35, 1));
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.16),
+    0 18px 34px rgba(2, 6, 23, 0.28);
+}
+
+.app-theme-dark .onboarding-choice-tone-switch.onboarding-choice-selected {
+  border-color: rgba(148, 163, 184, 0.34);
+  background:
+    linear-gradient(
+      90deg,
+      #173041 0 16.5%,
+      #202a3b 16.5% 83.5%,
+      #3a1d26 83.5% 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.16),
     0 18px 34px rgba(2, 6, 23, 0.28);
 }
 

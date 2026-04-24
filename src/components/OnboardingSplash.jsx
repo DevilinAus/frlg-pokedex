@@ -210,7 +210,6 @@ function OnboardingSplash({
   mode = 'guest',
   onClose,
   onComplete,
-  onJoinedSave,
   signUp,
 }) {
   const stepAdvanceTimeout = useRef(null)
@@ -221,9 +220,11 @@ function OnboardingSplash({
   const [friendCodeNeedsAuth, setFriendCodeNeedsAuth] = useState(false)
   const [friendCodeInput, setFriendCodeInput] = useState('')
   const [friendCodeError, setFriendCodeError] = useState('')
+  const [friendCodeSuccess, setFriendCodeSuccess] = useState('')
   const [localAuthError, setLocalAuthError] = useState('')
   const [isJoiningFriendSave, setIsJoiningFriendSave] = useState(false)
   const [pendingJoinAfterAuth, setPendingJoinAfterAuth] = useState(false)
+  const [joinedSharedSave, setJoinedSharedSave] = useState(false)
   const [draft, setDraft] = useState(() => ({
     ownedGames: null,
     journey: null,
@@ -246,6 +247,19 @@ function OnboardingSplash({
   const starterStepCopy = getStarterStepCopy(draft)
   const starterTargets = getStarterTargets(draft)
   const singleStarterTarget = starterTargets[0] ?? 'fire-red'
+  function advanceAfterFriendCodeJoin(nextMessage) {
+    window.clearTimeout(stepAdvanceTimeout.current)
+    setFriendCodeSuccess(nextMessage)
+    setJoinedSharedSave(true)
+    stepAdvanceTimeout.current = window.setTimeout(() => {
+      setFriendCodeSuccess('')
+      setFriendCodeError('')
+      setFriendCodeNeedsAuth(false)
+      setPendingJoinAfterAuth(false)
+      setStepIndex((currentStepValue) => currentStepValue + 1)
+    }, 900)
+  }
+
   const steps = [
     {
       id: 'game',
@@ -268,7 +282,7 @@ function OnboardingSplash({
           {
             id: 'friend-code',
             title: 'Have a friend link code?',
-            body: 'Join their shared save now to skip the rest of setup, or continue without it.',
+            body: 'Join their shared save now, or continue setup and connect later.',
           },
         ]
       : []),
@@ -282,11 +296,15 @@ function OnboardingSplash({
           },
         ]
       : []),
-    {
-      id: 'switch-release',
-      title: 'Which release are you playing?',
-      body: 'This affects if certain Pokemon are unlocked during your run.',
-    },
+    ...(joinedSharedSave
+      ? []
+      : [
+          {
+            id: 'switch-release',
+            title: 'Which release are you playing?',
+            body: 'This affects if certain Pokemon are unlocked during your run.',
+          },
+        ]),
     {
       id: 'starter',
       title: starterStepCopy.title,
@@ -301,8 +319,10 @@ function OnboardingSplash({
     setFriendCodeNeedsAuth(false)
     setFriendCodeInput('')
     setFriendCodeError('')
+    setFriendCodeSuccess('')
     setLocalAuthError('')
     setPendingJoinAfterAuth(false)
+    setJoinedSharedSave(false)
     setDraft(() => ({
       ownedGames: nextValue,
       journey: null,
@@ -321,8 +341,10 @@ function OnboardingSplash({
     setFriendCodeNeedsAuth(false)
     setFriendCodeInput('')
     setFriendCodeError('')
+    setFriendCodeSuccess('')
     setLocalAuthError('')
     setPendingJoinAfterAuth(false)
+    setJoinedSharedSave(false)
     setDraft((currentDraft) => ({
       ...currentDraft,
       journey: nextValue,
@@ -421,11 +443,15 @@ function OnboardingSplash({
       return
     }
 
-    onJoinedSave?.()
+    setFriendCodeError('')
+    setFriendCodeNeedsAuth(false)
+    setPendingJoinAfterAuth(false)
+    advanceAfterFriendCodeJoin('Joined successfully. Continue setup.')
   }
 
   function handleFriendCodeSkip() {
     setFriendCodeError('')
+    setFriendCodeSuccess('')
     setLocalAuthError('')
     setFriendCodeNeedsAuth(false)
     setPendingJoinAfterAuth(false)
@@ -472,7 +498,10 @@ function OnboardingSplash({
         return
       }
 
-      onJoinedSave?.()
+      setFriendCodeError('')
+      setFriendCodeNeedsAuth(false)
+      setPendingJoinAfterAuth(false)
+      advanceAfterFriendCodeJoin('Joined successfully. Continue setup.')
     })()
   }, [
     canJoinSharedSave,
@@ -480,7 +509,6 @@ function OnboardingSplash({
     friendCodeInput,
     isJoiningFriendSave,
     joinSharedSave,
-    onJoinedSave,
     pendingJoinAfterAuth,
   ])
 
@@ -630,6 +658,7 @@ function OnboardingSplash({
               </p>
 
               {friendCodeError ? <p className="account-error">{friendCodeError}</p> : null}
+              {friendCodeSuccess ? <p className="account-success">{friendCodeSuccess}</p> : null}
 
               {friendCodeNeedsAuth ? (
                 <div className="onboarding-auth-panel">
