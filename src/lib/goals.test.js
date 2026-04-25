@@ -45,7 +45,7 @@ test('prefers an owned trade-unlock leveling line for the party goal', () => {
   assert.equal(goals.partyGoal.sourceEntry.name, 'Abra')
   assert.equal(goals.partyGoal.targetEntry.name, 'Kadabra')
   assert.equal(goals.partyGoal.tradeFollowUp?.name, 'Alakazam')
-  assert.equal(goals.partyGoal.badgeLabel, 'Trade unlock')
+  assert.equal(goals.partyGoal.badgeLabel, '')
 })
 
 test('waits to show the XP Share target until 50 Pokemon are registered', () => {

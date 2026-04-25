@@ -94,14 +94,23 @@ function GoalFocusCard({
   )
 }
 
-function GoalsVersionCard({ panel, checkboxState, updateCheckboxState }) {
+function GoalsVersionCard({
+  panel,
+  checkboxState,
+  updateCheckboxState,
+  showVersionLabel,
+}) {
   const partyEmptyCopy = panel.xpShareUnlocked
     ? 'Nothing needs leveling right now.'
     : `XP Share unlocks after 50 Pokemon. Catch ${panel.xpShareRemaining} more first.`
 
   return (
-    <section className={`goals-version-card goals-version-card-${panel.versionKey}`}>
-      <h3 className={panel.headingClass}>{panel.label}</h3>
+    <section
+      className={`goals-version-card ${
+        showVersionLabel ? '' : 'goals-version-card-single'
+      } goals-version-card-${panel.versionKey}`.trim()}
+    >
+      {showVersionLabel ? <h3 className={panel.headingClass}>{panel.label}</h3> : null}
 
       <div className="goal-focus-grid">
         <GoalFocusCard
@@ -127,6 +136,8 @@ function GoalsVersionCard({ panel, checkboxState, updateCheckboxState }) {
 }
 
 function GoalsView({ panels, className = '', checkboxState, updateCheckboxState }) {
+  const showVersionLabel = panels.length > 1
+
   return (
     <section className={`trade-view-panel ${className}`.trim()}>
       <div className="trade-view-header">
@@ -140,6 +151,7 @@ function GoalsView({ panels, className = '', checkboxState, updateCheckboxState 
             panel={panel}
             checkboxState={checkboxState}
             updateCheckboxState={updateCheckboxState}
+            showVersionLabel={showVersionLabel}
           />
         ))}
       </div>

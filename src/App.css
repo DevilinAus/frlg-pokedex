@@ -593,10 +593,20 @@
   font-size: 0.98rem;
 }
 
+.goals-version-card-single {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .goal-focus-grid {
   margin-top: 14px;
   display: grid;
   gap: 12px;
+}
+
+.goals-version-card-single .goal-focus-grid {
+  margin-top: 0;
 }
 
 .goal-focus-card {

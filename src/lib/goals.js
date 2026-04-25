@@ -117,13 +117,11 @@ function formatGoal(goal, type, versionKey) {
     targetCaughtKey: getCaughtKey(versionKey, goal.targetEntry.id),
     levelLabel: `Lv. ${goal.targetEntry.levelEvolution}`,
     badgeLabel:
-      getPriorityBand(goal) === 0
-        ? 'Trade unlock'
-        : getPriorityBand(goal) === 1
-          ? 'Trade item'
-          : getPriorityBand(goal) === 3
-            ? 'Level evo'
-            : '',
+      getPriorityBand(goal) === 1
+        ? 'Trade item'
+        : getPriorityBand(goal) === 3
+          ? 'Level evo'
+          : '',
     tradeFollowUpCopy: buildTradeFollowUpCopy(goal),
   }
 }
