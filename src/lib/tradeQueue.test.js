@@ -216,6 +216,40 @@ test('pushes held-item trade pairs to the bottom of the ready list', () => {
   )
 })
 
+test('matches vanilla trades with each other before held-item trades', () => {
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    {
+      [getOwnedKey('leaf-green', 'Graveler')]: true,
+      [getOwnedKey('leaf-green', 'Slowpoke')]: true,
+      [getExtraKey('leaf-green', 'Staryu')]: true,
+      [getOwnedKey('fire-red', 'Machoke')]: true,
+      [getOwnedKey('fire-red', 'Scyther')]: true,
+      [getExtraKey('fire-red', 'Psyduck')]: true,
+    },
+    createTrackerState({
+      [getOwnedKey('leaf-green', 'Graveler')]: true,
+      [getOwnedKey('leaf-green', 'Slowpoke')]: true,
+      [getExtraKey('leaf-green', 'Staryu')]: true,
+      [getOwnedKey('fire-red', 'Machoke')]: true,
+      [getOwnedKey('fire-red', 'Scyther')]: true,
+      [getExtraKey('fire-red', 'Psyduck')]: true,
+    }),
+  )
+
+  assert.deepEqual(
+    tradeQueue.pairs.map((pair) => [pair.left.name, pair.right.name]),
+    [
+      ['Graveler', 'Machoke'],
+      ['Staryu', 'Psyduck'],
+      ['Slowpoke', 'Scyther'],
+    ],
+  )
+  assert.equal(tradeQueue.pairs[0].requiresHeldItem, false)
+  assert.equal(tradeQueue.pairs[1].requiresHeldItem, false)
+  assert.equal(tradeQueue.pairs[2].requiresHeldItem, true)
+})
+
 test('ignores stale extra-copy checkmarks once the other save already owns that species', () => {
   const tradeQueue = buildTradeQueue(
     pokemonList,

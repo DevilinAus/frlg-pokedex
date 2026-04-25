@@ -233,6 +233,22 @@ function buildPair(leftToken, rightToken) {
   }
 }
 
+function isHeldItemToken(token) {
+  return Boolean(token.heldItemName)
+}
+
+function isPlainTradeEvolutionToken(token) {
+  return token.type === 'trade-evolution' && !isHeldItemToken(token)
+}
+
+function isExtraCopyToken(token) {
+  return token.type === 'extra-copy'
+}
+
+function isNonHeldItemToken(token) {
+  return !isHeldItemToken(token)
+}
+
 function isBetterCandidate(candidate, bestCandidate) {
   if (!bestCandidate) {
     return true
@@ -328,6 +344,31 @@ export function buildTradeQueue(
       leftRemaining,
       rightRemaining,
       (leftToken, rightToken) => leftToken.name === rightToken.name,
+    ),
+    ...pullPairs(
+      leftRemaining,
+      rightRemaining,
+      (leftToken, rightToken) =>
+        isPlainTradeEvolutionToken(leftToken) &&
+        isPlainTradeEvolutionToken(rightToken),
+    ),
+    ...pullPairs(
+      leftRemaining,
+      rightRemaining,
+      (leftToken, rightToken) =>
+        isExtraCopyToken(leftToken) && isExtraCopyToken(rightToken),
+    ),
+    ...pullPairs(
+      leftRemaining,
+      rightRemaining,
+      (leftToken, rightToken) =>
+        isNonHeldItemToken(leftToken) && isNonHeldItemToken(rightToken),
+    ),
+    ...pullPairs(
+      leftRemaining,
+      rightRemaining,
+      (leftToken, rightToken) =>
+        isHeldItemToken(leftToken) && isHeldItemToken(rightToken),
     ),
     ...pullPairs(leftRemaining, rightRemaining, () => true),
   ].sort((leftPair, rightPair) => {
