@@ -1,4 +1,4 @@
-import { getTrackablePokemon } from '../data/pokemon.js'
+import { getTrackablePokemon, pokemon } from '../data/pokemon.js'
 import { starterLabels } from './pokedexOptions.js'
 import {
   getPairedTradeFamilyState,
@@ -27,6 +27,10 @@ const starterBasePokemonIds = {
   charmander: '004',
   squirtle: '007',
 }
+
+const pokemonIdByName = new Map(
+  pokemon.map((entry) => [entry.name, String(entry.id).padStart(3, '0')]),
+)
 
 function isStarterLine(entry) {
   return Boolean(entry.starterFamily) && !entry.roamingLegendary
@@ -124,6 +128,16 @@ function isCaughtInVersion(entry, versionKey, checkboxState) {
   return Boolean(
     checkboxState?.[`${versionKey}-${String(entry.id).padStart(3, '0')}`],
   )
+}
+
+function isPokemonNameCaughtInVersion(name, versionKey, checkboxState) {
+  const pokemonId = pokemonIdByName.get(name)
+
+  if (!pokemonId) {
+    return false
+  }
+
+  return Boolean(checkboxState?.[`${versionKey}-${pokemonId}`])
 }
 
 function getOtherVersionKey(versionKey) {
@@ -394,10 +408,24 @@ export function getComment(
       (entry.leafGreenAvailability === 'native' &&
         entry.fireRedAvailability === 'trade'))
   ) {
-    return combineComments(
-      `Trade for ${entry.evolutionBaseName} and evolve it`,
-      familyComment,
-    )
+    const targetVersionKey = getTradeTargetVersionKey(entry)
+    const targetAlreadyHasEntry =
+      targetVersionKey &&
+      isCaughtInVersion(entry, targetVersionKey, checkboxState)
+    const targetAlreadyHasEvolutionBase =
+      targetVersionKey &&
+      isPokemonNameCaughtInVersion(
+        entry.evolutionBaseName,
+        targetVersionKey,
+        checkboxState,
+      )
+
+    if (!targetAlreadyHasEntry && !targetAlreadyHasEvolutionBase) {
+      return combineComments(
+        `Trade for ${entry.evolutionBaseName} and evolve it`,
+        familyComment,
+      )
+    }
   }
 
   if (

@@ -171,6 +171,24 @@ test('adds held-item metadata for item-based trade evolutions', () => {
   assert.equal(token?.tagLabel, 'Trade item')
 })
 
+test('drops the trade-for-base evolution text once Fire Red already owns Sandshrew', () => {
+  const comment = getRowComment('Sandslash', {
+    [getOwnedKey('fire-red', 'Sandshrew')]: true,
+  })
+
+  assert.doesNotMatch(comment, /Trade for Sandshrew and evolve it/)
+  assert.match(comment, /Evolves at level 22/)
+})
+
+test('drops the trade-for-base evolution text once Leaf Green already owns Ekans', () => {
+  const comment = getRowComment('Arbok', {
+    [getOwnedKey('leaf-green', 'Ekans')]: true,
+  })
+
+  assert.doesNotMatch(comment, /Trade for Ekans and evolve it/)
+  assert.match(comment, /Evolves at level 22/)
+})
+
 test('pushes held-item trade pairs to the bottom of the ready list', () => {
   const tradeQueue = buildTradeQueue(
     pokemonList,
