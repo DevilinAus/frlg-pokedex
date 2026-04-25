@@ -151,3 +151,50 @@ test('adds the Sea Incense family note to Azurill without losing the breeding gu
   assert.match(comment, /only needs one Marill\/Azurill handoff/)
   assert.match(comment, /bred one with Sea Incense/)
 })
+
+test('adds held-item metadata for item-based trade evolutions', () => {
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    {
+      [getOwnedKey('leaf-green', 'Seadra')]: true,
+    },
+    createTrackerState({
+      [getOwnedKey('leaf-green', 'Seadra')]: true,
+    }),
+  )
+
+  const token = tradeQueue.readyByVersion['leaf-green'].find(
+    (readyToken) => readyToken.name === 'Seadra',
+  )
+
+  assert.equal(token?.heldItemName, 'Dragon Scale')
+  assert.equal(token?.heldItemUrl, 'https://pokemondb.net/item/dragon-scale')
+  assert.equal(token?.tagLabel, 'Trade item')
+})
+
+test('pushes held-item trade pairs to the bottom of the ready list', () => {
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    {
+      [getOwnedKey('leaf-green', 'Graveler')]: true,
+      [getOwnedKey('leaf-green', 'Poliwhirl')]: true,
+      [getOwnedKey('fire-red', 'Kadabra')]: true,
+      [getOwnedKey('fire-red', 'Machoke')]: true,
+    },
+    createTrackerState({
+      [getOwnedKey('leaf-green', 'Graveler')]: true,
+      [getOwnedKey('leaf-green', 'Poliwhirl')]: true,
+      [getOwnedKey('fire-red', 'Kadabra')]: true,
+      [getOwnedKey('fire-red', 'Machoke')]: true,
+    }),
+  )
+
+  assert.equal(tradeQueue.pairs.length, 2)
+  assert.equal(tradeQueue.pairs[0].requiresHeldItem, false)
+  assert.equal(tradeQueue.pairs[1].requiresHeldItem, true)
+  assert.equal(tradeQueue.pairs[1].left.heldItemName, "King's Rock")
+  assert.deepEqual(
+    tradeQueue.readyByVersion['leaf-green'].map((token) => token.name),
+    ['Graveler', 'Poliwhirl'],
+  )
+})

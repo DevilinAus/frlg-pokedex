@@ -422,6 +422,21 @@ export function getPokemonDbUrl(entry) {
   return `https://pokemondb.net/pokedex/${entry.spriteSlug}#dex-locations`
 }
 
+const itemDbSlugOverrides = {
+  'Up-Grade': 'upgrade',
+}
+
+export function getItemDbUrl(itemName) {
+  const slug =
+    itemDbSlugOverrides[itemName] ??
+    String(itemName || '')
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/\s+/g, '-')
+
+  return `https://pokemondb.net/item/${slug}`
+}
+
 export function hasCompletedDex(checkboxState, versionKey, options = {}) {
   return getTrackablePokemon(options).every((entry) =>
     Boolean(checkboxState[`${versionKey}-${String(entry.id).padStart(3, '0')}`]),

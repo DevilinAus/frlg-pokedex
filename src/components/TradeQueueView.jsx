@@ -2,7 +2,11 @@ import { getSpriteSrc } from '../lib/sprites'
 
 function TradeQueuePokemonCard({ token, tone }) {
   return (
-    <div className={`trade-queue-pokemon trade-queue-pokemon-${tone}`}>
+    <div
+      className={`trade-queue-pokemon trade-queue-pokemon-${tone} ${
+        token.heldItemName ? 'trade-queue-pokemon-held-item' : ''
+      }`.trim()}
+    >
       <img
         className="trade-queue-sprite"
         src={getSpriteSrc(token.spriteSlug)}
@@ -13,6 +17,19 @@ function TradeQueuePokemonCard({ token, tone }) {
       <div className="trade-queue-pokemon-copy">
         <strong>{token.name}</strong>
         <span className="trade-queue-pokemon-tag">{token.tagLabel}</span>
+        {token.heldItemName ? (
+          <small className="trade-queue-pokemon-item">
+            Hold{' '}
+            <a
+              className="trade-queue-item-link"
+              href={token.heldItemUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {token.heldItemName}
+            </a>
+          </small>
+        ) : null}
         {token.queueNote ? (
           <small className="trade-queue-pokemon-note">{token.queueNote}</small>
         ) : null}
@@ -55,9 +72,17 @@ function TradeQueueView({ tradeQueue, className = '', onCompleteTrade }) {
 
       <ol className="trade-queue-list">
         {tradeQueue.pairs.map((pair, index) => (
-          <li key={`${pair.left.key}-${pair.right.key}`} className="trade-queue-row">
+          <li
+            key={`${pair.left.key}-${pair.right.key}`}
+            className={`trade-queue-row ${
+              pair.requiresHeldItem ? 'trade-queue-row-held-item' : ''
+            }`.trim()}
+          >
             <div className="trade-queue-row-top">
               <span className="trade-queue-row-number">{index + 1}</span>
+              {pair.requiresHeldItem ? (
+                <span className="trade-queue-row-flag">Hold item trade</span>
+              ) : null}
             </div>
 
             <TradeQueuePokemonCard token={pair.left} tone="leaf-green" />

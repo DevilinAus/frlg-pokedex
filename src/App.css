@@ -455,6 +455,8 @@
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .trade-queue-row-number {
@@ -491,6 +493,33 @@
   background: color-mix(in srgb, var(--surface) 84%, #fda4af 16%);
 }
 
+.trade-queue-row-held-item {
+  border-color: color-mix(in srgb, var(--border-soft) 68%, #fbbf24 32%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-subtle) 94%, #fbbf24 6%), var(--surface-subtle));
+}
+
+.trade-queue-row-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 62%, #f59e0b 38%);
+  background: color-mix(in srgb, var(--surface) 82%, #fbbf24 18%);
+  color: var(--text-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trade-queue-pokemon-held-item {
+  border-color: color-mix(in srgb, var(--border-soft) 62%, #f59e0b 38%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 82%, #fbbf24 18%), color-mix(in srgb, var(--surface) 92%, #f59e0b 8%));
+}
+
 .trade-queue-sprite {
   width: 38px;
   height: 38px;
@@ -520,10 +549,28 @@
   color: var(--text-muted);
 }
 
+.trade-queue-pokemon-item {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.trade-queue-item-link {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.trade-queue-item-link:hover,
+.trade-queue-item-link:focus-visible {
+  color: var(--text-strong);
+}
+
 .trade-queue-pokemon-note {
   font-size: 0.76rem;
   line-height: 1.35;
-  color: var(--text-subtle);
+  color: var(--text-muted);
 }
 
 .trade-queue-arrow-lane {

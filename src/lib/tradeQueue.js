@@ -1,4 +1,4 @@
-import { hasTradeQueueExtraCopy } from './pokedexHelpers.js'
+import { getItemDbUrl, hasTradeQueueExtraCopy } from './pokedexHelpers.js'
 import {
   getPairedTradeFamilyState,
   getTradeVersionLabel,
@@ -36,6 +36,9 @@ function getTradeEvolutionSourceNames(pokemonList) {
 function createTradeToken(entry, versionKey, type, receivedEntry) {
   const pokemonId = String(entry.id).padStart(3, '0')
   const isStarter = type === 'extra-copy' && Boolean(entry.starterFamily) && !entry.evolution
+  const heldItemName =
+    type === 'trade-evolution' ? receivedEntry.tradeEvolutionItem ?? null : null
+  const heldItemUrl = heldItemName ? getItemDbUrl(heldItemName) : ''
 
   return {
     key: `${versionKey}-${type}-${pokemonId}`,
@@ -49,9 +52,13 @@ function createTradeToken(entry, versionKey, type, receivedEntry) {
     receivedPokemonId: String(receivedEntry.id).padStart(3, '0'),
     receivedName: receivedEntry.name,
     receivedSpriteSlug: receivedEntry.spriteSlug,
+    heldItemName,
+    heldItemUrl,
     tagLabel:
       type === 'trade-evolution'
-        ? 'Trade evo'
+        ? heldItemName
+          ? 'Trade item'
+          : 'Trade evo'
         : isStarter
           ? 'Starter'
           : 'Extra copy',
@@ -202,11 +209,18 @@ function buildTradeReadyTokensForVersion(
 
   return applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState).sort(
     (leftToken, rightToken) => {
-    if (leftToken.id !== rightToken.id) {
-      return leftToken.id - rightToken.id
-    }
+      const leftNeedsItem = Number(Boolean(leftToken.heldItemName))
+      const rightNeedsItem = Number(Boolean(rightToken.heldItemName))
 
-    return leftToken.name.localeCompare(rightToken.name)
+      if (leftNeedsItem !== rightNeedsItem) {
+        return leftNeedsItem - rightNeedsItem
+      }
+
+      if (leftToken.id !== rightToken.id) {
+        return leftToken.id - rightToken.id
+      }
+
+      return leftToken.name.localeCompare(rightToken.name)
     },
   )
 }
@@ -215,6 +229,7 @@ function buildPair(leftToken, rightToken) {
   return {
     left: leftToken,
     right: rightToken,
+    requiresHeldItem: Boolean(leftToken.heldItemName || rightToken.heldItemName),
   }
 }
 
@@ -315,7 +330,16 @@ export function buildTradeQueue(
       (leftToken, rightToken) => leftToken.name === rightToken.name,
     ),
     ...pullPairs(leftRemaining, rightRemaining, () => true),
-  ]
+  ].sort((leftPair, rightPair) => {
+    const leftNeedsItem = Number(leftPair.requiresHeldItem)
+    const rightNeedsItem = Number(rightPair.requiresHeldItem)
+
+    if (leftNeedsItem !== rightNeedsItem) {
+      return leftNeedsItem - rightNeedsItem
+    }
+
+    return 0
+  })
 
   return {
     pairs,
