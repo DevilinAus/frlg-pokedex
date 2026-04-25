@@ -35,6 +35,7 @@ const defaultTrackerState = {
   trackerLayout: 'dual',
   onboardingComplete: false,
   tradeMode: false,
+  unlockAll: false,
   primaryGame: '',
   switchEventUnlocks: false,
   baseGameComplete: false,
@@ -348,6 +349,7 @@ function hasMeaningfulTrackerData(state) {
     state.ownedGames !== defaultTrackerState.ownedGames ||
     state.trackerLayout !== defaultTrackerState.trackerLayout ||
     state.tradeMode ||
+    state.unlockAll ||
     state.primaryGame !== defaultTrackerState.primaryGame ||
     state.switchEventUnlocks ||
     state.baseGameComplete ||
@@ -376,6 +378,7 @@ function sanitizeTrackerState(input) {
       defaultTrackerState.trackerLayout,
     ),
     tradeMode: Boolean(input?.tradeMode),
+    unlockAll: Boolean(input?.unlockAll),
     primaryGame: sanitizeEnum(
       input?.primaryGame,
       primaryGameValues,
@@ -478,6 +481,10 @@ function sanitizeTrackerPatch(input) {
 
   if (Object.hasOwn(input, 'tradeMode')) {
     patch.tradeMode = Boolean(input.tradeMode)
+  }
+
+  if (Object.hasOwn(input, 'unlockAll')) {
+    patch.unlockAll = Boolean(input.unlockAll)
   }
 
   if (Object.hasOwn(input, 'primaryGame')) {

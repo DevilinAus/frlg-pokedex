@@ -56,6 +56,7 @@ function usePokedexState() {
     defaultAppState.onboardingComplete,
   )
   const [tradeMode, setTradeMode] = useState(defaultAppState.tradeMode)
+  const [unlockAll, setUnlockAll] = useState(defaultAppState.unlockAll)
   const [primaryGame, setPrimaryGame] = useState(defaultAppState.primaryGame)
   const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
     defaultAppState.switchEventUnlocks,
@@ -125,6 +126,7 @@ function usePokedexState() {
       trackerLayout,
       onboardingComplete,
       tradeMode,
+      unlockAll,
       primaryGame,
       switchEventUnlocks,
       baseGameComplete,
@@ -158,6 +160,10 @@ function usePokedexState() {
 
     if (nextState.tradeMode !== baseState.tradeMode) {
       patch.tradeMode = nextState.tradeMode
+    }
+
+    if (nextState.unlockAll !== baseState.unlockAll) {
+      patch.unlockAll = nextState.unlockAll
     }
 
     if (nextState.primaryGame !== baseState.primaryGame) {
@@ -262,6 +268,7 @@ function usePokedexState() {
     setTrackerLayout(state.trackerLayout)
     setOnboardingComplete(state.onboardingComplete)
     setTradeMode(state.tradeMode)
+    setUnlockAll(state.unlockAll)
     setPrimaryGame(state.primaryGame)
     setSwitchEventUnlocks(state.switchEventUnlocks)
     setBaseGameComplete(state.baseGameComplete)
@@ -552,6 +559,7 @@ function usePokedexState() {
     mode,
     onboardingComplete,
     ownedGames,
+    unlockAll,
     switchEventUnlocks,
     trackerLayout,
     tradeMode,
@@ -621,6 +629,7 @@ function usePokedexState() {
     mode,
     onboardingComplete,
     ownedGames,
+    unlockAll,
     switchEventUnlocks,
     trackerLayout,
     tradeMode,
@@ -733,6 +742,11 @@ function usePokedexState() {
     setTradeMode(nextValue)
   }
 
+  function updateUnlockAll(nextValue) {
+    markCloudStateDirty()
+    setUnlockAll(nextValue)
+  }
+
   function updateOwnedGames(nextValue) {
     markCloudStateDirty()
     setOwnedGames(nextValue)
@@ -820,6 +834,7 @@ function usePokedexState() {
     setOwnedGames(setup.ownedGames)
     setTrackerLayout(setup.trackerLayout)
     setTradeMode(setup.tradeMode)
+    setUnlockAll(defaultAppState.unlockAll)
     setPrimaryGame(setup.primaryGame ?? defaultAppState.primaryGame)
     setSwitchEventUnlocks(setup.switchEventUnlocks)
     setFireRedStarter(nextFireRedStarter)
@@ -1057,6 +1072,8 @@ function usePokedexState() {
     reopenOnboarding,
     tradeMode,
     setTradeMode: updateTradeMode,
+    unlockAll,
+    setUnlockAll: updateUnlockAll,
     primaryGame,
     setPrimaryGame: updatePrimaryGame,
     switchEventUnlocks,

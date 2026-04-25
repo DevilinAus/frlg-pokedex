@@ -74,6 +74,7 @@ function PokemonRow({
   trackerLayout,
   singleVersionKey,
   tradeMode,
+  unlockAll,
   switchEventUnlocks,
   fireRedStarter,
   leafGreenStarter,
@@ -85,6 +86,7 @@ function PokemonRow({
   const pokemonId = String(entry.id).padStart(3, '0')
   const trackerState = {
     tradeMode,
+    unlockAll,
     switchEventUnlocks,
     fireRedStarter,
     leafGreenStarter,

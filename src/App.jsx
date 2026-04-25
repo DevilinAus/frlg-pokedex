@@ -141,6 +141,8 @@ function App() {
     completeOnboarding,
     tradeMode,
     setTradeMode,
+    unlockAll,
+    setUnlockAll,
     primaryGame,
     setPrimaryGame,
     switchEventUnlocks,
@@ -184,6 +186,7 @@ function App() {
 
   const trackerState = {
     tradeMode,
+    unlockAll,
     primaryGame,
     switchEventUnlocks,
     fireRedStarter,
@@ -618,6 +621,15 @@ function App() {
                     <label className="trade-mode-toggle">
                       <input
                         type="checkbox"
+                        checked={unlockAll}
+                        onChange={(event) => setUnlockAll(event.target.checked)}
+                      />
+                      <span>Unlock all</span>
+                    </label>
+
+                    <label className="trade-mode-toggle">
+                      <input
+                        type="checkbox"
                         checked={switchEventUnlocks}
                         onChange={(event) => setSwitchEventUnlocks(event.target.checked)}
                       />
@@ -818,6 +830,7 @@ function App() {
                   trackerLayout={trackerLayout}
                   singleVersionKey={singleVersionKey}
                   tradeMode={tradeMode}
+                  unlockAll={unlockAll}
                   switchEventUnlocks={switchEventUnlocks}
                   fireRedStarter={fireRedStarter}
                   leafGreenStarter={leafGreenStarter}

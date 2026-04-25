@@ -144,12 +144,13 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
-  const locked =
-    ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
-    ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
-    (!switchEventLegendaryUnlocked &&
-      versionAvailability !== 'native' &&
-      !(trackerState.tradeMode && versionAvailability === 'trade'))
+  const locked = trackerState.unlockAll
+    ? false
+    : ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
+      ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
+      (!switchEventLegendaryUnlocked &&
+        versionAvailability !== 'native' &&
+        !(trackerState.tradeMode && versionAvailability === 'trade'))
   const showExtraCopy =
     needsExtraCopy(entry, config.choiceVersion, trackerState.tradeMode) ||
     needsChoiceExtraCopy(entry, versionChoices, trackerState.tradeMode)
@@ -162,6 +163,10 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
 }
 
 export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
+  if (trackerState.unlockAll) {
+    return true
+  }
+
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
   const versionAvailability = entry[config.availabilityKey]

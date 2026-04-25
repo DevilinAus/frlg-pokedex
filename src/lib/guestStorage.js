@@ -19,6 +19,7 @@ function hasMeaningfulTrackerData(state) {
     state.ownedGames !== defaultAppState.ownedGames ||
     state.trackerLayout !== defaultAppState.trackerLayout ||
     state.tradeMode ||
+    state.unlockAll ||
     state.primaryGame !== defaultAppState.primaryGame ||
     state.switchEventUnlocks ||
     state.baseGameComplete ||
@@ -47,6 +48,7 @@ export function sanitizeTrackerState(input) {
       defaultAppState.trackerLayout,
     ),
     tradeMode: Boolean(input?.tradeMode),
+    unlockAll: Boolean(input?.unlockAll),
     primaryGame: sanitizeEnum(
       input?.primaryGame,
       primaryGameValues,
