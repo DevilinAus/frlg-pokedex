@@ -120,6 +120,12 @@ function getVersionChoices(versionKey, trackerState) {
   }
 }
 
+function isCaughtInVersion(entry, versionKey, checkboxState) {
+  return Boolean(
+    checkboxState?.[`${versionKey}-${String(entry.id).padStart(3, '0')}`],
+  )
+}
+
 export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
@@ -133,6 +139,11 @@ export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
 export function getVersionTrackerState(entry, versionKey, trackerState) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
+  const caughtInVersion = isCaughtInVersion(
+    entry,
+    versionKey,
+    trackerState.checkboxState,
+  )
   const starterLocked = isLockedByStarterChoice(
     entry,
     versionChoices.starter,
@@ -144,7 +155,7 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
-  const locked = trackerState.unlockAll
+  const locked = trackerState.unlockAll || caughtInVersion
     ? false
     : ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
       ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
@@ -163,7 +174,10 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
 }
 
 export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
-  if (trackerState.unlockAll) {
+  if (
+    trackerState.unlockAll ||
+    isCaughtInVersion(entry, versionKey, trackerState.checkboxState)
+  ) {
     return true
   }
 
