@@ -12,9 +12,9 @@ function TradeQueuePokemonCard({ token, tone }) {
 
       <div className="trade-queue-pokemon-copy">
         <strong>{token.name}</strong>
-        <span>{token.tagLabel}</span>
+        <span className="trade-queue-pokemon-tag">{token.tagLabel}</span>
         {token.queueNote ? (
-          <small>{token.queueNote}</small>
+          <small className="trade-queue-pokemon-note">{token.queueNote}</small>
         ) : null}
       </div>
     </div>

@@ -418,11 +418,17 @@
   color: var(--text-strong);
 }
 
+.trade-view-header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
 .trade-queue-column-labels {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr) 84px;
   gap: 12px;
   margin: 16px 0 10px;
+  color: var(--text-muted);
 }
 
 .trade-queue-list {
@@ -534,6 +540,7 @@
 
 .trade-queue-done-heading {
   text-align: center;
+  color: var(--text-muted);
 }
 
 .trade-queue-complete {
