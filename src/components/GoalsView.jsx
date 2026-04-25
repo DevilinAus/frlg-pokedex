@@ -36,56 +36,53 @@ function GoalFocusCard({
       </div>
 
       {goal ? (
-        <div className="goal-focus-body">
-          <img
-            className="goal-focus-sprite"
-            src={getSpriteSrc(goal.sourceEntry.spriteSlug)}
-            alt=""
-            loading="lazy"
-          />
+        <div className="goal-focus-main">
+          <div className="goal-focus-identity">
+            <div className="goal-focus-sprite-shell">
+              <img
+                className="goal-focus-sprite"
+                src={getSpriteSrc(goal.sourceEntry.spriteSlug)}
+                alt=""
+                loading="lazy"
+              />
+            </div>
 
-          <div className="goal-focus-copy">
-            <strong>
-              <GoalPokemonLink entry={goal.sourceEntry} />
-            </strong>
+            <div className="goal-focus-copy">
+              <strong>
+                <GoalPokemonLink entry={goal.sourceEntry} />
+              </strong>
 
-            {goal.type === 'hunt' ? (
-              <label className="goal-focus-toggle">
-                <input
-                  type="checkbox"
-                  checked={actionChecked}
-                  onChange={(event) =>
-                    updateCheckboxState(goal.sourceCaughtKey, event.target.checked)
-                  }
-                />
-                <span>Caught</span>
-              </label>
-            ) : (
-              <>
-                <div className="goal-focus-evolution">
-                  <div className="goal-focus-evolution-copy">
-                    <GoalPokemonLink entry={goal.targetEntry} />
-                    <span className="goal-focus-level">{goal.levelLabel}</span>
+              {goal.type === 'party' ? (
+                <>
+                  <div className="goal-focus-evolution">
+                    <span className="goal-focus-evolution-label">Next evo</span>
+                    <div className="goal-focus-evolution-copy">
+                      <GoalPokemonLink entry={goal.targetEntry} />
+                      <span className="goal-focus-level">{goal.levelLabel}</span>
+                    </div>
                   </div>
 
-                  <label className="goal-focus-toggle">
-                    <input
-                      type="checkbox"
-                      checked={actionChecked}
-                      onChange={(event) =>
-                        updateCheckboxState(goal.targetCaughtKey, event.target.checked)
-                      }
-                    />
-                    <span>Evolved</span>
-                  </label>
-                </div>
-
-                {goal.tradeFollowUpCopy ? (
-                  <p className="goal-focus-note">{goal.tradeFollowUpCopy}</p>
-                ) : null}
-              </>
-            )}
+                  {goal.tradeFollowUpCopy ? (
+                    <p className="goal-focus-followup">{goal.tradeFollowUpCopy}</p>
+                  ) : null}
+                </>
+              ) : null}
+            </div>
           </div>
+
+          <label className={`goal-focus-action goal-focus-action-${tone}`}>
+            <input
+              type="checkbox"
+              checked={actionChecked}
+              onChange={(event) =>
+                updateCheckboxState(
+                  goal.type === 'hunt' ? goal.sourceCaughtKey : goal.targetCaughtKey,
+                  event.target.checked,
+                )
+              }
+            />
+            <span>{goal.type === 'hunt' ? 'Caught' : 'Evolved'}</span>
+          </label>
         </div>
       ) : (
         <p className="goal-focus-empty">{emptyCopy}</p>
