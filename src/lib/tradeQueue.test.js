@@ -93,7 +93,7 @@ test('keeps only the missing family member as an optional shortcut once Fire Red
   assert.match(tokens[0].queueNote, /saves breeding/)
 })
 
-test('cleans up the special family queue rule once Fire Red has both members', () => {
+test('drops extra-copy family tokens once Fire Red already has both members', () => {
   const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
     [getOwnedKey('fire-red', 'Magmar')]: true,
     [getOwnedKey('fire-red', 'Magby')]: true,
@@ -101,8 +101,7 @@ test('cleans up the special family queue rule once Fire Red has both members', (
     [getExtraKey('leaf-green', 'Magby')]: true,
   })
 
-  assert.deepEqual(tokens.map((token) => token.name), ['Magmar', 'Magby'])
-  assert.ok(tokens.every((token) => !token.queueNote))
+  assert.deepEqual(tokens.map((token) => token.name), [])
 })
 
 test('adds the family note to Magby without losing the breeding guidance', () => {
@@ -196,5 +195,26 @@ test('pushes held-item trade pairs to the bottom of the ready list', () => {
   assert.deepEqual(
     tradeQueue.readyByVersion['leaf-green'].map((token) => token.name),
     ['Graveler', 'Poliwhirl'],
+  )
+})
+
+test('ignores stale extra-copy checkmarks once the other save already owns that species', () => {
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    {
+      [getOwnedKey('leaf-green', 'Magmar')]: true,
+      [getOwnedKey('fire-red', 'Magmar')]: true,
+      [getExtraKey('leaf-green', 'Magmar')]: true,
+    },
+    createTrackerState({
+      [getOwnedKey('leaf-green', 'Magmar')]: true,
+      [getOwnedKey('fire-red', 'Magmar')]: true,
+      [getExtraKey('leaf-green', 'Magmar')]: true,
+    }),
+  )
+
+  assert.deepEqual(
+    tradeQueue.readyByVersion['leaf-green'].map((token) => token.name),
+    [],
   )
 })

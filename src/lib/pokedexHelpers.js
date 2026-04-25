@@ -126,14 +126,32 @@ function isCaughtInVersion(entry, versionKey, checkboxState) {
   )
 }
 
-export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
+function getOtherVersionKey(versionKey) {
+  return versionKey === 'fire-red' ? 'leaf-green' : 'fire-red'
+}
+
+function shouldShowExtraCopy(entry, versionKey, trackerState, tradeMode = trackerState.tradeMode) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
+  const otherVersionKey = getOtherVersionKey(versionKey)
+  const otherVersionAlreadyHasSpecies = isCaughtInVersion(
+    entry,
+    otherVersionKey,
+    trackerState.checkboxState,
+  )
+
+  if (otherVersionAlreadyHasSpecies) {
+    return false
+  }
 
   return (
-    needsExtraCopy(entry, config.choiceVersion, false) ||
-    needsChoiceExtraCopy(entry, versionChoices, false)
+    needsExtraCopy(entry, config.choiceVersion, tradeMode) ||
+    needsChoiceExtraCopy(entry, versionChoices, tradeMode)
   )
+}
+
+export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
+  return shouldShowExtraCopy(entry, versionKey, trackerState, false)
 }
 
 export function getVersionTrackerState(entry, versionKey, trackerState) {
@@ -162,9 +180,7 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
       (!switchEventLegendaryUnlocked &&
         versionAvailability !== 'native' &&
         !(trackerState.tradeMode && versionAvailability === 'trade'))
-  const showExtraCopy =
-    needsExtraCopy(entry, config.choiceVersion, trackerState.tradeMode) ||
-    needsChoiceExtraCopy(entry, versionChoices, trackerState.tradeMode)
+  const showExtraCopy = shouldShowExtraCopy(entry, versionKey, trackerState)
 
   return {
     locked,

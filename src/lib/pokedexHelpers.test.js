@@ -109,3 +109,38 @@ test('caught trade evolutions stay visible in single-version view', () => {
     true,
   )
 })
+
+test('hides the starter extra-copy prompt once both saves own that starter', () => {
+  const charmander = getPokemonByName('Charmander')
+
+  const state = getVersionTrackerState(
+    charmander,
+    'fire-red',
+    createTrackerState({
+      fireRedStarter: 'charmander',
+      checkboxState: {
+        [getCaughtKey('fire-red', charmander.id)]: true,
+        [getCaughtKey('leaf-green', charmander.id)]: true,
+      },
+    }),
+  )
+
+  assert.equal(state.showExtraCopy, false)
+})
+
+test('hides version-exclusive extra-copy prompts once both saves own the species', () => {
+  const magmar = getPokemonByName('Magmar')
+
+  const state = getVersionTrackerState(
+    magmar,
+    'leaf-green',
+    createTrackerState({
+      checkboxState: {
+        [getCaughtKey('leaf-green', magmar.id)]: true,
+        [getCaughtKey('fire-red', magmar.id)]: true,
+      },
+    }),
+  )
+
+  assert.equal(state.showExtraCopy, false)
+})
