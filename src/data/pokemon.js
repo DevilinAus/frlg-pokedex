@@ -330,6 +330,10 @@ const tradeEvolutionItems = {
   Porygon2: 'Up-Grade',
 }
 
+export const heldTradeItemNames = [...new Set(Object.values(tradeEvolutionItems))].sort(
+  (leftItem, rightItem) => leftItem.localeCompare(rightItem),
+)
+
 const friendshipEvolutions = new Set([
   'Crobat',
   'Togetic',

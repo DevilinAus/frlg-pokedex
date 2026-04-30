@@ -418,11 +418,6 @@
   color: var(--text-strong);
 }
 
-.trade-view-header p {
-  margin: 6px 0 0;
-  color: var(--text-muted);
-}
-
 .trade-queue-column-labels {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr) 84px;
@@ -494,9 +489,9 @@
 }
 
 .trade-queue-row-held-item {
-  border-color: color-mix(in srgb, var(--border-soft) 68%, #fbbf24 32%);
+  border-color: color-mix(in srgb, var(--border-soft) 82%, #fbbf24 18%);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-subtle) 94%, #fbbf24 6%), var(--surface-subtle));
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-subtle) 97%, #fbbf24 3%), var(--surface-subtle));
 }
 
 .trade-queue-row-flag {
@@ -514,10 +509,17 @@
   text-transform: uppercase;
 }
 
+.trade-queue-row-flag-blocked {
+  border-color: color-mix(in srgb, var(--border-soft) 54%, #ea580c 46%);
+  background: color-mix(in srgb, var(--surface) 82%, #fb923c 18%);
+}
+
 .trade-queue-pokemon-held-item {
-  border-color: color-mix(in srgb, var(--border-soft) 62%, #f59e0b 38%);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 82%, #fbbf24 18%), color-mix(in srgb, var(--surface) 92%, #f59e0b 8%));
+  border-color: color-mix(in srgb, var(--border-soft) 78%, #f59e0b 22%);
+}
+
+.trade-queue-pokemon-held-item-missing {
+  border-color: color-mix(in srgb, var(--border-soft) 70%, #ea580c 30%);
 }
 
 .trade-queue-sprite {
@@ -541,18 +543,48 @@
   text-overflow: ellipsis;
 }
 
-.trade-queue-pokemon-tag {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+.trade-queue-item-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .trade-queue-pokemon-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.76rem;
   line-height: 1.35;
   color: var(--text-muted);
+}
+
+.trade-queue-pokemon-item-missing {
+  color: #9a3412;
+}
+
+.trade-queue-item-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  width: fit-content;
+  padding: 2px 7px 2px 5px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.trade-queue-item-toggle input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--control-accent);
+  cursor: pointer;
 }
 
 .trade-queue-item-link {
@@ -613,6 +645,11 @@
   margin: 0;
   accent-color: var(--control-accent);
   cursor: pointer;
+}
+
+.trade-queue-complete input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .trade-queue-overflow {
@@ -712,6 +749,15 @@
 
 .goal-focus-card-party::after {
   background: radial-gradient(circle, rgba(96, 165, 250, 0.72), transparent 66%);
+}
+
+.goal-focus-card-item {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 86%, #a7f3d0 14%), color-mix(in srgb, var(--surface) 92%, #059669 8%));
+}
+
+.goal-focus-card-item::after {
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.7), transparent 66%);
 }
 
 .goal-focus-header {
@@ -835,6 +881,10 @@
   background: rgba(30, 64, 175, 0.12);
 }
 
+.goal-focus-action-item {
+  background: rgba(5, 150, 105, 0.12);
+}
+
 .goal-focus-action input {
   width: 18px;
   height: 18px;
@@ -859,6 +909,10 @@
 
 .goal-focus-action-party:has(input:checked) {
   background: rgba(30, 64, 175, 0.2);
+}
+
+.goal-focus-action-item:has(input:checked) {
+  background: rgba(5, 150, 105, 0.2);
 }
 
 .goal-focus-evolution {
@@ -892,6 +946,11 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.goal-focus-arrow {
+  color: var(--text-muted);
+  font-weight: 700;
 }
 
 .goal-focus-followup {
@@ -1397,6 +1456,94 @@ button,
   border: 1px solid var(--border-soft);
   background: var(--panel-bg-strong);
   box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
+}
+
+.tracker-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--panel-bg-strong) 90%, #f8fafc 10%);
+}
+
+.tracker-settings-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tracker-settings-section-title {
+  color: var(--text-strong);
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tracker-settings-section-count {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.tracker-settings-section-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.tracker-settings-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tracker-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-soft);
+  color: var(--text-strong);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.tracker-settings-item-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tracker-settings-item input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--control-accent);
+  cursor: pointer;
+}
+
+.tracker-settings-item-link {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.tracker-settings-item-link:hover,
+.tracker-settings-item-link:focus-visible {
+  color: var(--text-strong);
+  text-decoration: underline;
 }
 
 .setup-launcher {

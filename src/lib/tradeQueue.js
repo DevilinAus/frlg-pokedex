@@ -1,8 +1,5 @@
 import { getItemDbUrl, hasTradeQueueExtraCopy } from './pokedexHelpers.js'
-import {
-  getPairedTradeFamilyState,
-  getTradeVersionLabel,
-} from './pairedTradeFamilies.js'
+import { getPairedTradeFamilyState } from './pairedTradeFamilies.js'
 
 function getTradeEvolutionTargetsBySource(pokemonList) {
   const targets = new Map()
@@ -33,12 +30,15 @@ function getTradeEvolutionSourceNames(pokemonList) {
   return sources
 }
 
-function createTradeToken(entry, versionKey, type, receivedEntry) {
+function createTradeToken(entry, versionKey, type, receivedEntry, trackerState) {
   const pokemonId = String(entry.id).padStart(3, '0')
   const isStarter = type === 'extra-copy' && Boolean(entry.starterFamily) && !entry.evolution
   const heldItemName =
     type === 'trade-evolution' ? receivedEntry.tradeEvolutionItem ?? null : null
   const heldItemUrl = heldItemName ? getItemDbUrl(heldItemName) : ''
+  const heldItemOwned = heldItemName
+    ? Boolean(trackerState.ownedHeldTradeItems?.[heldItemName])
+    : true
 
   return {
     key: `${versionKey}-${type}-${pokemonId}`,
@@ -54,6 +54,7 @@ function createTradeToken(entry, versionKey, type, receivedEntry) {
     receivedSpriteSlug: receivedEntry.spriteSlug,
     heldItemName,
     heldItemUrl,
+    heldItemOwned,
     tagLabel:
       type === 'trade-evolution'
         ? heldItemName
@@ -76,26 +77,8 @@ function withQueueNote(token, queueNote) {
   }
 }
 
-function getFamilySeedQueueNote(token, familyState, targetVersionKey) {
-  const targetLabel = getTradeVersionLabel(targetVersionKey)
-  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
-
-  if (token.name === familyState.babyName) {
-    return `Seeds this family. ${targetLabel} can skip trading ${familyState.preferredTradeName} and evolve this instead.`
-  }
-
-  return `Seeds this family. ${targetLabel} can breed ${familyState.babyName}${breedingRequirementLabel} after this instead of trading one over.`
-}
-
-function getFamilyShortcutQueueNote(token, familyState, targetVersionKey) {
-  const targetLabel = getTradeVersionLabel(targetVersionKey)
-  const breedingRequirementLabel = familyState.breedingRequirementLabel ?? ''
-
-  if (token.name === familyState.babyName) {
-    return `Optional shortcut. ${targetLabel} already has ${familyState.adultSeedLabel}, so this only saves breeding${breedingRequirementLabel} there.`
-  }
-
-  return `Optional shortcut. ${targetLabel} already has ${familyState.babyName}, so this only saves evolving there.`
+function getFamilyTradeChoiceNote(familyState) {
+  return `${familyState.preferredTradeName} or ${familyState.babyName}`
 }
 
 function applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState) {
@@ -144,7 +127,7 @@ function applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState) {
           token.key === chosenToken.key
             ? withQueueNote(
                 token,
-                getFamilySeedQueueNote(token, familyState, targetVersionKey),
+                getFamilyTradeChoiceNote(familyState),
               )
             : token,
         )
@@ -161,7 +144,7 @@ function applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState) {
         familyTokenKeys.has(token.key) && token.name === familyState.missingName
           ? withQueueNote(
               token,
-              getFamilyShortcutQueueNote(token, familyState, targetVersionKey),
+              getFamilyTradeChoiceNote(familyState),
             )
           : token,
       )
@@ -188,7 +171,7 @@ function buildTradeReadyTokensForVersion(
       hasTradeQueueExtraCopy(entry, versionKey, trackerState) &&
       checkboxState[`${versionKey}-extra-${pokemonId}`]
     ) {
-      tokens.push(createTradeToken(entry, versionKey, 'extra-copy', entry))
+      tokens.push(createTradeToken(entry, versionKey, 'extra-copy', entry, trackerState))
     }
 
     if (
@@ -202,6 +185,7 @@ function buildTradeReadyTokensForVersion(
           versionKey,
           'trade-evolution',
           tradeEvolutionTargets.get(entry.name) ?? entry,
+          trackerState,
         ),
       )
     }
@@ -209,6 +193,13 @@ function buildTradeReadyTokensForVersion(
 
   return applyPairedTradeFamilyRules(tokens, targetVersionKey, checkboxState).sort(
     (leftToken, rightToken) => {
+      const leftBlocked = Number(!leftToken.heldItemOwned)
+      const rightBlocked = Number(!rightToken.heldItemOwned)
+
+      if (leftBlocked !== rightBlocked) {
+        return leftBlocked - rightBlocked
+      }
+
       const leftNeedsItem = Number(Boolean(leftToken.heldItemName))
       const rightNeedsItem = Number(Boolean(rightToken.heldItemName))
 
@@ -226,10 +217,18 @@ function buildTradeReadyTokensForVersion(
 }
 
 function buildPair(leftToken, rightToken) {
+  const missingHeldItemNames = [...new Set(
+    [leftToken, rightToken]
+      .filter((token) => token.heldItemName && !token.heldItemOwned)
+      .map((token) => token.heldItemName),
+  )]
+
   return {
     left: leftToken,
     right: rightToken,
     requiresHeldItem: Boolean(leftToken.heldItemName || rightToken.heldItemName),
+    missingHeldItemNames,
+    isReady: missingHeldItemNames.length === 0,
   }
 }
 
@@ -372,6 +371,13 @@ export function buildTradeQueue(
     ),
     ...pullPairs(leftRemaining, rightRemaining, () => true),
   ].sort((leftPair, rightPair) => {
+    const leftBlocked = Number(!leftPair.isReady)
+    const rightBlocked = Number(!rightPair.isReady)
+
+    if (leftBlocked !== rightBlocked) {
+      return leftBlocked - rightBlocked
+    }
+
     const leftNeedsItem = Number(leftPair.requiresHeldItem)
     const rightNeedsItem = Number(rightPair.requiresHeldItem)
 
@@ -381,10 +387,20 @@ export function buildTradeQueue(
 
     return 0
   })
+  const readyCount = pairs.filter((pair) => pair.isReady).length
+  const blockedPairs = pairs.filter((pair) => !pair.isReady)
+  const blockedByVersion = {
+    [leftVersionKey]: readyByVersion[leftVersionKey].filter((token) => !token.heldItemOwned),
+    [rightVersionKey]: readyByVersion[rightVersionKey].filter((token) => !token.heldItemOwned),
+  }
 
   return {
     pairs,
+    blockedPairs,
+    blockedByVersion,
     pairableCount: pairs.length,
+    readyCount,
+    blockedByHeldItemCount: blockedPairs.length,
     readyByVersion,
     unpairedByVersion: {
       [leftVersionKey]: leftRemaining,

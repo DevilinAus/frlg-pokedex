@@ -2,7 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { getTrackablePokemon } from '../data/pokemon.js'
-import { getVersionGoals, XP_SHARE_POKEDEX_REQUIREMENT } from './goals.js'
+import { buildTradeQueue } from './tradeQueue.js'
+import {
+  buildGoalsByVersion,
+  getVersionGoals,
+  XP_SHARE_POKEDEX_REQUIREMENT,
+} from './goals.js'
 
 const pokemonList = getTrackablePokemon({ baseGameComplete: true })
 
@@ -10,7 +15,7 @@ function getCaughtKey(versionKey, pokemonId) {
   return `${versionKey}-${String(pokemonId).padStart(3, '0')}`
 }
 
-function createTrackerState(checkboxState = {}) {
+function createTrackerState(checkboxState = {}, ownedHeldTradeItems = {}) {
   return {
     tradeMode: false,
     switchEventUnlocks: false,
@@ -20,6 +25,7 @@ function createTrackerState(checkboxState = {}) {
     leafGreenFossil: '',
     fireRedHitmon: '',
     leafGreenHitmon: '',
+    ownedHeldTradeItems,
     checkboxState,
   }
 }
@@ -165,4 +171,40 @@ test('returns a hunt goal when the line is available but not yet owned', () => {
   assert.equal(goals.huntGoal.sourceEntry.name, 'Machop')
   assert.equal(goals.huntGoal.targetEntry.name, 'Machoke')
   assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Machamp')
+})
+
+test('adds an item goal when a blocked held-item trade exists', () => {
+  const checkboxState = {
+    [getCaughtKey('fire-red', 117)]: true,
+  }
+  const trackerState = createTrackerState(checkboxState)
+  const tradeQueue = buildTradeQueue(pokemonList, checkboxState, trackerState)
+  const goalsByVersion = buildGoalsByVersion(
+    pokemonList,
+    trackerState,
+    ['fire-red'],
+    tradeQueue.blockedByVersion,
+  )
+
+  assert.equal(goalsByVersion['fire-red'].itemGoal?.heldItemName, 'Dragon Scale')
+  assert.equal(goalsByVersion['fire-red'].itemGoal?.sourceEntry.name, 'Seadra')
+  assert.equal(goalsByVersion['fire-red'].itemGoal?.targetEntry.name, 'Kingdra')
+})
+
+test('skips the item goal once the held trade item is already owned', () => {
+  const checkboxState = {
+    [getCaughtKey('fire-red', 117)]: true,
+  }
+  const trackerState = createTrackerState(checkboxState, {
+    'Dragon Scale': true,
+  })
+  const tradeQueue = buildTradeQueue(pokemonList, checkboxState, trackerState)
+  const goalsByVersion = buildGoalsByVersion(
+    pokemonList,
+    trackerState,
+    ['fire-red'],
+    tradeQueue.blockedByVersion,
+  )
+
+  assert.equal(goalsByVersion['fire-red'].itemGoal, null)
 })

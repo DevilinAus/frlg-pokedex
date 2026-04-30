@@ -66,6 +66,7 @@ export const defaultAppState = {
   leafGreenEeveelution: '',
   fireRedHitmon: '',
   leafGreenHitmon: '',
+  ownedHeldTradeItems: {},
   checkboxState: {},
   celebrationState: defaultCelebrationState,
 }

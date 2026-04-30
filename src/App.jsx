@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { getTrackablePokemon } from './data/pokemon'
+import { getTrackablePokemon, heldTradeItemNames } from './data/pokemon'
 import AccountPanel from './components/AccountPanel'
 import CelebrationLayer from './components/CelebrationLayer'
 import ChoicePanel from './components/ChoicePanel'
@@ -11,7 +11,7 @@ import PokemonRow from './components/PokemonRow'
 import TradeQueueView from './components/TradeQueueView'
 import trackerSettingsCog from './assets/tracker-settings-cog.png'
 import usePokedexState from './hooks/usePokedexState'
-import { isVisibleInSingleVersion } from './lib/pokedexHelpers'
+import { getItemDbUrl, isVisibleInSingleVersion } from './lib/pokedexHelpers'
 import { ownedGameLabels, primaryGameOptions } from './lib/pokedexOptions'
 import { buildGoalsByVersion } from './lib/goals'
 import { getSpriteSrc } from './lib/sprites'
@@ -114,6 +114,10 @@ function getIntroCopy(ownedGames, trackerLayout, isCombinedView, primaryGame) {
     : 'Built for a single-view focus on one version, while keeping the second version available.'
 }
 
+function getTradeHeroCopy(readyCount) {
+  return `${readyCount} ${readyCount === 1 ? 'TRADE' : 'TRADES'} READY`
+}
+
 function App() {
   const [showFilter, setShowFilter] = useState('all')
   const [activeTrackerView, setActiveTrackerView] = useState('tracker')
@@ -161,6 +165,8 @@ function App() {
     setFireRedHitmon,
     leafGreenHitmon,
     setLeafGreenHitmon,
+    ownedHeldTradeItems,
+    updateOwnedHeldTradeItem,
     checkboxState,
     updateCheckboxState,
     updateCheckboxStates,
@@ -195,6 +201,7 @@ function App() {
     leafGreenFossil,
     fireRedHitmon,
     leafGreenHitmon,
+    ownedHeldTradeItems,
     checkboxState,
   }
   const shouldShowOnboarding = mode !== 'loading' && (!onboardingComplete || setupOpen)
@@ -263,7 +270,14 @@ function App() {
       })
     : {
         pairs: [],
+        blockedPairs: [],
+        blockedByVersion: {
+          'leaf-green': [],
+          'fire-red': [],
+        },
         pairableCount: 0,
+        readyCount: 0,
+        blockedByHeldItemCount: 0,
         readyByVersion: {
           'leaf-green': [],
           'fire-red': [],
@@ -273,14 +287,23 @@ function App() {
           'fire-red': [],
         },
       }
-  const tradeReadyCount = tradeQueue.pairableCount
+  const tradePairCount = tradeQueue.pairableCount
+  const tradeReadyCount = tradeQueue.readyCount
+  const ownedHeldTradeItemCount = heldTradeItemNames.filter(
+    (itemName) => ownedHeldTradeItems[itemName],
+  ).length
   const goalVersionKeys =
     ownedGames === 'both'
       ? isSingleVersionView
         ? [singleVersionKey]
         : ['fire-red', 'leaf-green']
       : [ownedGames]
-  const goalsByVersion = buildGoalsByVersion(trackablePokemon, trackerState, goalVersionKeys)
+  const goalsByVersion = buildGoalsByVersion(
+    trackablePokemon,
+    trackerState,
+    goalVersionKeys,
+    tradeQueue.blockedByVersion,
+  )
   const goalPanels = goalVersionKeys.map((versionKey) => ({
     versionKey,
     label: versionLabels[versionKey].label,
@@ -288,11 +311,15 @@ function App() {
     ...goalsByVersion[versionKey],
   }))
   const goalCount = goalPanels.reduce(
-    (count, panel) => count + Number(Boolean(panel.huntGoal)) + Number(Boolean(panel.partyGoal)),
+    (count, panel) =>
+      count +
+      Number(Boolean(panel.huntGoal)) +
+      Number(Boolean(panel.partyGoal)) +
+      Number(Boolean(panel.itemGoal)),
     0,
   )
   const effectiveTrackerView =
-    activeTrackerView === 'trade' && !(shouldShowTradeReadyCard && tradeReadyCount > 0)
+    activeTrackerView === 'trade' && !(shouldShowTradeReadyCard && tradePairCount > 0)
       ? 'tracker'
       : activeTrackerView
   const isTradeViewActive = effectiveTrackerView === 'trade'
@@ -519,7 +546,7 @@ function App() {
                   </div>
 
                   {shouldShowTradeReadyCard ? (
-                    tradeReadyCount > 0 ? (
+                    tradePairCount > 0 ? (
                       <button
                         type="button"
                         className="hero-stat-card hero-stat-card-trade hero-stat-card-button"
@@ -530,9 +557,7 @@ function App() {
                         }
                       >
                         <span className="hero-stat-label">Trade Queue</span>
-                        <strong>
-                          {tradeReadyCount} {tradeReadyCount === 1 ? 'TRADE' : 'TRADES'} READY
-                        </strong>
+                        <strong>{getTradeHeroCopy(tradeReadyCount)}</strong>
                         <span className="hero-stat-meta hero-stat-link">
                           {isTradeViewActive ? 'BACK TO TRACKER' : 'CLICK TO VIEW'}
                         </span>
@@ -540,9 +565,7 @@ function App() {
                     ) : (
                       <div className="hero-stat-card hero-stat-card-trade">
                         <span className="hero-stat-label">Trade Queue</span>
-                        <strong>
-                          {tradeReadyCount} {tradeReadyCount === 1 ? 'TRADE' : 'TRADES'} READY
-                        </strong>
+                        <strong>{getTradeHeroCopy(tradeReadyCount)}</strong>
                       </div>
                     )
                   ) : null}
@@ -669,6 +692,45 @@ function App() {
                       </>
                     ) : null}
 
+                    <div className="tracker-settings-section">
+                      <div className="tracker-settings-section-header">
+                        <span className="tracker-settings-section-title">Owned Items</span>
+                        <span className="tracker-settings-section-count">
+                          {ownedHeldTradeItemCount}/{heldTradeItemNames.length}
+                        </span>
+                      </div>
+
+                      <p className="tracker-settings-section-copy">
+                        Mark held-trade items once you have access to them.
+                      </p>
+
+                      <div className="tracker-settings-item-list">
+                        {heldTradeItemNames.map((itemName) => (
+                          <div className="tracker-settings-item" key={itemName}>
+                            <label className="tracker-settings-item-main">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(ownedHeldTradeItems[itemName])}
+                                onChange={(event) =>
+                                  updateOwnedHeldTradeItem(itemName, event.target.checked)
+                                }
+                              />
+                              <span>{itemName}</span>
+                            </label>
+
+                            <a
+                              className="tracker-settings-item-link"
+                              href={getItemDbUrl(itemName)}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Wiki
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <button
                       type="button"
                       className="secondary-button setup-launcher"
@@ -780,6 +842,7 @@ function App() {
             tradeQueue={tradeQueue}
             className="trade-view-panel-main"
             onCompleteTrade={(pair) => updateCheckboxStates(getTradeCompletionUpdates(pair))}
+            onUpdateHeldTradeItem={updateOwnedHeldTradeItem}
           />
         ) : isGoalsViewActive ? (
           <GoalsView
@@ -787,6 +850,8 @@ function App() {
             className="trade-view-panel-main"
             checkboxState={checkboxState}
             updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
           />
         ) : (
           <div className={`tracker ${isSingleVersionView ? 'tracker-single' : ''}`}>
