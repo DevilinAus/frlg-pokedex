@@ -14,11 +14,24 @@ function sanitizeEnum(value, allowedValues, fallback) {
   return allowedValues.has(value) ? value : fallback
 }
 
+function sanitizeBooleanMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => typeof key === 'string')
+      .map(([key, mapValue]) => [key, Boolean(mapValue)]),
+  )
+}
+
 function hasMeaningfulTrackerData(state) {
   return (
     state.ownedGames !== defaultAppState.ownedGames ||
     state.trackerLayout !== defaultAppState.trackerLayout ||
     state.tradeMode ||
+    state.unlockAll ||
     state.primaryGame !== defaultAppState.primaryGame ||
     state.switchEventUnlocks ||
     state.baseGameComplete ||
@@ -30,6 +43,7 @@ function hasMeaningfulTrackerData(state) {
     state.leafGreenEeveelution !== defaultAppState.leafGreenEeveelution ||
     state.fireRedHitmon !== defaultAppState.fireRedHitmon ||
     state.leafGreenHitmon !== defaultAppState.leafGreenHitmon ||
+    Object.values(state.ownedHeldTradeItems).some(Boolean) ||
     Object.values(state.checkboxState).some(Boolean)
   )
 }
@@ -47,6 +61,7 @@ export function sanitizeTrackerState(input) {
       defaultAppState.trackerLayout,
     ),
     tradeMode: Boolean(input?.tradeMode),
+    unlockAll: Boolean(input?.unlockAll),
     primaryGame: sanitizeEnum(
       input?.primaryGame,
       primaryGameValues,
@@ -86,16 +101,8 @@ export function sanitizeTrackerState(input) {
       input?.leafGreenHitmon,
       defaultAppState.leafGreenHitmon,
     ),
-    checkboxState:
-      input?.checkboxState &&
-      typeof input.checkboxState === 'object' &&
-      !Array.isArray(input.checkboxState)
-        ? Object.fromEntries(
-            Object.entries(input.checkboxState)
-              .filter(([key]) => typeof key === 'string')
-              .map(([key, value]) => [key, Boolean(value)]),
-          )
-        : {},
+    ownedHeldTradeItems: sanitizeBooleanMap(input?.ownedHeldTradeItems),
+    checkboxState: sanitizeBooleanMap(input?.checkboxState),
     celebrationState:
       input?.celebrationState &&
       typeof input.celebrationState === 'object' &&

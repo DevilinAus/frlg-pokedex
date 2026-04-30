@@ -74,6 +74,7 @@ function PokemonRow({
   trackerLayout,
   singleVersionKey,
   tradeMode,
+  unlockAll,
   switchEventUnlocks,
   fireRedStarter,
   leafGreenStarter,
@@ -83,9 +84,9 @@ function PokemonRow({
   leafGreenHitmon,
 }) {
   const pokemonId = String(entry.id).padStart(3, '0')
-  const primaryVersionKey = singleVersionKey ?? 'fire-red'
   const trackerState = {
     tradeMode,
+    unlockAll,
     switchEventUnlocks,
     fireRedStarter,
     leafGreenStarter,
@@ -121,7 +122,7 @@ function PokemonRow({
         trackerLayout === 'single' ? 'tracker-row-single pokemon-row-single' : ''
       }`.trim()}
     >
-      <label className="pokemon-label" htmlFor={`${primaryVersionKey}-${pokemonId}`}>
+      <div className="pokemon-label">
         {spriteSrc ? (
           entry.baseGameCompleteRequired ? (
             <span className="pokemon-sprite-frame" aria-hidden="true">
@@ -161,7 +162,7 @@ function PokemonRow({
         >
           {entry.name}
         </a>
-      </label>
+      </div>
 
       {singleVersionState ? (
         <div

@@ -87,25 +87,19 @@ function compareCandidates(leftCandidate, rightCandidate) {
   return leftCandidate.targetEntry.id - rightCandidate.targetEntry.id
 }
 
-function buildGoalCopy(goal) {
-  const baseCopy = `${goal.targetEntry.name} at Lv. ${goal.targetEntry.levelEvolution}.`
-
+function buildTradeFollowUpCopy(goal) {
   if (goal.tradeFollowUp) {
     if (goal.tradeFollowUp.tradeEvolutionItem) {
-      return `${baseCopy} Then trade it holding ${goal.tradeFollowUp.tradeEvolutionItem} for ${goal.tradeFollowUp.name}.`
+      return `Then trade it holding ${goal.tradeFollowUp.tradeEvolutionItem} for ${goal.tradeFollowUp.name}.`
     }
 
-    return `${baseCopy} Then trade it for ${goal.tradeFollowUp.name}.`
+    return `Then trade it for ${goal.tradeFollowUp.name}.`
   }
 
-  if (goal.levelFollowUp) {
-    return `${baseCopy} ${goal.levelFollowUp.name} comes after that.`
-  }
-
-  return baseCopy
+  return ''
 }
 
-function formatGoal(goal, type) {
+function formatGoal(goal, type, versionKey) {
   if (!goal) {
     return null
   }
@@ -114,20 +108,75 @@ function formatGoal(goal, type) {
     type,
     key: `${type}-${goal.sourceEntry.name}-${goal.targetEntry.name}`,
     priorityBand: getPriorityBand(goal),
+    versionKey,
     sourceEntry: goal.sourceEntry,
     targetEntry: goal.targetEntry,
     tradeFollowUp: goal.tradeFollowUp,
     levelFollowUp: goal.levelFollowUp,
+    sourceCaughtKey: getCaughtKey(versionKey, goal.sourceEntry.id),
+    targetCaughtKey: getCaughtKey(versionKey, goal.targetEntry.id),
+    levelLabel: `Lv. ${goal.targetEntry.levelEvolution}`,
     badgeLabel:
-      getPriorityBand(goal) === 0
-        ? 'Trade unlock'
-        : getPriorityBand(goal) === 1
-          ? 'Trade item'
-          : getPriorityBand(goal) === 2
-            ? 'Chain evo'
-            : 'Level evo',
-    detailCopy: buildGoalCopy(goal),
+      getPriorityBand(goal) === 1
+        ? 'Trade item'
+        : getPriorityBand(goal) === 3
+          ? 'Level evo'
+          : '',
+    tradeFollowUpCopy: buildTradeFollowUpCopy(goal),
   }
+}
+
+function compareBlockedItemTokens(leftToken, rightToken) {
+  if (leftToken.id !== rightToken.id) {
+    return leftToken.id - rightToken.id
+  }
+
+  return leftToken.name.localeCompare(rightToken.name)
+}
+
+function formatItemGoal(token) {
+  if (!token) {
+    return null
+  }
+
+  return {
+    type: 'item',
+    key: `item-${token.versionKey}-${token.pokemonId}-${token.heldItemName}`,
+    versionKey: token.versionKey,
+    sourceEntry: {
+      id: token.id,
+      name: token.name,
+      spriteSlug: token.spriteSlug,
+    },
+    targetEntry: {
+      id: Number(token.receivedPokemonId),
+      name: token.receivedName,
+      spriteSlug: token.receivedSpriteSlug,
+    },
+    heldItemName: token.heldItemName,
+    badgeLabel: 'Trade item',
+  }
+}
+
+export function buildItemGoalsByVersion(blockedByVersion, versionKeys) {
+  const itemCandidatesByVersion = Object.fromEntries(
+    versionKeys.map((versionKey) => [
+      versionKey,
+      (blockedByVersion?.[versionKey] ?? []).filter(
+        (token) => token.heldItemName && !token.heldItemOwned,
+      ),
+    ]),
+  )
+
+  return Object.fromEntries(
+    versionKeys.map((versionKey) => {
+      const sortedCandidates = [...itemCandidatesByVersion[versionKey]].sort(
+        compareBlockedItemTokens,
+      )
+
+      return [versionKey, formatItemGoal(sortedCandidates[0] ?? null)]
+    }),
+  )
 }
 
 export function getVersionGoals(pokemonList, versionKey, trackerState) {
@@ -191,16 +240,29 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
   huntCandidates.sort(compareCandidates)
 
   return {
-    partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party') : null,
-    huntGoal: formatGoal(huntCandidates[0] ?? null, 'hunt'),
+    partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party', versionKey) : null,
+    huntGoal: formatGoal(huntCandidates[0] ?? null, 'hunt', versionKey),
     caughtCount,
     xpShareUnlocked,
     xpShareRemaining: Math.max(XP_SHARE_POKEDEX_REQUIREMENT - caughtCount, 0),
   }
 }
 
-export function buildGoalsByVersion(pokemonList, trackerState, versionKeys) {
+export function buildGoalsByVersion(
+  pokemonList,
+  trackerState,
+  versionKeys,
+  blockedByVersion = {},
+) {
+  const itemGoalsByVersion = buildItemGoalsByVersion(blockedByVersion, versionKeys)
+
   return Object.fromEntries(
-    versionKeys.map((versionKey) => [versionKey, getVersionGoals(pokemonList, versionKey, trackerState)]),
+    versionKeys.map((versionKey) => [
+      versionKey,
+      {
+        ...getVersionGoals(pokemonList, versionKey, trackerState),
+        itemGoal: itemGoalsByVersion[versionKey],
+      },
+    ]),
   )
 }

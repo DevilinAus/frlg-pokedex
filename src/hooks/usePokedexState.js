@@ -56,6 +56,7 @@ function usePokedexState() {
     defaultAppState.onboardingComplete,
   )
   const [tradeMode, setTradeMode] = useState(defaultAppState.tradeMode)
+  const [unlockAll, setUnlockAll] = useState(defaultAppState.unlockAll)
   const [primaryGame, setPrimaryGame] = useState(defaultAppState.primaryGame)
   const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
     defaultAppState.switchEventUnlocks,
@@ -75,6 +76,9 @@ function usePokedexState() {
   )
   const [fireRedHitmon, setFireRedHitmon] = useState(defaultAppState.fireRedHitmon)
   const [leafGreenHitmon, setLeafGreenHitmon] = useState(defaultAppState.leafGreenHitmon)
+  const [ownedHeldTradeItems, setOwnedHeldTradeItems] = useState(
+    defaultAppState.ownedHeldTradeItems,
+  )
   const [checkboxState, setCheckboxState] = useState(defaultAppState.checkboxState)
   const [celebrationState, setCelebrationState] = useState(defaultCelebrationState)
   const [jumpingSprites, setJumpingSprites] = useState({})
@@ -125,6 +129,7 @@ function usePokedexState() {
       trackerLayout,
       onboardingComplete,
       tradeMode,
+      unlockAll,
       primaryGame,
       switchEventUnlocks,
       baseGameComplete,
@@ -136,6 +141,7 @@ function usePokedexState() {
       leafGreenEeveelution,
       fireRedHitmon,
       leafGreenHitmon,
+      ownedHeldTradeItems,
       checkboxState,
       celebrationState,
     }),
@@ -158,6 +164,10 @@ function usePokedexState() {
 
     if (nextState.tradeMode !== baseState.tradeMode) {
       patch.tradeMode = nextState.tradeMode
+    }
+
+    if (nextState.unlockAll !== baseState.unlockAll) {
+      patch.unlockAll = nextState.unlockAll
     }
 
     if (nextState.primaryGame !== baseState.primaryGame) {
@@ -202,6 +212,25 @@ function usePokedexState() {
 
     if (nextState.leafGreenHitmon !== baseState.leafGreenHitmon) {
       patch.leafGreenHitmon = nextState.leafGreenHitmon
+    }
+
+    const ownedHeldTradeItemsPatch = {}
+    const ownedHeldTradeItemKeys = new Set([
+      ...Object.keys(baseState.ownedHeldTradeItems),
+      ...Object.keys(nextState.ownedHeldTradeItems),
+    ])
+
+    ownedHeldTradeItemKeys.forEach((key) => {
+      const nextValue = Boolean(nextState.ownedHeldTradeItems[key])
+      const baseValue = Boolean(baseState.ownedHeldTradeItems[key])
+
+      if (nextValue !== baseValue) {
+        ownedHeldTradeItemsPatch[key] = nextValue
+      }
+    })
+
+    if (Object.keys(ownedHeldTradeItemsPatch).length > 0) {
+      patch.ownedHeldTradeItems = ownedHeldTradeItemsPatch
     }
 
     const checkboxPatch = {}
@@ -262,6 +291,7 @@ function usePokedexState() {
     setTrackerLayout(state.trackerLayout)
     setOnboardingComplete(state.onboardingComplete)
     setTradeMode(state.tradeMode)
+    setUnlockAll(state.unlockAll)
     setPrimaryGame(state.primaryGame)
     setSwitchEventUnlocks(state.switchEventUnlocks)
     setBaseGameComplete(state.baseGameComplete)
@@ -273,6 +303,7 @@ function usePokedexState() {
     setLeafGreenEeveelution(state.leafGreenEeveelution)
     setFireRedHitmon(state.fireRedHitmon)
     setLeafGreenHitmon(state.leafGreenHitmon)
+    setOwnedHeldTradeItems(state.ownedHeldTradeItems)
     setCheckboxState(state.checkboxState)
     setCelebrationState(state.celebrationState)
 
@@ -551,7 +582,9 @@ function usePokedexState() {
     leafGreenStarter,
     mode,
     onboardingComplete,
+    ownedHeldTradeItems,
     ownedGames,
+    unlockAll,
     switchEventUnlocks,
     trackerLayout,
     tradeMode,
@@ -620,7 +653,9 @@ function usePokedexState() {
     leafGreenStarter,
     mode,
     onboardingComplete,
+    ownedHeldTradeItems,
     ownedGames,
+    unlockAll,
     switchEventUnlocks,
     trackerLayout,
     tradeMode,
@@ -733,6 +768,11 @@ function usePokedexState() {
     setTradeMode(nextValue)
   }
 
+  function updateUnlockAll(nextValue) {
+    markCloudStateDirty()
+    setUnlockAll(nextValue)
+  }
+
   function updateOwnedGames(nextValue) {
     markCloudStateDirty()
     setOwnedGames(nextValue)
@@ -803,6 +843,18 @@ function usePokedexState() {
     setLeafGreenHitmon(nextValue)
   }
 
+  function updateOwnedHeldTradeItem(itemName, checked) {
+    if (typeof itemName !== 'string' || !itemName) {
+      return
+    }
+
+    markCloudStateDirty()
+    setOwnedHeldTradeItems((currentState) => ({
+      ...currentState,
+      [itemName]: Boolean(checked),
+    }))
+  }
+
   function completeOnboarding(setup) {
     const nextFireRedStarter = setup.fireRedStarter ?? defaultAppState.fireRedStarter
     const nextLeafGreenStarter = setup.leafGreenStarter ?? defaultAppState.leafGreenStarter
@@ -820,6 +872,7 @@ function usePokedexState() {
     setOwnedGames(setup.ownedGames)
     setTrackerLayout(setup.trackerLayout)
     setTradeMode(setup.tradeMode)
+    setUnlockAll(defaultAppState.unlockAll)
     setPrimaryGame(setup.primaryGame ?? defaultAppState.primaryGame)
     setSwitchEventUnlocks(setup.switchEventUnlocks)
     setFireRedStarter(nextFireRedStarter)
@@ -1057,6 +1110,8 @@ function usePokedexState() {
     reopenOnboarding,
     tradeMode,
     setTradeMode: updateTradeMode,
+    unlockAll,
+    setUnlockAll: updateUnlockAll,
     primaryGame,
     setPrimaryGame: updatePrimaryGame,
     switchEventUnlocks,
@@ -1079,6 +1134,8 @@ function usePokedexState() {
     setFireRedHitmon: updateFireRedHitmon,
     leafGreenHitmon,
     setLeafGreenHitmon: updateLeafGreenHitmon,
+    ownedHeldTradeItems,
+    updateOwnedHeldTradeItem,
     checkboxState,
     updateCheckboxState,
     updateCheckboxStates,

@@ -1,4 +1,4 @@
-import { getTrackablePokemon } from '../data/pokemon.js'
+import { getTrackablePokemon, pokemon } from '../data/pokemon.js'
 import { starterLabels } from './pokedexOptions.js'
 import {
   getPairedTradeFamilyState,
@@ -27,6 +27,10 @@ const starterBasePokemonIds = {
   charmander: '004',
   squirtle: '007',
 }
+
+const pokemonIdByName = new Map(
+  pokemon.map((entry) => [entry.name, String(entry.id).padStart(3, '0')]),
+)
 
 function isStarterLine(entry) {
   return Boolean(entry.starterFamily) && !entry.roamingLegendary
@@ -120,19 +124,86 @@ function getVersionChoices(versionKey, trackerState) {
   }
 }
 
-export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
+function isCaughtInVersion(entry, versionKey, checkboxState) {
+  return Boolean(
+    checkboxState?.[`${versionKey}-${String(entry.id).padStart(3, '0')}`],
+  )
+}
+
+function isPokemonNameCaughtInVersion(name, versionKey, checkboxState) {
+  const pokemonId = pokemonIdByName.get(name)
+
+  if (!pokemonId) {
+    return false
+  }
+
+  return Boolean(checkboxState?.[`${versionKey}-${pokemonId}`])
+}
+
+function hasCaughtEvolutionSourceInVersion(entry, versionKey, checkboxState) {
+  if (!entry.evolvesFrom) {
+    return false
+  }
+
+  if (entry.tradeEvolution || entry.tradeEvolutionItem) {
+    return false
+  }
+
+  let ancestorName = entry.evolvesFrom
+
+  while (ancestorName) {
+    if (isPokemonNameCaughtInVersion(ancestorName, versionKey, checkboxState)) {
+      return true
+    }
+
+    const ancestorEntry = pokemon.find((candidate) => candidate.name === ancestorName)
+    ancestorName = ancestorEntry?.evolvesFrom ?? null
+  }
+
+  return false
+}
+
+function getOtherVersionKey(versionKey) {
+  return versionKey === 'fire-red' ? 'leaf-green' : 'fire-red'
+}
+
+function shouldShowExtraCopy(entry, versionKey, trackerState, tradeMode = trackerState.tradeMode) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
+  const otherVersionKey = getOtherVersionKey(versionKey)
+  const otherVersionAlreadyHasSpecies = isCaughtInVersion(
+    entry,
+    otherVersionKey,
+    trackerState.checkboxState,
+  )
+
+  if (otherVersionAlreadyHasSpecies) {
+    return false
+  }
 
   return (
-    needsExtraCopy(entry, config.choiceVersion, false) ||
-    needsChoiceExtraCopy(entry, versionChoices, false)
+    needsExtraCopy(entry, config.choiceVersion, tradeMode) ||
+    needsChoiceExtraCopy(entry, versionChoices, tradeMode)
   )
+}
+
+export function hasTradeQueueExtraCopy(entry, versionKey, trackerState) {
+  return shouldShowExtraCopy(entry, versionKey, trackerState, false)
 }
 
 export function getVersionTrackerState(entry, versionKey, trackerState) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
+  const caughtInVersion = isCaughtInVersion(
+    entry,
+    versionKey,
+    trackerState.checkboxState,
+  )
+  const unlockedByOwnedPreEvolution = hasCaughtEvolutionSourceInVersion(
+    entry,
+    versionKey,
+    trackerState.checkboxState,
+  )
   const starterLocked = isLockedByStarterChoice(
     entry,
     versionChoices.starter,
@@ -144,15 +215,17 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
-  const locked =
-    ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
-    ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
-    (!switchEventLegendaryUnlocked &&
-      versionAvailability !== 'native' &&
-      !(trackerState.tradeMode && versionAvailability === 'trade'))
-  const showExtraCopy =
-    needsExtraCopy(entry, config.choiceVersion, trackerState.tradeMode) ||
-    needsChoiceExtraCopy(entry, versionChoices, trackerState.tradeMode)
+  const blockedByAvailability =
+    !unlockedByOwnedPreEvolution &&
+    !switchEventLegendaryUnlocked &&
+    versionAvailability !== 'native' &&
+    !(trackerState.tradeMode && versionAvailability === 'trade')
+  const locked = trackerState.unlockAll || caughtInVersion
+    ? false
+    : ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
+      ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
+      blockedByAvailability
+  const showExtraCopy = shouldShowExtraCopy(entry, versionKey, trackerState)
 
   return {
     locked,
@@ -162,11 +235,23 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
 }
 
 export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
+  if (
+    trackerState.unlockAll ||
+    isCaughtInVersion(entry, versionKey, trackerState.checkboxState)
+  ) {
+    return true
+  }
+
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
+  const unlockedByOwnedPreEvolution = hasCaughtEvolutionSourceInVersion(
+    entry,
+    versionKey,
+    trackerState.checkboxState,
+  )
   const blockedByTradeEvolution =
     (entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode
   const blockedByStarterChoice =
@@ -188,6 +273,7 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
     entry.hitmonFamily !== versionChoices.hitmon &&
     !trackerState.tradeMode
   const blockedByAvailability =
+    !unlockedByOwnedPreEvolution &&
     !switchEventLegendaryUnlocked &&
     versionAvailability !== 'native' &&
     !(trackerState.tradeMode && versionAvailability === 'trade')
@@ -359,10 +445,24 @@ export function getComment(
       (entry.leafGreenAvailability === 'native' &&
         entry.fireRedAvailability === 'trade'))
   ) {
-    return combineComments(
-      `Trade for ${entry.evolutionBaseName} and evolve it`,
-      familyComment,
-    )
+    const targetVersionKey = getTradeTargetVersionKey(entry)
+    const targetAlreadyHasEntry =
+      targetVersionKey &&
+      isCaughtInVersion(entry, targetVersionKey, checkboxState)
+    const targetAlreadyHasEvolutionBase =
+      targetVersionKey &&
+      isPokemonNameCaughtInVersion(
+        entry.evolutionBaseName,
+        targetVersionKey,
+        checkboxState,
+      )
+
+    if (!targetAlreadyHasEntry && !targetAlreadyHasEvolutionBase) {
+      return combineComments(
+        `Trade for ${entry.evolutionBaseName} and evolve it`,
+        familyComment,
+      )
+    }
   }
 
   if (
@@ -415,6 +515,21 @@ export function getComment(
 
 export function getPokemonDbUrl(entry) {
   return `https://pokemondb.net/pokedex/${entry.spriteSlug}#dex-locations`
+}
+
+const itemDbSlugOverrides = {
+  'Up-Grade': 'upgrade',
+}
+
+export function getItemDbUrl(itemName) {
+  const slug =
+    itemDbSlugOverrides[itemName] ??
+    String(itemName || '')
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/\s+/g, '-')
+
+  return `https://pokemondb.net/item/${slug}`
 }
 
 export function hasCompletedDex(checkboxState, versionKey, options = {}) {

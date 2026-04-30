@@ -54,6 +54,7 @@ export const defaultAppState = {
   trackerLayout: 'dual',
   onboardingComplete: false,
   tradeMode: false,
+  unlockAll: false,
   primaryGame: '',
   switchEventUnlocks: false,
   baseGameComplete: false,
@@ -65,6 +66,7 @@ export const defaultAppState = {
   leafGreenEeveelution: '',
   fireRedHitmon: '',
   leafGreenHitmon: '',
+  ownedHeldTradeItems: {},
   checkboxState: {},
   celebrationState: defaultCelebrationState,
 }
