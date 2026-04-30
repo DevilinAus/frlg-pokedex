@@ -140,6 +140,29 @@ function isPokemonNameCaughtInVersion(name, versionKey, checkboxState) {
   return Boolean(checkboxState?.[`${versionKey}-${pokemonId}`])
 }
 
+function hasCaughtEvolutionSourceInVersion(entry, versionKey, checkboxState) {
+  if (!entry.evolvesFrom) {
+    return false
+  }
+
+  if (entry.tradeEvolution || entry.tradeEvolutionItem) {
+    return false
+  }
+
+  let ancestorName = entry.evolvesFrom
+
+  while (ancestorName) {
+    if (isPokemonNameCaughtInVersion(ancestorName, versionKey, checkboxState)) {
+      return true
+    }
+
+    const ancestorEntry = pokemon.find((candidate) => candidate.name === ancestorName)
+    ancestorName = ancestorEntry?.evolvesFrom ?? null
+  }
+
+  return false
+}
+
 function getOtherVersionKey(versionKey) {
   return versionKey === 'fire-red' ? 'leaf-green' : 'fire-red'
 }
@@ -176,6 +199,11 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
     versionKey,
     trackerState.checkboxState,
   )
+  const unlockedByOwnedPreEvolution = hasCaughtEvolutionSourceInVersion(
+    entry,
+    versionKey,
+    trackerState.checkboxState,
+  )
   const starterLocked = isLockedByStarterChoice(
     entry,
     versionChoices.starter,
@@ -187,13 +215,16 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
+  const blockedByAvailability =
+    !unlockedByOwnedPreEvolution &&
+    !switchEventLegendaryUnlocked &&
+    versionAvailability !== 'native' &&
+    !(trackerState.tradeMode && versionAvailability === 'trade')
   const locked = trackerState.unlockAll || caughtInVersion
     ? false
     : ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
       ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
-      (!switchEventLegendaryUnlocked &&
-        versionAvailability !== 'native' &&
-        !(trackerState.tradeMode && versionAvailability === 'trade'))
+      blockedByAvailability
   const showExtraCopy = shouldShowExtraCopy(entry, versionKey, trackerState)
 
   return {
@@ -216,6 +247,11 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
+  const unlockedByOwnedPreEvolution = hasCaughtEvolutionSourceInVersion(
+    entry,
+    versionKey,
+    trackerState.checkboxState,
+  )
   const blockedByTradeEvolution =
     (entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode
   const blockedByStarterChoice =
@@ -237,6 +273,7 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
     entry.hitmonFamily !== versionChoices.hitmon &&
     !trackerState.tradeMode
   const blockedByAvailability =
+    !unlockedByOwnedPreEvolution &&
     !switchEventLegendaryUnlocked &&
     versionAvailability !== 'native' &&
     !(trackerState.tradeMode && versionAvailability === 'trade')

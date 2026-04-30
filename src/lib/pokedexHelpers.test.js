@@ -110,6 +110,76 @@ test('caught trade evolutions stay visible in single-version view', () => {
   )
 })
 
+test('level evolutions become unlocked when their pre-evolution is caught in that version', () => {
+  const ekans = getPokemonByName('Ekans')
+  const arbok = getPokemonByName('Arbok')
+
+  const state = getVersionTrackerState(
+    arbok,
+    'leaf-green',
+    createTrackerState({
+      checkboxState: {
+        [getCaughtKey('leaf-green', ekans.id)]: true,
+      },
+    }),
+  )
+
+  assert.equal(state.locked, false)
+})
+
+test('later stage evolutions become unlocked when the base form is caught in that version', () => {
+  const bulbasaur = getPokemonByName('Bulbasaur')
+  const venusaur = getPokemonByName('Venusaur')
+
+  const state = getVersionTrackerState(
+    venusaur,
+    'leaf-green',
+    createTrackerState({
+      checkboxState: {
+        [getCaughtKey('leaf-green', bulbasaur.id)]: true,
+      },
+    }),
+  )
+
+  assert.equal(state.locked, false)
+})
+
+test('level evolutions stay visible in single-version view when their pre-evolution is caught', () => {
+  const ekans = getPokemonByName('Ekans')
+  const arbok = getPokemonByName('Arbok')
+
+  assert.equal(
+    isVisibleInSingleVersion(
+      arbok,
+      'leaf-green',
+      createTrackerState({
+        checkboxState: {
+          [getCaughtKey('leaf-green', ekans.id)]: true,
+        },
+      }),
+    ),
+    true,
+  )
+})
+
+test('later stage evolutions stay visible in single-version view when the base form is caught', () => {
+  const bulbasaur = getPokemonByName('Bulbasaur')
+  const venusaur = getPokemonByName('Venusaur')
+
+  assert.equal(
+    isVisibleInSingleVersion(
+      venusaur,
+      'leaf-green',
+      createTrackerState({
+        checkboxState: {
+          [getCaughtKey('leaf-green', bulbasaur.id)]: true,
+        },
+      }),
+    ),
+    true,
+  )
+})
+
 test('hides the starter extra-copy prompt once both saves own that starter', () => {
   const charmander = getPokemonByName('Charmander')
 
