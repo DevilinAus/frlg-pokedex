@@ -149,7 +149,18 @@ function hasCaughtEvolutionSourceInVersion(entry, versionKey, checkboxState) {
     return false
   }
 
-  return isPokemonNameCaughtInVersion(entry.evolvesFrom, versionKey, checkboxState)
+  let ancestorName = entry.evolvesFrom
+
+  while (ancestorName) {
+    if (isPokemonNameCaughtInVersion(ancestorName, versionKey, checkboxState)) {
+      return true
+    }
+
+    const ancestorEntry = pokemon.find((candidate) => candidate.name === ancestorName)
+    ancestorName = ancestorEntry?.evolvesFrom ?? null
+  }
+
+  return false
 }
 
 function getOtherVersionKey(versionKey) {
