@@ -1,12 +1,12 @@
 @font-face {
-  font-family: 'Pokemon Solid';
-  src: url('./assets/fonts/Pokemon Solid.ttf') format('truetype');
+  font-family: "Pokemon Solid";
+  src: url("./assets/fonts/Pokemon Solid.ttf") format("truetype");
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Pokemon Hollow';
-  src: url('./assets/fonts/Pokemon Hollow.ttf') format('truetype');
+  font-family: "Pokemon Hollow";
+  src: url("./assets/fonts/Pokemon Hollow.ttf") format("truetype");
   font-display: swap;
 }
 
@@ -85,11 +85,15 @@
 }
 
 .sprite-flood-layer::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.55), transparent 45%),
+    radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.55),
+      transparent 45%
+    ),
     linear-gradient(135deg, rgba(255, 203, 5, 0.25), rgba(37, 99, 235, 0.2));
   animation: sprite-flood-flash 1s ease-out forwards;
 }
@@ -101,8 +105,7 @@
   object-fit: contain;
   image-rendering: pixelated;
   animation: sprite-flood-burst 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  filter:
-    drop-shadow(0 10px 16px rgba(15, 23, 42, 0.18))
+  filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.18))
     drop-shadow(0 0 12px rgba(255, 203, 5, 0.28));
 }
 
@@ -118,9 +121,11 @@
 
   45% {
     opacity: 1;
-    transform: translate(calc(-50% + var(--drift-x)), calc(-50% + var(--drift-y)))
-      scale(1)
-      rotate(180deg);
+    transform: translate(
+        calc(-50% + var(--drift-x)),
+        calc(-50% + var(--drift-y))
+      )
+      scale(1) rotate(180deg);
   }
 
   100% {
@@ -129,8 +134,7 @@
         calc(-50% + (var(--drift-x) * 1.25)),
         calc(-50% + (var(--drift-y) * 0.35))
       )
-      scale(1.25)
-      rotate(360deg);
+      scale(1.25) rotate(360deg);
   }
 }
 
@@ -163,7 +167,7 @@
   border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.5)),
-    url('./assets/kanto-header-landscape.png') center/cover no-repeat;
+    url("./assets/kanto-header-landscape.png") center/cover no-repeat;
   color: #ffffff;
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
 }
@@ -328,7 +332,7 @@
 }
 
 .hero-stats {
-  margin-top: 100px;
+  margin-top: 50px;
   width: 100%;
 }
 
@@ -492,8 +496,11 @@
 
 .trade-queue-row-held-item {
   border-color: color-mix(in srgb, var(--border-soft) 82%, #fbbf24 18%);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-subtle) 97%, #fbbf24 3%), var(--surface-subtle));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-subtle) 97%, #fbbf24 3%),
+    var(--surface-subtle)
+  );
 }
 
 .trade-queue-row-flag {
@@ -708,14 +715,18 @@
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid color-mix(in srgb, var(--border-soft) 88%, white 12%);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.01)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 12px 24px rgba(2, 6, 23, 0.12);
 }
 
 .goal-focus-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 1px;
@@ -724,7 +735,7 @@
 }
 
 .goal-focus-card::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -48px;
   right: -24px;
@@ -736,8 +747,11 @@
 }
 
 .goal-focus-card-hunt {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface) 86%, #fde68a 14%), color-mix(in srgb, var(--surface) 92%, #f59e0b 8%));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 86%, #fde68a 14%),
+    color-mix(in srgb, var(--surface) 92%, #f59e0b 8%)
+  );
 }
 
 .goal-focus-card-hunt::after {
@@ -745,17 +759,27 @@
 }
 
 .goal-focus-card-party {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface) 86%, #93c5fd 14%), color-mix(in srgb, var(--surface) 92%, #2563eb 8%));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 86%, #93c5fd 14%),
+    color-mix(in srgb, var(--surface) 92%, #2563eb 8%)
+  );
 }
 
 .goal-focus-card-party::after {
-  background: radial-gradient(circle, rgba(96, 165, 250, 0.72), transparent 66%);
+  background: radial-gradient(
+    circle,
+    rgba(96, 165, 250, 0.72),
+    transparent 66%
+  );
 }
 
 .goal-focus-card-item {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface) 86%, #a7f3d0 14%), color-mix(in srgb, var(--surface) 92%, #059669 8%));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 86%, #a7f3d0 14%),
+    color-mix(in srgb, var(--surface) 92%, #059669 8%)
+  );
 }
 
 .goal-focus-card-item::after {
@@ -1258,12 +1282,20 @@ button,
   padding: 16px;
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.78) 0%, rgba(241, 245, 249, 0.9) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.78) 0%,
+    rgba(241, 245, 249, 0.9) 100%
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .account-panel-popover .share-panel {
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.88) 0%, rgba(241, 245, 249, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.88) 0%,
+    rgba(241, 245, 249, 0.96) 100%
+  );
 }
 
 .share-panel-header {
@@ -1294,7 +1326,7 @@ button,
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.04);
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.9rem;
   color: var(--text-strong);
 }
@@ -1348,7 +1380,7 @@ button,
   margin: 0;
   font-size: clamp(2.15rem, 5vw, 3.7rem);
   line-height: 0.9;
-  font-family: 'Pokemon Solid', 'Trebuchet MS', sans-serif;
+  font-family: "Pokemon Solid", "Trebuchet MS", sans-serif;
   letter-spacing: 0.12em;
   color: #ffcb05;
   text-shadow:
@@ -1557,8 +1589,11 @@ button,
   width: 100%;
   justify-content: center;
   border: 1px solid var(--border-soft);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.94));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(241, 245, 249, 0.94)
+  );
   color: var(--text-strong);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
@@ -1689,7 +1724,9 @@ button,
 }
 
 .trade-mode-toggle-combined .trade-mode-toggle-thumb {
-  transform: translateX(calc(var(--trade-toggle-track-width) - var(--trade-toggle-track-height)));
+  transform: translateX(
+    calc(var(--trade-toggle-track-width) - var(--trade-toggle-track-height))
+  );
 }
 
 .save-status {
@@ -1888,7 +1925,7 @@ button,
 
 .choice-panel-info-button:hover,
 .choice-panel-info-button:focus-visible,
-.choice-panel-info-button[aria-expanded='true'] {
+.choice-panel-info-button[aria-expanded="true"] {
   color: #1d4ed8;
   transform: translateY(calc(-0.42em - 1px));
 }
@@ -2361,7 +2398,7 @@ button,
   inset: 0;
   background:
     linear-gradient(180deg, rgba(15, 23, 42, 0.38), rgba(15, 23, 42, 0.5)),
-    url('./assets/kanto-header-landscape.png') center/cover no-repeat;
+    url("./assets/kanto-header-landscape.png") center/cover no-repeat;
 }
 
 .onboarding-panel {
@@ -2475,12 +2512,20 @@ button,
 }
 
 .app-theme-dark .share-panel {
-  background: linear-gradient(180deg, rgba(20, 29, 46, 0.9) 0%, rgba(9, 16, 28, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 29, 46, 0.9) 0%,
+    rgba(9, 16, 28, 0.96) 100%
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .app-theme-dark .account-panel-popover .share-panel {
-  background: linear-gradient(180deg, rgba(20, 29, 46, 0.96) 0%, rgba(9, 16, 28, 0.99) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 29, 46, 0.96) 0%,
+    rgba(9, 16, 28, 0.99) 100%
+  );
 }
 
 .app-theme-dark .collaborator-list li,
@@ -2569,7 +2614,11 @@ button,
 
 .app-theme-dark .danger-dialog {
   border-color: rgba(148, 163, 184, 0.16);
-  background: linear-gradient(180deg, rgba(20, 29, 46, 0.96), rgba(9, 16, 28, 0.99));
+  background: linear-gradient(
+    180deg,
+    rgba(20, 29, 46, 0.96),
+    rgba(9, 16, 28, 0.99)
+  );
 }
 
 .app-theme-dark .danger-dialog-warning {
@@ -2584,7 +2633,11 @@ button,
 
 .app-theme-dark .setup-launcher {
   border-color: rgba(148, 163, 184, 0.16);
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(30, 41, 59, 0.92),
+    rgba(15, 23, 42, 0.98)
+  );
   color: #e2e8f0;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
@@ -2593,7 +2646,11 @@ button,
 
 .app-theme-dark .onboarding-choice {
   border-color: rgba(148, 163, 184, 0.22);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(10, 17, 30, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.96),
+    rgba(10, 17, 30, 0.98)
+  );
 }
 
 .app-theme-dark .onboarding-choice-tone-red {
@@ -2609,26 +2666,24 @@ button,
 }
 
 .app-theme-dark .onboarding-choice-tone-neutral {
-  background:
-    linear-gradient(
-      90deg,
-      #2a1916 0 50%,
-      #182316 50% 100%
-    );
+  background: linear-gradient(90deg, #2a1916 0 50%, #182316 50% 100%);
 }
 
 .app-theme-dark .onboarding-choice-tone-plain {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(10, 17, 30, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.96),
+    rgba(10, 17, 30, 0.98)
+  );
 }
 
 .app-theme-dark .onboarding-choice-tone-switch {
-  background:
-    linear-gradient(
-      90deg,
-      #122330 0 16.5%,
-      #1a2230 16.5% 83.5%,
-      #311820 83.5% 100%
-    );
+  background: linear-gradient(
+    90deg,
+    #122330 0 16.5%,
+    #1a2230 16.5% 83.5%,
+    #311820 83.5% 100%
+  );
 }
 
 .app-theme-dark .onboarding-choice-selected {
@@ -2663,12 +2718,7 @@ button,
 
 .app-theme-dark .onboarding-choice-tone-neutral.onboarding-choice-selected {
   border-color: rgba(148, 163, 184, 0.34);
-  background:
-    linear-gradient(
-      90deg,
-      #33201c 0 50%,
-      #1d2d19 50% 100%
-    );
+  background: linear-gradient(90deg, #33201c 0 50%, #1d2d19 50% 100%);
   box-shadow:
     inset 0 0 0 1px rgba(148, 163, 184, 0.16),
     0 18px 34px rgba(2, 6, 23, 0.28);
@@ -2676,7 +2726,11 @@ button,
 
 .app-theme-dark .onboarding-choice-tone-plain.onboarding-choice-selected {
   border-color: rgba(148, 163, 184, 0.34);
-  background: linear-gradient(180deg, rgba(24, 35, 52, 0.98), rgba(12, 20, 35, 1));
+  background: linear-gradient(
+    180deg,
+    rgba(24, 35, 52, 0.98),
+    rgba(12, 20, 35, 1)
+  );
   box-shadow:
     inset 0 0 0 1px rgba(148, 163, 184, 0.16),
     0 18px 34px rgba(2, 6, 23, 0.28);
@@ -2684,13 +2738,12 @@ button,
 
 .app-theme-dark .onboarding-choice-tone-switch.onboarding-choice-selected {
   border-color: rgba(148, 163, 184, 0.34);
-  background:
-    linear-gradient(
-      90deg,
-      #173041 0 16.5%,
-      #202a3b 16.5% 83.5%,
-      #3a1d26 83.5% 100%
-    );
+  background: linear-gradient(
+    90deg,
+    #173041 0 16.5%,
+    #202a3b 16.5% 83.5%,
+    #3a1d26 83.5% 100%
+  );
   box-shadow:
     inset 0 0 0 1px rgba(148, 163, 184, 0.16),
     0 18px 34px rgba(2, 6, 23, 0.28);
@@ -2744,7 +2797,11 @@ button,
   padding: 20px 18px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(248, 250, 252, 0.98)
+  );
   color: var(--text-strong);
   text-align: center;
   box-shadow:
@@ -2766,7 +2823,7 @@ button,
 }
 
 .onboarding-choice::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 0 auto 0;
   height: 6px;
@@ -2844,18 +2901,8 @@ button,
 }
 
 .onboarding-choice-tone-neutral {
-  --choice-bar:
-    linear-gradient(
-      90deg,
-      #cf6a4f 0 50%,
-      #6f8f4e 50% 100%
-    );
-  background:
-    linear-gradient(
-      90deg,
-      #fbf5f3 0 50%,
-      #f4f8f1 50% 100%
-    );
+  --choice-bar: linear-gradient(90deg, #cf6a4f 0 50%, #6f8f4e 50% 100%);
+  background: linear-gradient(90deg, #fbf5f3 0 50%, #f4f8f1 50% 100%);
 }
 
 .onboarding-choice-tone-neutral:hover,
@@ -2865,12 +2912,7 @@ button,
 
 .onboarding-choice-tone-neutral.onboarding-choice-selected {
   border-color: rgba(120, 136, 164, 0.36);
-  background:
-    linear-gradient(
-      90deg,
-      #f8eee9 0 50%,
-      #edf4e7 50% 100%
-    );
+  background: linear-gradient(90deg, #f8eee9 0 50%, #edf4e7 50% 100%);
   box-shadow:
     inset 0 0 0 1px rgba(120, 136, 164, 0.14),
     0 18px 34px rgba(15, 23, 42, 0.12);
@@ -2878,7 +2920,11 @@ button,
 
 .onboarding-choice-tone-plain {
   --choice-bar: #94a3b8;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(248, 250, 252, 0.98)
+  );
 }
 
 .onboarding-choice-tone-plain:hover,
@@ -2888,27 +2934,29 @@ button,
 
 .onboarding-choice-tone-plain.onboarding-choice-selected {
   border-color: rgba(15, 23, 42, 0.26);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(244, 247, 251, 1));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1),
+    rgba(244, 247, 251, 1)
+  );
   box-shadow:
     inset 0 0 0 1px rgba(15, 23, 42, 0.08),
     0 18px 34px rgba(15, 23, 42, 0.12);
 }
 
 .onboarding-choice-tone-switch {
-  --choice-bar:
-    linear-gradient(
-      90deg,
-      #45b7de 0 16.5%,
-      #1f2937 16.5% 83.5%,
-      #e84c5a 83.5% 100%
-    );
-  background:
-    linear-gradient(
-      90deg,
-      #eef8fc 0 16.5%,
-      #f5f6f8 16.5% 83.5%,
-      #fdf0f3 83.5% 100%
-    );
+  --choice-bar: linear-gradient(
+    90deg,
+    #45b7de 0 16.5%,
+    #1f2937 16.5% 83.5%,
+    #e84c5a 83.5% 100%
+  );
+  background: linear-gradient(
+    90deg,
+    #eef8fc 0 16.5%,
+    #f5f6f8 16.5% 83.5%,
+    #fdf0f3 83.5% 100%
+  );
 }
 
 .onboarding-choice-tone-switch:hover,
@@ -2918,13 +2966,12 @@ button,
 
 .onboarding-choice-tone-switch.onboarding-choice-selected {
   border-color: rgba(120, 136, 164, 0.36);
-  background:
-    linear-gradient(
-      90deg,
-      #e7f4fb 0 16.5%,
-      #f1f3f6 16.5% 83.5%,
-      #fde8ed 83.5% 100%
-    );
+  background: linear-gradient(
+    90deg,
+    #e7f4fb 0 16.5%,
+    #f1f3f6 16.5% 83.5%,
+    #fde8ed 83.5% 100%
+  );
   box-shadow:
     inset 0 0 0 1px rgba(120, 136, 164, 0.14),
     0 18px 34px rgba(15, 23, 42, 0.12);
