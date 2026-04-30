@@ -110,6 +110,41 @@ test('caught trade evolutions stay visible in single-version view', () => {
   )
 })
 
+test('level evolutions become unlocked when their pre-evolution is caught in that version', () => {
+  const ekans = getPokemonByName('Ekans')
+  const arbok = getPokemonByName('Arbok')
+
+  const state = getVersionTrackerState(
+    arbok,
+    'leaf-green',
+    createTrackerState({
+      checkboxState: {
+        [getCaughtKey('leaf-green', ekans.id)]: true,
+      },
+    }),
+  )
+
+  assert.equal(state.locked, false)
+})
+
+test('level evolutions stay visible in single-version view when their pre-evolution is caught', () => {
+  const ekans = getPokemonByName('Ekans')
+  const arbok = getPokemonByName('Arbok')
+
+  assert.equal(
+    isVisibleInSingleVersion(
+      arbok,
+      'leaf-green',
+      createTrackerState({
+        checkboxState: {
+          [getCaughtKey('leaf-green', ekans.id)]: true,
+        },
+      }),
+    ),
+    true,
+  )
+})
+
 test('hides the starter extra-copy prompt once both saves own that starter', () => {
   const charmander = getPokemonByName('Charmander')
 
