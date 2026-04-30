@@ -71,11 +71,13 @@ function PokemonRow({
   isJumping,
   checkboxState,
   updateCheckboxState,
-  trackerLayout,
+  isCompactSingleVersion,
   singleVersionKey,
   tradeMode,
   unlockAll,
   switchEventUnlocks,
+  fireRedBaseGameComplete,
+  leafGreenBaseGameComplete,
   fireRedStarter,
   leafGreenStarter,
   fireRedFossil,
@@ -84,10 +86,13 @@ function PokemonRow({
   leafGreenHitmon,
 }) {
   const pokemonId = String(entry.id).padStart(3, '0')
+  const isPairedSingleVersionRow = Boolean(singleVersionKey) && !isCompactSingleVersion
   const trackerState = {
     tradeMode,
     unlockAll,
     switchEventUnlocks,
+    fireRedBaseGameComplete,
+    leafGreenBaseGameComplete,
     fireRedStarter,
     leafGreenStarter,
     fireRedFossil,
@@ -110,7 +115,7 @@ function PokemonRow({
   const fireRedState = getVersionTrackerState(entry, 'fire-red', trackerState)
   const leafGreenState = getVersionTrackerState(entry, 'leaf-green', trackerState)
   const singleVersionState =
-    singleVersionKey && trackerLayout === 'single'
+    isCompactSingleVersion
       ? getVersionTrackerState(entry, singleVersionKey, trackerState)
       : null
   const singleVersionCellClass =
@@ -119,7 +124,7 @@ function PokemonRow({
   return (
     <li
       className={`tracker-row pokemon-row ${
-        trackerLayout === 'single' ? 'tracker-row-single pokemon-row-single' : ''
+        isCompactSingleVersion ? 'tracker-row-single pokemon-row-single' : ''
       }`.trim()}
     >
       <div className="pokemon-label">
@@ -180,6 +185,52 @@ function PokemonRow({
             updateCheckboxState={updateCheckboxState}
           />
         </div>
+      ) : isPairedSingleVersionRow ? (
+        <>
+          <div
+            className={`checkbox-cell fire-red-cell ${
+              singleVersionKey !== 'fire-red' ? 'checkbox-cell-hidden' : ''
+            } ${
+              singleVersionKey === 'fire-red' && fireRedState.locked
+                ? 'checkbox-cell-locked'
+                : ''
+            }`.trim()}
+          >
+            {singleVersionKey === 'fire-red' ? (
+              <CheckboxGroup
+                versionKey="fire-red"
+                pokemonId={pokemonId}
+                checked={Boolean(checkboxState[`fire-red-${pokemonId}`])}
+                extraChecked={false}
+                showExtraCopy={false}
+                locked={fireRedState.locked}
+                updateCheckboxState={updateCheckboxState}
+              />
+            ) : null}
+          </div>
+
+          <div
+            className={`checkbox-cell leaf-green-cell ${
+              singleVersionKey !== 'leaf-green' ? 'checkbox-cell-hidden' : ''
+            } ${
+              singleVersionKey === 'leaf-green' && leafGreenState.locked
+                ? 'checkbox-cell-locked'
+                : ''
+            }`.trim()}
+          >
+            {singleVersionKey === 'leaf-green' ? (
+              <CheckboxGroup
+                versionKey="leaf-green"
+                pokemonId={pokemonId}
+                checked={Boolean(checkboxState[`leaf-green-${pokemonId}`])}
+                extraChecked={false}
+                showExtraCopy={false}
+                locked={leafGreenState.locked}
+                updateCheckboxState={updateCheckboxState}
+              />
+            ) : null}
+          </div>
+        </>
       ) : (
         <>
           <div

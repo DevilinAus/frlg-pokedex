@@ -1,4 +1,7 @@
-import { getVersionTrackerState } from './pokedexHelpers.js'
+import {
+  getTrackablePokemonForVersion,
+  getVersionTrackerState,
+} from './pokedexHelpers.js'
 
 export const XP_SHARE_POKEDEX_REQUIREMENT = 50
 
@@ -257,12 +260,20 @@ export function buildGoalsByVersion(
   const itemGoalsByVersion = buildItemGoalsByVersion(blockedByVersion, versionKeys)
 
   return Object.fromEntries(
-    versionKeys.map((versionKey) => [
-      versionKey,
-      {
-        ...getVersionGoals(pokemonList, versionKey, trackerState),
-        itemGoal: itemGoalsByVersion[versionKey],
-      },
-    ]),
+    versionKeys.map((versionKey) => {
+      const versionPokemonList =
+        typeof trackerState?.fireRedBaseGameComplete === 'boolean' ||
+        typeof trackerState?.leafGreenBaseGameComplete === 'boolean'
+          ? getTrackablePokemonForVersion(versionKey, trackerState)
+          : pokemonList
+
+      return [
+        versionKey,
+        {
+          ...getVersionGoals(versionPokemonList, versionKey, trackerState),
+          itemGoal: itemGoalsByVersion[versionKey],
+        },
+      ]
+    }),
   )
 }

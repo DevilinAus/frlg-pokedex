@@ -61,8 +61,11 @@ function usePokedexState() {
   const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
     defaultAppState.switchEventUnlocks,
   )
-  const [baseGameComplete, setBaseGameComplete] = useState(
-    defaultAppState.baseGameComplete,
+  const [fireRedBaseGameComplete, setFireRedBaseGameComplete] = useState(
+    defaultAppState.fireRedBaseGameComplete,
+  )
+  const [leafGreenBaseGameComplete, setLeafGreenBaseGameComplete] = useState(
+    defaultAppState.leafGreenBaseGameComplete,
   )
   const [fireRedStarter, setFireRedStarter] = useState(defaultAppState.fireRedStarter)
   const [leafGreenStarter, setLeafGreenStarter] = useState(defaultAppState.leafGreenStarter)
@@ -132,7 +135,8 @@ function usePokedexState() {
       unlockAll,
       primaryGame,
       switchEventUnlocks,
-      baseGameComplete,
+      fireRedBaseGameComplete,
+      leafGreenBaseGameComplete,
       fireRedStarter,
       leafGreenStarter,
       fireRedFossil,
@@ -178,8 +182,12 @@ function usePokedexState() {
       patch.switchEventUnlocks = nextState.switchEventUnlocks
     }
 
-    if (nextState.baseGameComplete !== baseState.baseGameComplete) {
-      patch.baseGameComplete = nextState.baseGameComplete
+    if (nextState.fireRedBaseGameComplete !== baseState.fireRedBaseGameComplete) {
+      patch.fireRedBaseGameComplete = nextState.fireRedBaseGameComplete
+    }
+
+    if (nextState.leafGreenBaseGameComplete !== baseState.leafGreenBaseGameComplete) {
+      patch.leafGreenBaseGameComplete = nextState.leafGreenBaseGameComplete
     }
 
     if (nextState.fireRedStarter !== baseState.fireRedStarter) {
@@ -294,7 +302,8 @@ function usePokedexState() {
     setUnlockAll(state.unlockAll)
     setPrimaryGame(state.primaryGame)
     setSwitchEventUnlocks(state.switchEventUnlocks)
-    setBaseGameComplete(state.baseGameComplete)
+    setFireRedBaseGameComplete(state.fireRedBaseGameComplete)
+    setLeafGreenBaseGameComplete(state.leafGreenBaseGameComplete)
     setFireRedStarter(state.fireRedStarter)
     setLeafGreenStarter(state.leafGreenStarter)
     setFireRedFossil(state.fireRedFossil)
@@ -569,13 +578,14 @@ function usePokedexState() {
     }
   }, [
     activeSaveId,
-    baseGameComplete,
     celebrationState,
     checkboxState,
+    fireRedBaseGameComplete,
     fireRedEeveelution,
     fireRedFossil,
     fireRedHitmon,
     fireRedStarter,
+    leafGreenBaseGameComplete,
     leafGreenEeveelution,
     leafGreenFossil,
     leafGreenHitmon,
@@ -597,14 +607,16 @@ function usePokedexState() {
     }
 
     const fireRedComplete = hasCompletedDex(checkboxState, 'fire-red', {
-      baseGameComplete,
+      baseGameComplete: fireRedBaseGameComplete,
     })
     const leafGreenComplete = hasCompletedDex(checkboxState, 'leaf-green', {
-      baseGameComplete,
+      baseGameComplete: leafGreenBaseGameComplete,
     })
 
     if (fireRedComplete && !celebrationState.fireRedCompleteCelebrated) {
-      setSpriteFlood(createFullDexCelebration({ baseGameComplete }))
+      setSpriteFlood(
+        createFullDexCelebration({ baseGameComplete: fireRedBaseGameComplete }),
+      )
       window.clearTimeout(floodTimeout.current)
       floodTimeout.current = window.setTimeout(() => {
         setSpriteFlood([])
@@ -618,7 +630,9 @@ function usePokedexState() {
     }
 
     if (leafGreenComplete && !celebrationState.leafGreenCompleteCelebrated) {
-      setSpriteFlood(createFullDexCelebration({ baseGameComplete }))
+      setSpriteFlood(
+        createFullDexCelebration({ baseGameComplete: leafGreenBaseGameComplete }),
+      )
       window.clearTimeout(floodTimeout.current)
       floodTimeout.current = window.setTimeout(() => {
         setSpriteFlood([])
@@ -629,7 +643,12 @@ function usePokedexState() {
         leafGreenCompleteCelebrated: true,
       }))
     }
-  }, [baseGameComplete, celebrationState, checkboxState])
+  }, [
+    celebrationState,
+    checkboxState,
+    fireRedBaseGameComplete,
+    leafGreenBaseGameComplete,
+  ])
 
   useEffect(() => {
     if (!hasLoadedState.current || mode !== 'cloud' || isApplyingRemoteState.current) {
@@ -642,11 +661,12 @@ function usePokedexState() {
   }, [
     celebrationState,
     checkboxState,
-    baseGameComplete,
+    fireRedBaseGameComplete,
     fireRedEeveelution,
     fireRedFossil,
     fireRedHitmon,
     fireRedStarter,
+    leafGreenBaseGameComplete,
     leafGreenEeveelution,
     leafGreenFossil,
     leafGreenHitmon,
@@ -798,9 +818,14 @@ function usePokedexState() {
     setPrimaryGame(nextValue)
   }
 
-  function updateBaseGameComplete(nextValue) {
+  function updateFireRedBaseGameComplete(nextValue) {
     markCloudStateDirty()
-    setBaseGameComplete(nextValue)
+    setFireRedBaseGameComplete(nextValue)
+  }
+
+  function updateLeafGreenBaseGameComplete(nextValue) {
+    markCloudStateDirty()
+    setLeafGreenBaseGameComplete(nextValue)
   }
 
   function updateFireRedStarter(nextValue) {
@@ -875,6 +900,8 @@ function usePokedexState() {
     setUnlockAll(defaultAppState.unlockAll)
     setPrimaryGame(setup.primaryGame ?? defaultAppState.primaryGame)
     setSwitchEventUnlocks(setup.switchEventUnlocks)
+    setFireRedBaseGameComplete(defaultAppState.fireRedBaseGameComplete)
+    setLeafGreenBaseGameComplete(defaultAppState.leafGreenBaseGameComplete)
     setFireRedStarter(nextFireRedStarter)
     setLeafGreenStarter(nextLeafGreenStarter)
     setCheckboxState((currentState) => ({
@@ -1116,8 +1143,10 @@ function usePokedexState() {
     setPrimaryGame: updatePrimaryGame,
     switchEventUnlocks,
     setSwitchEventUnlocks: updateSwitchEventUnlocks,
-    baseGameComplete,
-    setBaseGameComplete: updateBaseGameComplete,
+    fireRedBaseGameComplete,
+    setFireRedBaseGameComplete: updateFireRedBaseGameComplete,
+    leafGreenBaseGameComplete,
+    setLeafGreenBaseGameComplete: updateLeafGreenBaseGameComplete,
     fireRedStarter,
     setFireRedStarter: updateFireRedStarter,
     leafGreenStarter,

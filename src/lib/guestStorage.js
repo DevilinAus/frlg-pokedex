@@ -34,7 +34,8 @@ function hasMeaningfulTrackerData(state) {
     state.unlockAll ||
     state.primaryGame !== defaultAppState.primaryGame ||
     state.switchEventUnlocks ||
-    state.baseGameComplete ||
+    state.fireRedBaseGameComplete ||
+    state.leafGreenBaseGameComplete ||
     state.fireRedStarter !== defaultAppState.fireRedStarter ||
     state.leafGreenStarter !== defaultAppState.leafGreenStarter ||
     state.fireRedFossil !== defaultAppState.fireRedFossil ||
@@ -49,6 +50,7 @@ function hasMeaningfulTrackerData(state) {
 }
 
 export function sanitizeTrackerState(input) {
+  const legacyBaseGameComplete = Boolean(input?.baseGameComplete)
   const safeState = {
     ownedGames: sanitizeEnum(
       input?.ownedGames,
@@ -68,7 +70,14 @@ export function sanitizeTrackerState(input) {
       defaultAppState.primaryGame,
     ),
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
-    baseGameComplete: Boolean(input?.baseGameComplete),
+    fireRedBaseGameComplete:
+      typeof input?.fireRedBaseGameComplete === 'boolean'
+        ? input.fireRedBaseGameComplete
+        : legacyBaseGameComplete,
+    leafGreenBaseGameComplete:
+      typeof input?.leafGreenBaseGameComplete === 'boolean'
+        ? input.leafGreenBaseGameComplete
+        : legacyBaseGameComplete,
     fireRedStarter: sanitizeText(
       input?.fireRedStarter,
       defaultAppState.fireRedStarter,

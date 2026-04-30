@@ -1,4 +1,8 @@
-import { getItemDbUrl, hasTradeQueueExtraCopy } from './pokedexHelpers.js'
+import {
+  getItemDbUrl,
+  getTrackablePokemonForVersion,
+  hasTradeQueueExtraCopy,
+} from './pokedexHelpers.js'
 import { getPairedTradeFamilyState } from './pairedTradeFamilies.js'
 
 function getTradeEvolutionTargetsBySource(pokemonList) {
@@ -315,18 +319,28 @@ export function buildTradeQueue(
     rightVersionKey = 'fire-red',
   } = {},
 ) {
+  const leftPokemonList =
+    typeof trackerState?.fireRedBaseGameComplete === 'boolean' ||
+    typeof trackerState?.leafGreenBaseGameComplete === 'boolean'
+      ? getTrackablePokemonForVersion(leftVersionKey, trackerState)
+      : pokemonList
+  const rightPokemonList =
+    typeof trackerState?.fireRedBaseGameComplete === 'boolean' ||
+    typeof trackerState?.leafGreenBaseGameComplete === 'boolean'
+      ? getTrackablePokemonForVersion(rightVersionKey, trackerState)
+      : pokemonList
   const readyByVersion = {
     [leftVersionKey]: buildTradeReadyTokensForVersion(
       leftVersionKey,
       rightVersionKey,
-      pokemonList,
+      leftPokemonList,
       checkboxState,
       trackerState,
     ),
     [rightVersionKey]: buildTradeReadyTokensForVersion(
       rightVersionKey,
       leftVersionKey,
-      pokemonList,
+      rightPokemonList,
       checkboxState,
       trackerState,
     ),

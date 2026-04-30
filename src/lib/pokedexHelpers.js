@@ -124,6 +124,28 @@ function getVersionChoices(versionKey, trackerState) {
   }
 }
 
+export function isBaseGameCompleteForVersion(versionKey, trackerState = {}) {
+  if (versionKey === 'leaf-green') {
+    if (typeof trackerState.leafGreenBaseGameComplete === 'boolean') {
+      return trackerState.leafGreenBaseGameComplete
+    }
+
+    return Boolean(trackerState.baseGameComplete)
+  }
+
+  if (typeof trackerState.fireRedBaseGameComplete === 'boolean') {
+    return trackerState.fireRedBaseGameComplete
+  }
+
+  return Boolean(trackerState.baseGameComplete)
+}
+
+export function getTrackablePokemonForVersion(versionKey, trackerState = {}) {
+  return getTrackablePokemon({
+    baseGameComplete: isBaseGameCompleteForVersion(versionKey, trackerState),
+  })
+}
+
 function isCaughtInVersion(entry, versionKey, checkboxState) {
   return Boolean(
     checkboxState?.[`${versionKey}-${String(entry.id).padStart(3, '0')}`],
@@ -204,6 +226,9 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
     versionKey,
     trackerState.checkboxState,
   )
+  const baseGameLocked =
+    entry.baseGameCompleteRequired &&
+    !isBaseGameCompleteForVersion(versionKey, trackerState)
   const starterLocked = isLockedByStarterChoice(
     entry,
     versionChoices.starter,
@@ -222,7 +247,8 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
     !(trackerState.tradeMode && versionAvailability === 'trade')
   const locked = trackerState.unlockAll || caughtInVersion
     ? false
-    : ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
+    : baseGameLocked ||
+      ((entry.tradeEvolution || entry.tradeEvolutionItem) && !trackerState.tradeMode) ||
       ((starterLocked || fossilLocked || hitmonLocked) && !trackerState.tradeMode) ||
       blockedByAvailability
   const showExtraCopy = shouldShowExtraCopy(entry, versionKey, trackerState)
@@ -244,6 +270,9 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
 
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
+  const blockedByBaseGame =
+    entry.baseGameCompleteRequired &&
+    !isBaseGameCompleteForVersion(versionKey, trackerState)
   const versionAvailability = entry[config.availabilityKey]
   const switchEventLegendaryUnlocked =
     entry.switchEventLegendary && trackerState.switchEventUnlocks
@@ -279,6 +308,7 @@ export function isVisibleInSingleVersion(entry, versionKey, trackerState) {
     !(trackerState.tradeMode && versionAvailability === 'trade')
 
   return !(
+    blockedByBaseGame ||
     blockedByTradeEvolution ||
     blockedByStarterChoice ||
     blockedByFossilChoice ||
