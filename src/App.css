@@ -2399,6 +2399,61 @@ button,
   color: #cbd5e1;
 }
 
+.app-theme-dark .starter-select-bulbasaur select {
+  color: #5ee38a;
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.app-theme-dark .starter-select-charmander select {
+  color: #ff8b5e;
+  border-color: rgba(249, 115, 22, 0.44);
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.app-theme-dark .starter-select-squirtle select {
+  color: #7cc4ff;
+  border-color: rgba(59, 130, 246, 0.42);
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.app-theme-dark .choice-select-omanyte select {
+  color: #4fd1c5;
+  border-color: rgba(45, 212, 191, 0.4);
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.app-theme-dark .choice-select-kabuto select {
+  color: #f6c768;
+  border-color: rgba(245, 158, 11, 0.38);
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.app-theme-dark .choice-select-vaporeon select {
+  color: #7cc4ff;
+  border-color: rgba(59, 130, 246, 0.42);
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.app-theme-dark .choice-select-jolteon select,
+.app-theme-dark .choice-select-hitmonlee select {
+  color: #f0c75e;
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.14);
+}
+
+.app-theme-dark .choice-select-flareon select {
+  color: #ff9a66;
+  border-color: rgba(249, 115, 22, 0.42);
+  background: rgba(249, 115, 22, 0.14);
+}
+
+.app-theme-dark .choice-select-hitmonchan select {
+  color: #ff6b6b;
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(220, 38, 38, 0.14);
+}
+
 .app-theme-dark .pokemon-row:hover {
   background: rgba(30, 41, 59, 0.5);
 }
