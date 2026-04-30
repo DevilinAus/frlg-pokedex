@@ -126,6 +126,59 @@ function formatGoal(goal, type, versionKey) {
   }
 }
 
+function compareBlockedItemTokens(leftToken, rightToken) {
+  if (leftToken.id !== rightToken.id) {
+    return leftToken.id - rightToken.id
+  }
+
+  return leftToken.name.localeCompare(rightToken.name)
+}
+
+function formatItemGoal(token) {
+  if (!token) {
+    return null
+  }
+
+  return {
+    type: 'item',
+    key: `item-${token.versionKey}-${token.pokemonId}-${token.heldItemName}`,
+    versionKey: token.versionKey,
+    sourceEntry: {
+      id: token.id,
+      name: token.name,
+      spriteSlug: token.spriteSlug,
+    },
+    targetEntry: {
+      id: Number(token.receivedPokemonId),
+      name: token.receivedName,
+      spriteSlug: token.receivedSpriteSlug,
+    },
+    heldItemName: token.heldItemName,
+    badgeLabel: 'Trade item',
+  }
+}
+
+export function buildItemGoalsByVersion(blockedByVersion, versionKeys) {
+  const itemCandidatesByVersion = Object.fromEntries(
+    versionKeys.map((versionKey) => [
+      versionKey,
+      (blockedByVersion?.[versionKey] ?? []).filter(
+        (token) => token.heldItemName && !token.heldItemOwned,
+      ),
+    ]),
+  )
+
+  return Object.fromEntries(
+    versionKeys.map((versionKey) => {
+      const sortedCandidates = [...itemCandidatesByVersion[versionKey]].sort(
+        compareBlockedItemTokens,
+      )
+
+      return [versionKey, formatItemGoal(sortedCandidates[0] ?? null)]
+    }),
+  )
+}
+
 export function getVersionGoals(pokemonList, versionKey, trackerState) {
   const checkboxState = trackerState.checkboxState ?? {}
   const caughtCount = getCaughtCount(pokemonList, versionKey, checkboxState)
@@ -195,8 +248,21 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
   }
 }
 
-export function buildGoalsByVersion(pokemonList, trackerState, versionKeys) {
+export function buildGoalsByVersion(
+  pokemonList,
+  trackerState,
+  versionKeys,
+  blockedByVersion = {},
+) {
+  const itemGoalsByVersion = buildItemGoalsByVersion(blockedByVersion, versionKeys)
+
   return Object.fromEntries(
-    versionKeys.map((versionKey) => [versionKey, getVersionGoals(pokemonList, versionKey, trackerState)]),
+    versionKeys.map((versionKey) => [
+      versionKey,
+      {
+        ...getVersionGoals(pokemonList, versionKey, trackerState),
+        itemGoal: itemGoalsByVersion[versionKey],
+      },
+    ]),
   )
 }

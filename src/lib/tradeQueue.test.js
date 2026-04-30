@@ -10,7 +10,7 @@ const pokemonIdByName = new Map(
   pokemon.map((entry) => [entry.name, String(entry.id).padStart(3, '0')]),
 )
 
-function createTrackerState(checkboxState = {}) {
+function createTrackerState(checkboxState = {}, ownedHeldTradeItems = {}) {
   return {
     tradeMode: false,
     switchEventUnlocks: false,
@@ -20,6 +20,7 @@ function createTrackerState(checkboxState = {}) {
     leafGreenFossil: '',
     fireRedHitmon: '',
     leafGreenHitmon: '',
+    ownedHeldTradeItems,
     checkboxState,
   }
 }
@@ -69,7 +70,7 @@ test('queues only the default Magmar seed trade when both family extras are prep
   })
 
   assert.deepEqual(tokens.map((token) => token.name), ['Magmar'])
-  assert.match(tokens[0].queueNote, /breed Magby/)
+  assert.equal(tokens[0].queueNote, 'Magmar or Magby')
 })
 
 test('lets Magby seed the family when it is the only prepared extra', () => {
@@ -78,7 +79,7 @@ test('lets Magby seed the family when it is the only prepared extra', () => {
   })
 
   assert.deepEqual(tokens.map((token) => token.name), ['Magby'])
-  assert.match(tokens[0].queueNote, /skip trading Magmar/)
+  assert.equal(tokens[0].queueNote, 'Magmar or Magby')
 })
 
 test('keeps only the missing family member as an optional shortcut once Fire Red has one', () => {
@@ -89,8 +90,7 @@ test('keeps only the missing family member as an optional shortcut once Fire Red
   })
 
   assert.deepEqual(tokens.map((token) => token.name), ['Magby'])
-  assert.match(tokens[0].queueNote, /Optional shortcut/)
-  assert.match(tokens[0].queueNote, /saves breeding/)
+  assert.equal(tokens[0].queueNote, 'Magmar or Magby')
 })
 
 test('drops extra-copy family tokens once Fire Red already has both members', () => {
@@ -128,7 +128,7 @@ test('queues only the default Electabuzz seed trade when both Fire Red family ex
   })
 
   assert.deepEqual(tokens.map((token) => token.name), ['Electabuzz'])
-  assert.match(tokens[0].queueNote, /breed Elekid/)
+  assert.equal(tokens[0].queueNote, 'Electabuzz or Elekid')
 })
 
 test('treats Azumarill as a seeded adult for the Azurill family', () => {
@@ -139,8 +139,7 @@ test('treats Azumarill as a seeded adult for the Azurill family', () => {
   })
 
   assert.deepEqual(tokens.map((token) => token.name), ['Azurill'])
-  assert.match(tokens[0].queueNote, /Marill or Azumarill/)
-  assert.match(tokens[0].queueNote, /Sea Incense/)
+  assert.equal(tokens[0].queueNote, 'Marill or Azurill')
 })
 
 test('adds the Sea Incense family note to Azurill without losing the breeding guidance', () => {
@@ -168,7 +167,46 @@ test('adds held-item metadata for item-based trade evolutions', () => {
 
   assert.equal(token?.heldItemName, 'Dragon Scale')
   assert.equal(token?.heldItemUrl, 'https://pokemondb.net/item/dragon-scale')
+  assert.equal(token?.heldItemOwned, false)
   assert.equal(token?.tagLabel, 'Trade item')
+})
+
+test('blocks held-item trades until the item is owned', () => {
+  const checkboxState = {
+    [getOwnedKey('leaf-green', 'Slowpoke')]: true,
+    [getOwnedKey('fire-red', 'Scyther')]: true,
+  }
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    checkboxState,
+    createTrackerState(checkboxState),
+  )
+
+  assert.equal(tradeQueue.pairableCount, 1)
+  assert.equal(tradeQueue.readyCount, 0)
+  assert.equal(tradeQueue.blockedByHeldItemCount, 1)
+  assert.equal(tradeQueue.pairs[0].isReady, false)
+  assert.deepEqual(tradeQueue.pairs[0].missingHeldItemNames, ["King's Rock", 'Metal Coat'])
+})
+
+test('marks held-item trades as ready once the item is owned', () => {
+  const checkboxState = {
+    [getOwnedKey('leaf-green', 'Seadra')]: true,
+    [getOwnedKey('fire-red', 'Machoke')]: true,
+  }
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    checkboxState,
+    createTrackerState(checkboxState, {
+      'Dragon Scale': true,
+    }),
+  )
+
+  assert.equal(tradeQueue.pairableCount, 1)
+  assert.equal(tradeQueue.readyCount, 1)
+  assert.equal(tradeQueue.blockedByHeldItemCount, 0)
+  assert.equal(tradeQueue.pairs[0].isReady, true)
+  assert.equal(tradeQueue.pairs[0].left.heldItemOwned, true)
 })
 
 test('drops the trade-for-base evolution text once Fire Red already owns Sandshrew', () => {

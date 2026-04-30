@@ -47,6 +47,7 @@ const defaultTrackerState = {
   leafGreenEeveelution: '',
   fireRedHitmon: '',
   leafGreenHitmon: '',
+  ownedHeldTradeItems: {},
   checkboxState: {},
   celebrationState: {
     fireRedCompleteCelebrated: false,
@@ -219,6 +220,16 @@ const findSaveState = db.prepare(`
   FROM save_states
   WHERE save_id = ?
 `)
+const listSaveStates = db.prepare(`
+  SELECT save_id AS saveId, state_json AS stateJson
+  FROM save_states
+`)
+const overwriteSaveStateJson = db.prepare(`
+  UPDATE save_states
+  SET state_json = @stateJson,
+      updated_at = CURRENT_TIMESTAMP
+  WHERE save_id = @saveId
+`)
 const updateSaveShareCode = db.prepare(`
   UPDATE saves
   SET share_code_hash = @shareCodeHash,
@@ -344,6 +355,18 @@ function sanitizeEnum(value, allowedValues, fallback) {
   return allowedValues.has(value) ? value : fallback
 }
 
+function sanitizeBooleanMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => typeof key === 'string')
+      .map(([key, mapValue]) => [key, Boolean(mapValue)]),
+  )
+}
+
 function hasMeaningfulTrackerData(state) {
   return (
     state.ownedGames !== defaultTrackerState.ownedGames ||
@@ -361,6 +384,7 @@ function hasMeaningfulTrackerData(state) {
     state.leafGreenEeveelution !== defaultTrackerState.leafGreenEeveelution ||
     state.fireRedHitmon !== defaultTrackerState.fireRedHitmon ||
     state.leafGreenHitmon !== defaultTrackerState.leafGreenHitmon ||
+    Object.values(state.ownedHeldTradeItems).some(Boolean) ||
     Object.values(state.checkboxState).some(Boolean)
   )
 }
@@ -418,16 +442,8 @@ function sanitizeTrackerState(input) {
       input?.leafGreenHitmon,
       defaultTrackerState.leafGreenHitmon,
     ),
-    checkboxState:
-      input?.checkboxState &&
-      typeof input.checkboxState === 'object' &&
-      !Array.isArray(input.checkboxState)
-        ? Object.fromEntries(
-            Object.entries(input.checkboxState)
-              .filter(([key]) => typeof key === 'string')
-              .map(([key, value]) => [key, Boolean(value)]),
-          )
-        : {},
+    ownedHeldTradeItems: sanitizeBooleanMap(input?.ownedHeldTradeItems),
+    checkboxState: sanitizeBooleanMap(input?.checkboxState),
     celebrationState:
       input?.celebrationState &&
       typeof input.celebrationState === 'object' &&
@@ -451,6 +467,44 @@ function sanitizeTrackerState(input) {
         : hasMeaningfulTrackerData(safeState),
   }
 }
+
+function parseStoredTrackerState(stateJson) {
+  if (typeof stateJson !== 'string' || !stateJson) {
+    return sanitizeTrackerState(defaultTrackerState)
+  }
+
+  try {
+    return sanitizeTrackerState(JSON.parse(stateJson))
+  } catch {
+    return sanitizeTrackerState(defaultTrackerState)
+  }
+}
+
+const backfillOwnedHeldTradeItemsInSaveStates = db.transaction(() => {
+  listSaveStates.all().forEach((row) => {
+    let parsedState = null
+
+    try {
+      parsedState = JSON.parse(row.stateJson)
+    } catch {
+      return
+    }
+
+    if (
+      parsedState &&
+      typeof parsedState === 'object' &&
+      !Array.isArray(parsedState) &&
+      Object.hasOwn(parsedState, 'ownedHeldTradeItems')
+    ) {
+      return
+    }
+
+    overwriteSaveStateJson.run({
+      saveId: row.saveId,
+      stateJson: JSON.stringify(sanitizeTrackerState(parsedState)),
+    })
+  })
+})
 
 function sanitizeTrackerPatch(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -559,17 +613,17 @@ function sanitizeTrackerPatch(input) {
     )
   }
 
+  if (Object.hasOwn(input, 'ownedHeldTradeItems')) {
+    patch.ownedHeldTradeItems = sanitizeBooleanMap(input.ownedHeldTradeItems)
+  }
+
   if (
     Object.hasOwn(input, 'checkboxState') &&
     input.checkboxState &&
     typeof input.checkboxState === 'object' &&
     !Array.isArray(input.checkboxState)
   ) {
-    patch.checkboxState = Object.fromEntries(
-      Object.entries(input.checkboxState)
-        .filter(([key]) => typeof key === 'string')
-        .map(([key, value]) => [key, Boolean(value)]),
-    )
+    patch.checkboxState = sanitizeBooleanMap(input.checkboxState)
   }
 
   if (
@@ -604,6 +658,12 @@ function mergeTrackerPatch(currentState, patch) {
   return sanitizeTrackerState({
     ...currentState,
     ...patch,
+    ownedHeldTradeItems: patch.ownedHeldTradeItems
+      ? {
+          ...currentState.ownedHeldTradeItems,
+          ...patch.ownedHeldTradeItems,
+        }
+      : currentState.ownedHeldTradeItems,
     checkboxState: patch.checkboxState
       ? {
           ...currentState.checkboxState,
@@ -680,6 +740,8 @@ function createSaveForUser(ownerUserId, name, initialState, updatedByUserId = ow
 
   return saveId
 }
+
+backfillOwnedHeldTradeItemsInSaveStates()
 
 function regenerateSession(req) {
   return new Promise((resolve, reject) => {
@@ -897,7 +959,7 @@ app.get('/api/saves/:saveId', requireAuth, (req, res) => {
       canManage: save.role === 'owner',
     },
     collaborators,
-    state: stateRow ? JSON.parse(stateRow.stateJson) : defaultTrackerState,
+    state: stateRow ? parseStoredTrackerState(stateRow.stateJson) : defaultTrackerState,
   })
 })
 
@@ -967,7 +1029,9 @@ app.patch('/api/saves/:saveId/state', requireAuth, (req, res) => {
 
   const patch = sanitizeTrackerPatch(req.body?.patch)
   const stateRow = findSaveState.get(saveId)
-  const currentState = stateRow ? JSON.parse(stateRow.stateJson) : defaultTrackerState
+  const currentState = stateRow
+    ? parseStoredTrackerState(stateRow.stateJson)
+    : defaultTrackerState
   const nextState = mergeTrackerPatch(currentState, patch)
 
   updateSaveState.run({

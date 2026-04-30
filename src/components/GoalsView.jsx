@@ -1,4 +1,4 @@
-import { getPokemonDbUrl } from '../lib/pokedexHelpers'
+import { getItemDbUrl, getPokemonDbUrl } from '../lib/pokedexHelpers'
 import { getSpriteSrc } from '../lib/sprites'
 
 function GoalPokemonLink({ entry }) {
@@ -14,6 +14,19 @@ function GoalPokemonLink({ entry }) {
   )
 }
 
+function GoalItemLink({ itemName }) {
+  return (
+    <a
+      className="goal-focus-link"
+      href={getItemDbUrl(itemName)}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {itemName}
+    </a>
+  )
+}
+
 function GoalFocusCard({
   title,
   goal,
@@ -21,12 +34,34 @@ function GoalFocusCard({
   tone,
   checkboxState,
   updateCheckboxState,
+  ownedHeldTradeItems,
+  updateOwnedHeldTradeItem,
 }) {
   const actionChecked = goal
-    ? Boolean(
-        checkboxState[goal.type === 'hunt' ? goal.sourceCaughtKey : goal.targetCaughtKey],
-      )
+    ? goal.type === 'hunt'
+      ? Boolean(checkboxState[goal.sourceCaughtKey])
+      : goal.type === 'item'
+        ? Boolean(ownedHeldTradeItems[goal.heldItemName])
+        : Boolean(checkboxState[goal.targetCaughtKey])
     : false
+
+  function handleActionChange(nextChecked) {
+    if (!goal) {
+      return
+    }
+
+    if (goal.type === 'hunt') {
+      updateCheckboxState(goal.sourceCaughtKey, nextChecked)
+      return
+    }
+
+    if (goal.type === 'item') {
+      updateOwnedHeldTradeItem(goal.heldItemName, nextChecked)
+      return
+    }
+
+    updateCheckboxState(goal.targetCaughtKey, nextChecked)
+  }
 
   return (
     <section className={`goal-focus-card goal-focus-card-${tone}`}>
@@ -49,7 +84,11 @@ function GoalFocusCard({
 
             <div className="goal-focus-copy">
               <strong>
-                <GoalPokemonLink entry={goal.sourceEntry} />
+                {goal.type === 'item' ? (
+                  <GoalItemLink itemName={goal.heldItemName} />
+                ) : (
+                  <GoalPokemonLink entry={goal.sourceEntry} />
+                )}
               </strong>
 
               {goal.type === 'party' ? (
@@ -66,6 +105,24 @@ function GoalFocusCard({
                     <p className="goal-focus-followup">{goal.tradeFollowUpCopy}</p>
                   ) : null}
                 </>
+              ) : goal.type === 'item' ? (
+                <>
+                  <div className="goal-focus-evolution">
+                    <span className="goal-focus-evolution-label">Trade unlock</span>
+                    <div className="goal-focus-evolution-copy">
+                      <GoalPokemonLink entry={goal.sourceEntry} />
+                      <span className="goal-focus-arrow" aria-hidden="true">
+                        →
+                      </span>
+                      <GoalPokemonLink entry={goal.targetEntry} />
+                    </div>
+                  </div>
+
+                  <p className="goal-focus-followup">
+                    Then trade <GoalPokemonLink entry={goal.sourceEntry} /> holding it for{' '}
+                    <GoalPokemonLink entry={goal.targetEntry} />.
+                  </p>
+                </>
               ) : null}
             </div>
           </div>
@@ -74,14 +131,15 @@ function GoalFocusCard({
             <input
               type="checkbox"
               checked={actionChecked}
-              onChange={(event) =>
-                updateCheckboxState(
-                  goal.type === 'hunt' ? goal.sourceCaughtKey : goal.targetCaughtKey,
-                  event.target.checked,
-                )
-              }
+              onChange={(event) => handleActionChange(event.target.checked)}
             />
-            <span>{goal.type === 'hunt' ? 'Caught' : 'Evolved'}</span>
+            <span>
+              {goal.type === 'hunt'
+                ? 'Caught'
+                : goal.type === 'item'
+                  ? 'Owned'
+                  : 'Evolved'}
+            </span>
           </label>
         </div>
       ) : (
@@ -95,12 +153,10 @@ function GoalsVersionCard({
   panel,
   checkboxState,
   updateCheckboxState,
+  ownedHeldTradeItems,
+  updateOwnedHeldTradeItem,
   showVersionLabel,
 }) {
-  const partyEmptyCopy = panel.xpShareUnlocked
-    ? 'Nothing needs leveling right now.'
-    : `XP Share unlocks after 50 Pokemon. Catch ${panel.xpShareRemaining} more first.`
-
   return (
     <section
       className={`goals-version-card ${
@@ -117,22 +173,46 @@ function GoalsVersionCard({
           tone="hunt"
           checkboxState={checkboxState}
           updateCheckboxState={updateCheckboxState}
+          ownedHeldTradeItems={ownedHeldTradeItems}
+          updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
         />
 
+        {panel.xpShareUnlocked ? (
+          <GoalFocusCard
+            title="XP Share Target"
+            goal={panel.partyGoal}
+            emptyCopy="Nothing needs leveling right now."
+            tone="party"
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+          />
+        ) : null}
+
         <GoalFocusCard
-          title="XP Share Target"
-          goal={panel.partyGoal}
-          emptyCopy={partyEmptyCopy}
-          tone="party"
+          title="Retrieve Item"
+          goal={panel.itemGoal}
+          emptyCopy="No held item is blocking a trade right now."
+          tone="item"
           checkboxState={checkboxState}
           updateCheckboxState={updateCheckboxState}
+          ownedHeldTradeItems={ownedHeldTradeItems}
+          updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
         />
       </div>
     </section>
   )
 }
 
-function GoalsView({ panels, className = '', checkboxState, updateCheckboxState }) {
+function GoalsView({
+  panels,
+  className = '',
+  checkboxState,
+  updateCheckboxState,
+  ownedHeldTradeItems,
+  updateOwnedHeldTradeItem,
+}) {
   const showVersionLabel = panels.length > 1
 
   return (
@@ -148,6 +228,8 @@ function GoalsView({ panels, className = '', checkboxState, updateCheckboxState 
             panel={panel}
             checkboxState={checkboxState}
             updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
             showVersionLabel={showVersionLabel}
           />
         ))}
