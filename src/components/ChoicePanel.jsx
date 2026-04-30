@@ -175,33 +175,68 @@ function ChoicePanel(props) {
     setLeafGreenHitmon,
   } = props
   const isSingleVersionView = trackerLayout === 'single' && ownedGames !== 'both'
+  const [isOpen, setIsOpen] = useState(false)
+  const panelRef = useRef(null)
+  const triggerRef = useRef(null)
+  const popoverId = useId()
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    function handlePointerDown(event) {
+      const clickedTrigger = triggerRef.current?.contains(event.target)
+      const clickedPanel = panelRef.current?.contains(event.target)
+
+      if (!clickedTrigger && !clickedPanel) {
+        setIsOpen(false)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
 
   return (
-    <details className="choice-panel">
-      <summary>
+    <div className={`choice-panel ${isOpen ? 'choice-panel-open' : ''}`.trim()}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="choice-panel-trigger"
+        aria-expanded={isOpen}
+        aria-controls={popoverId}
+        onClick={() => setIsOpen((currentState) => !currentState)}
+      >
         <span className="choice-panel-heading">
           <span className="choice-panel-title">Pokedex Decisions</span>
         </span>
         <span className="choice-panel-arrow" aria-hidden="true">
           ▾
         </span>
-      </summary>
+      </button>
 
-      <div className="choice-panel-body">
-        <p className="choice-panel-open-note">
-          {isSingleVersionView
-            ? 'One-off choices for your current version'
-            : 'One-off choices for each version'}
-        </p>
-
-        <div
-          className={`choice-panel-grid ${
-            isSingleVersionView ? 'choice-panel-grid-single' : ''
-          }`.trim()}
-        >
-          <section className="choice-card choice-card-shared">
-            <div className="choice-panel-toggle-grid choice-panel-toggle-grid-single-card">
-              <div className="choice-panel-toggle-card">
+      {isOpen ? (
+        <div ref={panelRef} id={popoverId} className="choice-panel-body" role="dialog">
+          <div
+            className={`choice-panel-grid ${
+              isSingleVersionView ? 'choice-panel-grid-single' : ''
+            }`.trim()}
+          >
+            <section className="choice-card choice-card-shared">
+              <div className="choice-panel-toggle-grid choice-panel-toggle-grid-single-card">
                 <div className="choice-panel-toggle">
                   <div className="choice-panel-toggle-row">
                     <span className="choice-panel-toggle-heading">
@@ -226,35 +261,35 @@ function ChoicePanel(props) {
                   </span>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {!isSingleVersionView || ownedGames === 'fire-red' ? (
-            <VersionChoiceCard
-              title="Fire Red"
-              starter={fireRedStarter}
-              setStarter={setFireRedStarter}
-              fossil={fireRedFossil}
-              setFossil={setFireRedFossil}
-              hitmon={fireRedHitmon}
-              setHitmon={setFireRedHitmon}
-            />
-          ) : null}
+            {!isSingleVersionView || ownedGames === 'fire-red' ? (
+              <VersionChoiceCard
+                title="Fire Red"
+                starter={fireRedStarter}
+                setStarter={setFireRedStarter}
+                fossil={fireRedFossil}
+                setFossil={setFireRedFossil}
+                hitmon={fireRedHitmon}
+                setHitmon={setFireRedHitmon}
+              />
+            ) : null}
 
-          {!isSingleVersionView || ownedGames === 'leaf-green' ? (
-            <VersionChoiceCard
-              title="Leaf Green"
-              starter={leafGreenStarter}
-              setStarter={setLeafGreenStarter}
-              fossil={leafGreenFossil}
-              setFossil={setLeafGreenFossil}
-              hitmon={leafGreenHitmon}
-              setHitmon={setLeafGreenHitmon}
-            />
-          ) : null}
+            {!isSingleVersionView || ownedGames === 'leaf-green' ? (
+              <VersionChoiceCard
+                title="Leaf Green"
+                starter={leafGreenStarter}
+                setStarter={setLeafGreenStarter}
+                fossil={leafGreenFossil}
+                setFossil={setLeafGreenFossil}
+                hitmon={leafGreenHitmon}
+                setHitmon={setLeafGreenHitmon}
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
-    </details>
+      ) : null}
+    </div>
   )
 }
 
