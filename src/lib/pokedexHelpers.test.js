@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { getTrackablePokemon } from '../data/pokemon.js'
-import { getVersionTrackerState, isVisibleInSingleVersion } from './pokedexHelpers.js'
+import { getTrackablePokemon, pokemon } from '../data/pokemon.js'
+import {
+  getVersionTrackerState,
+  isBaseGameCompleteForVersion,
+  isVisibleInSingleVersion,
+} from './pokedexHelpers.js'
 
 const pokemonList = getTrackablePokemon({ baseGameComplete: false })
 
@@ -11,6 +15,8 @@ function createTrackerState(overrides = {}) {
     tradeMode: false,
     unlockAll: false,
     switchEventUnlocks: false,
+    fireRedBaseGameComplete: false,
+    leafGreenBaseGameComplete: false,
     fireRedStarter: '',
     leafGreenStarter: '',
     fireRedFossil: '',
@@ -213,4 +219,41 @@ test('hides version-exclusive extra-copy prompts once both saves own the species
   )
 
   assert.equal(state.showExtraCopy, false)
+})
+
+test('prefers the Fire Red-specific base game flag over the generic fallback', () => {
+  const trackerState = createTrackerState({
+    baseGameComplete: true,
+    fireRedBaseGameComplete: false,
+  })
+
+  assert.equal(isBaseGameCompleteForVersion('fire-red', trackerState), false)
+})
+
+test('prefers the Leaf Green-specific base game flag over the generic fallback', () => {
+  const trackerState = createTrackerState({
+    baseGameComplete: true,
+    leafGreenBaseGameComplete: false,
+  })
+
+  assert.equal(isBaseGameCompleteForVersion('leaf-green', trackerState), false)
+})
+
+test('keeps the other version locked when only one version has postgame unlocked', () => {
+  const trackerState = createTrackerState({
+    baseGameComplete: true,
+    fireRedBaseGameComplete: true,
+    leafGreenBaseGameComplete: false,
+  })
+  const sentret = pokemon.find((entry) => entry.name === 'Sentret')
+
+  assert.ok(sentret?.baseGameCompleteRequired)
+  assert.equal(
+    getVersionTrackerState(sentret, 'fire-red', trackerState).locked,
+    false,
+  )
+  assert.equal(
+    getVersionTrackerState(sentret, 'leaf-green', trackerState).locked,
+    true,
+  )
 })

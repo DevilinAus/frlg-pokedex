@@ -38,7 +38,8 @@ const defaultTrackerState = {
   unlockAll: false,
   primaryGame: '',
   switchEventUnlocks: false,
-  baseGameComplete: false,
+  fireRedBaseGameComplete: false,
+  leafGreenBaseGameComplete: false,
   fireRedStarter: '',
   leafGreenStarter: '',
   fireRedFossil: '',
@@ -375,7 +376,8 @@ function hasMeaningfulTrackerData(state) {
     state.unlockAll ||
     state.primaryGame !== defaultTrackerState.primaryGame ||
     state.switchEventUnlocks ||
-    state.baseGameComplete ||
+    state.fireRedBaseGameComplete ||
+    state.leafGreenBaseGameComplete ||
     state.fireRedStarter !== defaultTrackerState.fireRedStarter ||
     state.leafGreenStarter !== defaultTrackerState.leafGreenStarter ||
     state.fireRedFossil !== defaultTrackerState.fireRedFossil ||
@@ -390,6 +392,7 @@ function hasMeaningfulTrackerData(state) {
 }
 
 function sanitizeTrackerState(input) {
+  const legacyBaseGameComplete = Boolean(input?.baseGameComplete)
   const safeState = {
     ownedGames: sanitizeEnum(
       input?.ownedGames,
@@ -409,7 +412,14 @@ function sanitizeTrackerState(input) {
       defaultTrackerState.primaryGame,
     ),
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
-    baseGameComplete: Boolean(input?.baseGameComplete),
+    fireRedBaseGameComplete:
+      typeof input?.fireRedBaseGameComplete === 'boolean'
+        ? input.fireRedBaseGameComplete
+        : legacyBaseGameComplete,
+    leafGreenBaseGameComplete:
+      typeof input?.leafGreenBaseGameComplete === 'boolean'
+        ? input.leafGreenBaseGameComplete
+        : legacyBaseGameComplete,
     fireRedStarter: sanitizeText(
       input?.fireRedStarter,
       defaultTrackerState.fireRedStarter,
@@ -553,8 +563,17 @@ function sanitizeTrackerPatch(input) {
     patch.switchEventUnlocks = Boolean(input.switchEventUnlocks)
   }
 
+  if (Object.hasOwn(input, 'fireRedBaseGameComplete')) {
+    patch.fireRedBaseGameComplete = Boolean(input.fireRedBaseGameComplete)
+  }
+
+  if (Object.hasOwn(input, 'leafGreenBaseGameComplete')) {
+    patch.leafGreenBaseGameComplete = Boolean(input.leafGreenBaseGameComplete)
+  }
+
   if (Object.hasOwn(input, 'baseGameComplete')) {
-    patch.baseGameComplete = Boolean(input.baseGameComplete)
+    patch.fireRedBaseGameComplete = Boolean(input.baseGameComplete)
+    patch.leafGreenBaseGameComplete = Boolean(input.baseGameComplete)
   }
 
   if (Object.hasOwn(input, 'fireRedStarter')) {
