@@ -40,6 +40,24 @@ function getVersionCaughtCount(versionKey, pokemonList, checkboxState) {
   }).length
 }
 
+function isBaseGameCompleteForVersion(versionKey, trackerState) {
+  return versionKey === 'leaf-green'
+    ? trackerState.leafGreenBaseGameComplete
+    : trackerState.fireRedBaseGameComplete
+}
+
+function getViewerBaseGameComplete(ownedGames, primaryGame, trackerState) {
+  if (ownedGames === 'fire-red' || ownedGames === 'leaf-green') {
+    return isBaseGameCompleteForVersion(ownedGames, trackerState)
+  }
+
+  if (primaryGame === 'fire-red' || primaryGame === 'leaf-green') {
+    return isBaseGameCompleteForVersion(primaryGame, trackerState)
+  }
+
+  return false
+}
+
 function getTradeCompletionUpdates(pair) {
   const updates = [
     {
@@ -96,22 +114,14 @@ function getInitialTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function getIntroCopy(ownedGames, trackerLayout, isCombinedView, primaryGame) {
+function getIntroCopy(ownedGames, trackerLayout) {
   if (ownedGames !== 'both') {
     return trackerLayout === 'single'
       ? 'A cleaner one-column tracker that hides Pokemon your current save cannot reach.'
       : 'Built for a paired run where both versions stay visible and progress can be compared at a glance.'
   }
 
-  if (isCombinedView) {
-    return primaryGame
-      ? `Built for a combined view across both versions, with ${ownedGameLabels[primaryGame]} treated as the main save.`
-      : 'Built for a combined view across both versions.'
-  }
-
-  return primaryGame
-    ? `Built for a single-view focus on ${ownedGameLabels[primaryGame]}, while keeping the second version available.`
-    : 'Built for a single-view focus on one version, while keeping the second version available.'
+  return ''
 }
 
 function App() {
@@ -145,8 +155,10 @@ function App() {
     setPrimaryGame,
     switchEventUnlocks,
     setSwitchEventUnlocks,
-    baseGameComplete,
-    setBaseGameComplete,
+    fireRedBaseGameComplete,
+    setFireRedBaseGameComplete,
+    leafGreenBaseGameComplete,
+    setLeafGreenBaseGameComplete,
     fireRedStarter,
     setFireRedStarter,
     leafGreenStarter,
@@ -186,6 +198,8 @@ function App() {
     tradeMode,
     primaryGame,
     switchEventUnlocks,
+    fireRedBaseGameComplete,
+    leafGreenBaseGameComplete,
     fireRedStarter,
     leafGreenStarter,
     fireRedFossil,
@@ -194,17 +208,48 @@ function App() {
     leafGreenHitmon,
     checkboxState,
   }
+  const baseGameComplete = getViewerBaseGameComplete(ownedGames, primaryGame, trackerState)
+  function setBaseGameComplete(nextValue) {
+    if (ownedGames === 'leaf-green') {
+      setLeafGreenBaseGameComplete(nextValue)
+      return
+    }
+
+    if (ownedGames === 'fire-red') {
+      setFireRedBaseGameComplete(nextValue)
+      return
+    }
+
+    if (primaryGame === 'leaf-green') {
+      setLeafGreenBaseGameComplete(nextValue)
+      return
+    }
+
+    if (primaryGame === 'fire-red') {
+      setFireRedBaseGameComplete(nextValue)
+      return
+    }
+  }
   const shouldShowOnboarding = mode !== 'loading' && (!onboardingComplete || setupOpen)
   const canUseSingleVersionView = ownedGames === 'both' && Boolean(primaryGame)
   const isSingleVersionView =
     ownedGames === 'both'
       ? canUseSingleVersionView && !tradeMode
       : trackerLayout === 'single'
+  const isSoloSingleVersionView = ownedGames !== 'both' && isSingleVersionView
+  const isPairedSingleVersionView = ownedGames === 'both' && isSingleVersionView
   const isCombinedView = ownedGames === 'both' && !isSingleVersionView
   const singleVersionKey = isSingleVersionView ? (ownedGames === 'both' ? primaryGame : ownedGames) : null
-  const trackablePokemon = getTrackablePokemon({ baseGameComplete })
+  const trackablePokemon = getTrackablePokemon({
+    baseGameComplete,
+  })
+  const singleVersionTrackablePokemon = singleVersionKey
+    ? getTrackablePokemon({
+        baseGameComplete,
+      })
+    : []
   const trackerPokemon = isSingleVersionView
-    ? trackablePokemon.filter((entry) =>
+    ? singleVersionTrackablePokemon.filter((entry) =>
         isVisibleInSingleVersion(entry, singleVersionKey, trackerState),
       )
     : trackablePokemon
@@ -236,8 +281,12 @@ function App() {
 
     return true
   })
-  const introCopy = getIntroCopy(ownedGames, trackerLayout, isCombinedView, primaryGame)
-  const fireRedCaughtCount = getVersionCaughtCount('fire-red', trackablePokemon, checkboxState)
+  const introCopy = getIntroCopy(ownedGames, trackerLayout)
+  const fireRedCaughtCount = getVersionCaughtCount(
+    'fire-red',
+    trackablePokemon,
+    checkboxState,
+  )
   const leafGreenCaughtCount = getVersionCaughtCount(
     'leaf-green',
     trackablePokemon,
@@ -251,8 +300,7 @@ function App() {
     normalizeNewGameConfirmation(newGameConfirmationText) === 'new game'
   const shouldShowMainGameSetting =
     ownedGames === 'both' && (Boolean(primaryGame) || tradeMode)
-  const shouldShowTradeReadyCard =
-    trackerLayout === 'dual' && (ownedGames !== 'both' || tradeMode)
+  const shouldShowTradeReadyCard = trackerLayout === 'dual'
   const tradeQueue = shouldShowTradeReadyCard
     ? buildTradeQueue(trackablePokemon, checkboxState, trackerState, {
         leftVersionKey: 'leaf-green',
@@ -271,10 +319,13 @@ function App() {
         },
       }
   const tradeReadyCount = tradeQueue.pairableCount
-  const goalVersionKeys = isSingleVersionView
-    ? [singleVersionKey]
-    : ['fire-red', 'leaf-green']
-  const goalsByVersion = buildGoalsByVersion(trackablePokemon, trackerState, goalVersionKeys)
+  const goalVersionKeys =
+    ownedGames === 'both'
+      ? ['fire-red', 'leaf-green']
+      : isSingleVersionView
+        ? [singleVersionKey]
+        : ['fire-red', 'leaf-green']
+  const goalsByVersion = buildGoalsByVersion(trackerState, goalVersionKeys)
   const goalPanels = goalVersionKeys.map((versionKey) => ({
     versionKey,
     label: versionLabels[versionKey].label,
@@ -456,11 +507,11 @@ function App() {
             <div className="hero-copy-top">
               <p className="eyebrow">FireRed + LeafGreen Tracker</p>
               <h1>Kanto Pokedex</h1>
-              <p className="intro">{introCopy}</p>
+              {introCopy ? <p className="intro">{introCopy}</p> : null}
             </div>
 
             <div className="hero-stats">
-              {isSingleVersionView ? (
+              {isSoloSingleVersionView ? (
                 <>
                   <div className="hero-stat-card">
                     <span className="hero-stat-label">
@@ -743,15 +794,20 @@ function App() {
               </label>
 
               {ownedGames === 'both' ? (
-                <label className="trade-mode-toggle">
-                  <input
-                    type="checkbox"
-                    checked={isCombinedView}
-                    onChange={(event) => setTradeMode(event.target.checked)}
-                    disabled={!canUseSingleVersionView}
-                  />
-                  <span>{isCombinedView ? 'Combined View' : 'Single View'}</span>
-                </label>
+                <button
+                  type="button"
+                  className={`trade-mode-toggle ${isCombinedView ? 'trade-mode-toggle-combined' : ''}`}
+                  role="switch"
+                  aria-checked={isCombinedView}
+                  aria-label="View Partner Progress"
+                  onClick={() => setTradeMode(!isCombinedView)}
+                  disabled={!canUseSingleVersionView}
+                >
+                  <span className="trade-mode-toggle-copy">View Partner Progress</span>
+                  <span className="trade-mode-toggle-track" aria-hidden="true">
+                    <span className="trade-mode-toggle-thumb" />
+                  </span>
+                </button>
               ) : null}
 
               {saveError ? <p className="save-status save-status-error">{saveError}</p> : null}
@@ -769,20 +825,41 @@ function App() {
         ) : isGoalsViewActive ? (
           <GoalsView panels={goalPanels} className="trade-view-panel-main" />
         ) : (
-          <div className={`tracker ${isSingleVersionView ? 'tracker-single' : ''}`}>
+          <div className={`tracker ${isSoloSingleVersionView ? 'tracker-single' : ''}`}>
             <div
               className={`tracker-row tracker-header ${
-                isSingleVersionView ? 'tracker-row-single' : ''
+                isSoloSingleVersionView ? 'tracker-row-single' : ''
               }`.trim()}
             >
               <span>Pokemon</span>
-              {isSingleVersionView ? (
+              {isSoloSingleVersionView ? (
                 <span className={versionLabels[singleVersionKey].headingClass}>
                   <span className="label-full">{versionLabels[singleVersionKey].label}</span>
                   <span className="label-short">
                     {versionLabels[singleVersionKey].shortLabel}
                   </span>
                 </span>
+              ) : isPairedSingleVersionView ? (
+                <>
+                  <span
+                    className={`fire-red-heading ${
+                      singleVersionKey !== 'fire-red' ? 'tracker-version-hidden' : ''
+                    }`.trim()}
+                    aria-hidden={singleVersionKey !== 'fire-red'}
+                  >
+                    <span className="label-full">Fire Red</span>
+                    <span className="label-short">FR</span>
+                  </span>
+                  <span
+                    className={`leaf-green-heading ${
+                      singleVersionKey !== 'leaf-green' ? 'tracker-version-hidden' : ''
+                    }`.trim()}
+                    aria-hidden={singleVersionKey !== 'leaf-green'}
+                  >
+                    <span className="label-full">Leaf Green</span>
+                    <span className="label-short">LG</span>
+                  </span>
+                </>
               ) : (
                 <>
                   <span className="fire-red-heading">
@@ -807,10 +884,12 @@ function App() {
                   isJumping={Boolean(jumpingSprites[String(entry.id).padStart(3, '0')])}
                   checkboxState={checkboxState}
                   updateCheckboxState={updateCheckboxState}
-                  trackerLayout={trackerLayout}
+                  isCompactSingleVersion={isSoloSingleVersionView}
                   singleVersionKey={singleVersionKey}
                   tradeMode={tradeMode}
                   switchEventUnlocks={switchEventUnlocks}
+                  fireRedBaseGameComplete={trackerState.fireRedBaseGameComplete}
+                  leafGreenBaseGameComplete={trackerState.leafGreenBaseGameComplete}
                   fireRedStarter={fireRedStarter}
                   leafGreenStarter={leafGreenStarter}
                   fireRedFossil={fireRedFossil}
