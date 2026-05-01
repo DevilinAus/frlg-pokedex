@@ -44,6 +44,7 @@ function GoalFocusCard({
         ? Boolean(ownedHeldTradeItems[goal.heldItemName])
         : Boolean(checkboxState[goal.targetCaughtKey])
     : false
+  const shouldShowBadge = Boolean(goal?.badgeLabel) && goal.type !== 'party'
 
   function handleActionChange(nextChecked) {
     if (!goal) {
@@ -67,7 +68,7 @@ function GoalFocusCard({
     <section className={`goal-focus-card goal-focus-card-${tone}`}>
       <div className="goal-focus-header">
         <span className="goal-focus-title">{title}</span>
-        {goal?.badgeLabel ? <span className="goal-focus-badge">{goal.badgeLabel}</span> : null}
+        {shouldShowBadge ? <span className="goal-focus-badge">{goal.badgeLabel}</span> : null}
       </div>
 
       {goal ? (
@@ -100,10 +101,6 @@ function GoalFocusCard({
                       <span className="goal-focus-level">{goal.levelLabel}</span>
                     </div>
                   </div>
-
-                  {goal.tradeFollowUpCopy ? (
-                    <p className="goal-focus-followup">{goal.tradeFollowUpCopy}</p>
-                  ) : null}
                 </>
               ) : goal.type === 'item' ? (
                 <>
