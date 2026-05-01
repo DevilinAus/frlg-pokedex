@@ -9,6 +9,7 @@ import Database from 'better-sqlite3'
 import SQLiteStoreFactory from 'better-sqlite3-session-store'
 import express from 'express'
 import session from 'express-session'
+import { normalizeOwnedHeldTradeItems } from './src/lib/heldTradeItems.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3001)
@@ -481,7 +482,9 @@ function sanitizeTrackerState(input) {
       input?.leafGreenHitmon,
       defaultTrackerState.leafGreenHitmon,
     ),
-    ownedHeldTradeItems: sanitizeBooleanMap(input?.ownedHeldTradeItems),
+    ownedHeldTradeItems: normalizeOwnedHeldTradeItems(
+      sanitizeBooleanMap(input?.ownedHeldTradeItems),
+    ),
     checkboxState: sanitizeBooleanMap(input?.checkboxState),
     celebrationState:
       input?.celebrationState &&
@@ -666,7 +669,9 @@ function sanitizeTrackerPatch(input) {
   }
 
   if (Object.hasOwn(input, 'ownedHeldTradeItems')) {
-    patch.ownedHeldTradeItems = sanitizeBooleanMap(input.ownedHeldTradeItems)
+    patch.ownedHeldTradeItems = normalizeOwnedHeldTradeItems(
+      sanitizeBooleanMap(input.ownedHeldTradeItems),
+    )
   }
 
   if (

@@ -12,6 +12,7 @@ import TradeQueueView from './components/TradeQueueView'
 import trackerSettingsCog from './assets/tracker-settings-cog.png'
 import usePokedexState from './hooks/usePokedexState'
 import { getItemDbUrl, isVisibleInSingleVersion } from './lib/pokedexHelpers'
+import { getOwnedHeldTradeItem } from './lib/heldTradeItems'
 import { ownedGameLabels, primaryGameOptions } from './lib/pokedexOptions'
 import { buildGoalsByVersion } from './lib/goals'
 import { getSpriteSrc } from './lib/sprites'
@@ -362,9 +363,18 @@ function App() {
       }
   const tradePairCount = tradeQueue.pairableCount
   const tradeReadyCount = tradeQueue.readyCount
-  const ownedHeldTradeItemCount = heldTradeItemNames.filter(
-    (itemName) => ownedHeldTradeItems[itemName],
-  ).length
+  const itemOwnershipVersionKeys =
+    ownedGames === 'both' || trackerLayout === 'dual'
+      ? ['leaf-green', 'fire-red']
+      : [ownedGames]
+  const ownedHeldTradeItemCountByVersion = Object.fromEntries(
+    itemOwnershipVersionKeys.map((versionKey) => [
+      versionKey,
+      heldTradeItemNames.filter((itemName) =>
+        getOwnedHeldTradeItem(ownedHeldTradeItems, versionKey, itemName),
+      ).length,
+    ]),
+  )
   const goalVersionKeys =
     ownedGames === 'both'
       ? ['fire-red', 'leaf-green']
@@ -765,37 +775,65 @@ function App() {
                     <div className="tracker-settings-section">
                       <div className="tracker-settings-section-header">
                         <span className="tracker-settings-section-title">Owned Items</span>
-                        <span className="tracker-settings-section-count">
-                          {ownedHeldTradeItemCount}/{heldTradeItemNames.length}
-                        </span>
                       </div>
 
                       <p className="tracker-settings-section-copy">
-                        Mark held-trade items once you have access to them.
+                        Track held-trade items separately for each version.
                       </p>
 
-                      <div className="tracker-settings-item-list">
-                        {heldTradeItemNames.map((itemName) => (
-                          <div className="tracker-settings-item" key={itemName}>
-                            <label className="tracker-settings-item-main">
-                              <input
-                                type="checkbox"
-                                checked={Boolean(ownedHeldTradeItems[itemName])}
-                                onChange={(event) =>
-                                  updateOwnedHeldTradeItem(itemName, event.target.checked)
-                                }
-                              />
-                              <span>{itemName}</span>
-                            </label>
+                      <div className="tracker-settings-item-groups">
+                        {itemOwnershipVersionKeys.map((versionKey) => (
+                          <div className="tracker-settings-item-group" key={versionKey}>
+                            <div className="tracker-settings-section-header">
+                              <span
+                                className={`tracker-settings-item-group-title ${
+                                  versionLabels[versionKey].headingClass
+                                }`.trim()}
+                              >
+                                {versionLabels[versionKey].label}
+                              </span>
+                              <span className="tracker-settings-section-count">
+                                {ownedHeldTradeItemCountByVersion[versionKey]}/
+                                {heldTradeItemNames.length}
+                              </span>
+                            </div>
 
-                            <a
-                              className="tracker-settings-item-link"
-                              href={getItemDbUrl(itemName)}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Wiki
-                            </a>
+                            <div className="tracker-settings-item-list">
+                              {heldTradeItemNames.map((itemName) => (
+                                <div
+                                  className="tracker-settings-item"
+                                  key={`${versionKey}-${itemName}`}
+                                >
+                                  <label className="tracker-settings-item-main">
+                                    <input
+                                      type="checkbox"
+                                      checked={getOwnedHeldTradeItem(
+                                        ownedHeldTradeItems,
+                                        versionKey,
+                                        itemName,
+                                      )}
+                                      onChange={(event) =>
+                                        updateOwnedHeldTradeItem(
+                                          versionKey,
+                                          itemName,
+                                          event.target.checked,
+                                        )
+                                      }
+                                    />
+                                    <span>{itemName}</span>
+                                  </label>
+
+                                  <a
+                                    className="tracker-settings-item-link"
+                                    href={getItemDbUrl(itemName)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Wiki
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>

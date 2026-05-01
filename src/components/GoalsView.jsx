@@ -1,4 +1,5 @@
 import { getItemDbUrl, getPokemonDbUrl } from '../lib/pokedexHelpers'
+import { getOwnedHeldTradeItem } from '../lib/heldTradeItems'
 import { getSpriteSrc } from '../lib/sprites'
 
 function GoalPokemonLink({ entry }) {
@@ -41,7 +42,7 @@ function GoalFocusCard({
     ? goal.type === 'hunt'
       ? Boolean(checkboxState[goal.sourceCaughtKey])
       : goal.type === 'item'
-        ? Boolean(ownedHeldTradeItems[goal.heldItemName])
+        ? getOwnedHeldTradeItem(ownedHeldTradeItems, goal.versionKey, goal.heldItemName)
         : Boolean(checkboxState[goal.targetCaughtKey])
     : false
   const shouldShowBadge = Boolean(goal?.badgeLabel) && goal.type !== 'party'
@@ -57,7 +58,7 @@ function GoalFocusCard({
     }
 
     if (goal.type === 'item') {
-      updateOwnedHeldTradeItem(goal.heldItemName, nextChecked)
+      updateOwnedHeldTradeItem(goal.versionKey, goal.heldItemName, nextChecked)
       return
     }
 

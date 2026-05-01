@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { getTrackablePokemon, pokemon } from '../data/pokemon.js'
+import { getHeldTradeItemOwnershipKey } from './heldTradeItems.js'
 import { getComment } from './pokedexHelpers.js'
 import { buildTradeQueue } from './tradeQueue.js'
 
@@ -207,6 +208,26 @@ test('marks held-item trades as ready once the item is owned', () => {
   assert.equal(tradeQueue.blockedByHeldItemCount, 0)
   assert.equal(tradeQueue.pairs[0].isReady, true)
   assert.equal(tradeQueue.pairs[0].left.heldItemOwned, true)
+})
+
+test('keeps held-item ownership separate for each version', () => {
+  const checkboxState = {
+    [getOwnedKey('leaf-green', 'Poliwhirl')]: true,
+    [getOwnedKey('fire-red', 'Slowpoke')]: true,
+  }
+  const tradeQueue = buildTradeQueue(
+    pokemonList,
+    checkboxState,
+    createTrackerState(checkboxState, {
+      [getHeldTradeItemOwnershipKey('leaf-green', "King's Rock")]: true,
+    }),
+  )
+
+  assert.equal(tradeQueue.pairableCount, 1)
+  assert.equal(tradeQueue.readyCount, 0)
+  assert.equal(tradeQueue.pairs[0].left.heldItemOwned, true)
+  assert.equal(tradeQueue.pairs[0].right.heldItemOwned, false)
+  assert.deepEqual(tradeQueue.pairs[0].missingHeldItemNames, ["King's Rock"])
 })
 
 test('drops the trade-for-base evolution text once Fire Red already owns Sandshrew', () => {

@@ -9,6 +9,7 @@ import {
   sanitizeTrackerState,
   saveGuestTrackerState,
 } from '../lib/guestStorage'
+import { getHeldTradeItemOwnershipKey } from '../lib/heldTradeItems'
 import { createFullDexCelebration } from '../lib/sprites'
 
 const starterPokemonIds = {
@@ -884,15 +885,17 @@ function usePokedexState() {
     setLeafGreenHitmon(nextValue)
   }
 
-  function updateOwnedHeldTradeItem(itemName, checked) {
-    if (typeof itemName !== 'string' || !itemName) {
+  function updateOwnedHeldTradeItem(versionKey, itemName, checked) {
+    const ownershipKey = getHeldTradeItemOwnershipKey(versionKey, itemName)
+
+    if (!ownershipKey) {
       return
     }
 
     markCloudStateDirty()
     setOwnedHeldTradeItems((currentState) => ({
       ...currentState,
-      [itemName]: Boolean(checked),
+      [ownershipKey]: Boolean(checked),
     }))
   }
 
