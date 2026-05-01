@@ -110,10 +110,37 @@ test('falls back to the next owned trade-unlock line once an earlier one is comp
   assert.equal(goals.partyGoal.tradeFollowUp?.name, 'Golem')
 })
 
-test('selects the lowest-dex hunt target that unlocks a trade after leveling', () => {
+test('prefers a non-Game Corner hunt target before prize Pokemon', () => {
   const goals = getVersionGoals(
     pokemonList,
     'fire-red',
+    createTrackerState(),
+  )
+
+  assert.equal(goals.huntGoal.sourceEntry.name, 'Machop')
+  assert.equal(goals.huntGoal.targetEntry.name, 'Machoke')
+  assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Machamp')
+})
+
+test('deprioritizes Leaf Green Game Corner Pokemon as hunt targets', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'leaf-green',
+    createTrackerState(),
+  )
+
+  assert.equal(goals.huntGoal.sourceEntry.name, 'Machop')
+  assert.equal(goals.huntGoal.targetEntry.name, 'Machoke')
+  assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Machamp')
+})
+
+test('still returns a Game Corner hunt target when it is the only hunt option left', () => {
+  const gameCornerOnlyPokemon = pokemonList.filter((entry) =>
+    ['Abra', 'Kadabra', 'Alakazam'].includes(entry.name),
+  )
+  const goals = getVersionGoals(
+    gameCornerOnlyPokemon,
+    'leaf-green',
     createTrackerState(),
   )
 

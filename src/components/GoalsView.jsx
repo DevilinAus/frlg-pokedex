@@ -117,11 +117,6 @@ function GoalFocusCard({
                       <GoalPokemonLink entry={goal.targetEntry} />
                     </div>
                   </div>
-
-                  <p className="goal-focus-followup">
-                    Then trade <GoalPokemonLink entry={goal.sourceEntry} /> holding it for{' '}
-                    <GoalPokemonLink entry={goal.targetEntry} />.
-                  </p>
                 </>
               ) : null}
             </div>
@@ -190,16 +185,18 @@ function GoalsVersionCard({
           />
         ) : null}
 
-        <GoalFocusCard
-          title="Retrieve Item"
-          goal={panel.itemGoal}
-          emptyCopy="No held item is blocking a trade right now."
-          tone="item"
-          checkboxState={checkboxState}
-          updateCheckboxState={updateCheckboxState}
-          ownedHeldTradeItems={ownedHeldTradeItems}
-          updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
-        />
+        {panel.itemGoal ? (
+          <GoalFocusCard
+            title="Retrieve Item"
+            goal={panel.itemGoal}
+            emptyCopy="No held item is blocking a trade right now."
+            tone="item"
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+          />
+        ) : null}
       </div>
     </section>
   )
