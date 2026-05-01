@@ -31,6 +31,7 @@ function hasMeaningfulTrackerData(state) {
     state.ownedGames !== defaultAppState.ownedGames ||
     state.trackerLayout !== defaultAppState.trackerLayout ||
     state.tradeMode ||
+    state.showSecondaryProgress !== defaultAppState.showSecondaryProgress ||
     state.unlockAll ||
     state.primaryGame !== defaultAppState.primaryGame ||
     state.switchEventUnlocks ||
@@ -49,26 +50,53 @@ function hasMeaningfulTrackerData(state) {
   )
 }
 
+function inferShowSecondaryProgress(input, ownedGames, trackerLayout, primaryGame) {
+  if (typeof input?.showSecondaryProgress === 'boolean') {
+    return input.showSecondaryProgress
+  }
+
+  if (ownedGames === 'both') {
+    if (primaryGame) {
+      return Boolean(input?.tradeMode)
+    }
+
+    return true
+  }
+
+  return trackerLayout === 'dual'
+}
+
 export function sanitizeTrackerState(input) {
   const legacyBaseGameComplete = Boolean(input?.baseGameComplete)
+  const ownedGames = sanitizeEnum(
+    input?.ownedGames,
+    ownedGameValues,
+    defaultAppState.ownedGames,
+  )
+  const trackerLayout = sanitizeEnum(
+    input?.trackerLayout,
+    trackerLayoutValues,
+    defaultAppState.trackerLayout,
+  )
+  const primaryGame = sanitizeEnum(
+    input?.primaryGame,
+    primaryGameValues,
+    defaultAppState.primaryGame,
+  )
+  const showSecondaryProgress = inferShowSecondaryProgress(
+    input,
+    ownedGames,
+    trackerLayout,
+    primaryGame,
+  )
+  const tradeMode = ownedGames === 'both' && Boolean(primaryGame)
   const safeState = {
-    ownedGames: sanitizeEnum(
-      input?.ownedGames,
-      ownedGameValues,
-      defaultAppState.ownedGames,
-    ),
-    trackerLayout: sanitizeEnum(
-      input?.trackerLayout,
-      trackerLayoutValues,
-      defaultAppState.trackerLayout,
-    ),
-    tradeMode: Boolean(input?.tradeMode),
+    ownedGames,
+    trackerLayout,
+    tradeMode,
+    showSecondaryProgress,
     unlockAll: Boolean(input?.unlockAll),
-    primaryGame: sanitizeEnum(
-      input?.primaryGame,
-      primaryGameValues,
-      defaultAppState.primaryGame,
-    ),
+    primaryGame,
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
     fireRedBaseGameComplete:
       typeof input?.fireRedBaseGameComplete === 'boolean'

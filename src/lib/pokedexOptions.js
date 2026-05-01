@@ -54,6 +54,7 @@ export const defaultAppState = {
   trackerLayout: 'dual',
   onboardingComplete: false,
   tradeMode: false,
+  showSecondaryProgress: false,
   unlockAll: false,
   primaryGame: '',
   switchEventUnlocks: false,

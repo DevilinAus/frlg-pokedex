@@ -28,6 +28,8 @@ const starterBasePokemonIds = {
   squirtle: '007',
 }
 
+const duplicateEvolutionSourceSpecies = new Set(['Poliwhirl'])
+
 const pokemonIdByName = new Map(
   pokemon.map((entry) => [entry.name, String(entry.id).padStart(3, '0')]),
 )
@@ -114,6 +116,10 @@ export function needsChoiceExtraCopy(entry, versionChoices, tradeMode) {
   return isSelectedStarterBase || isSelectedHitmon
 }
 
+function needsDuplicateEvolutionExtraCopy(entry, tradeMode) {
+  return !tradeMode && duplicateEvolutionSourceSpecies.has(entry.name)
+}
+
 function getVersionChoices(versionKey, trackerState) {
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
 
@@ -190,6 +196,10 @@ function getOtherVersionKey(versionKey) {
 }
 
 function shouldShowExtraCopy(entry, versionKey, trackerState, tradeMode = trackerState.tradeMode) {
+  if (needsDuplicateEvolutionExtraCopy(entry, tradeMode)) {
+    return true
+  }
+
   const config = versionConfigs[versionKey] ?? versionConfigs['fire-red']
   const versionChoices = getVersionChoices(versionKey, trackerState)
   const otherVersionKey = getOtherVersionKey(versionKey)

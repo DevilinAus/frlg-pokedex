@@ -58,6 +58,26 @@ function getViewerBaseGameComplete(ownedGames, primaryGame, trackerState) {
   return false
 }
 
+function getOtherVersionKey(versionKey) {
+  return versionKey === 'leaf-green' ? 'fire-red' : 'leaf-green'
+}
+
+function getLinkedProgressMeta(activeSave, collaborators) {
+  if (activeSave?.role === 'collaborator' && activeSave.ownerUsername) {
+    return activeSave.ownerUsername
+  }
+
+  if (collaborators.length === 1) {
+    return collaborators[0].username
+  }
+
+  if (collaborators.length > 1) {
+    return `${collaborators.length} linked players`
+  }
+
+  return ''
+}
+
 function getTradeCompletionUpdates(pair) {
   const updates = [
     {
@@ -114,16 +134,6 @@ function getInitialTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-function getIntroCopy(ownedGames, trackerLayout) {
-  if (ownedGames !== 'both') {
-    return trackerLayout === 'single'
-      ? 'A cleaner one-column tracker that hides Pokemon your current save cannot reach.'
-      : 'Built for a paired run where both versions stay visible and progress can be compared at a glance.'
-  }
-
-  return ''
-}
-
 function getTradeHeroCopy(readyCount) {
   return `${readyCount} ${readyCount === 1 ? 'TRADE' : 'TRADES'} READY`
 }
@@ -154,7 +164,8 @@ function App() {
     onboardingComplete,
     completeOnboarding,
     tradeMode,
-    setTradeMode,
+    showSecondaryProgress,
+    setShowSecondaryProgress,
     unlockAll,
     setUnlockAll,
     primaryGame,
@@ -241,15 +252,21 @@ function App() {
     }
   }
   const shouldShowOnboarding = mode !== 'loading' && (!onboardingComplete || setupOpen)
-  const canUseSingleVersionView = ownedGames === 'both' && Boolean(primaryGame)
+  const isSingleDexAcrossBothGames = ownedGames === 'both' && Boolean(primaryGame)
+  const isLinkedDualSave = ownedGames !== 'both' && trackerLayout === 'dual'
+  const hasToggleableSecondaryProgress =
+    isSingleDexAcrossBothGames || isLinkedDualSave
+  const isSoloSingleVersionView =
+    ownedGames !== 'both' && trackerLayout === 'single'
+  const isPairedSingleVersionView =
+    hasToggleableSecondaryProgress && !showSecondaryProgress
   const isSingleVersionView =
-    ownedGames === 'both'
-      ? canUseSingleVersionView && !tradeMode
-      : trackerLayout === 'single'
-  const isSoloSingleVersionView = ownedGames !== 'both' && isSingleVersionView
-  const isPairedSingleVersionView = ownedGames === 'both' && isSingleVersionView
-  const isCombinedView = ownedGames === 'both' && !isSingleVersionView
-  const singleVersionKey = isSingleVersionView ? (ownedGames === 'both' ? primaryGame : ownedGames) : null
+    isSoloSingleVersionView || isPairedSingleVersionView
+  const singleVersionKey = isSingleVersionView
+    ? isSingleDexAcrossBothGames
+      ? primaryGame
+      : ownedGames
+    : null
   const trackablePokemon = getTrackablePokemon({
     baseGameComplete,
   })
@@ -291,7 +308,6 @@ function App() {
 
     return true
   })
-  const introCopy = getIntroCopy(ownedGames, trackerLayout)
   const fireRedCaughtCount = getVersionCaughtCount(
     'fire-red',
     trackablePokemon,
@@ -311,6 +327,15 @@ function App() {
   const shouldShowMainGameSetting =
     ownedGames === 'both' && (Boolean(primaryGame) || tradeMode)
   const shouldShowTradeReadyCard = trackerLayout === 'dual'
+  const secondaryProgressLabel = isSingleDexAcrossBothGames
+    ? 'View Secondary Pokedex'
+    : 'View Partner Progress'
+  const secondaryProgressMeta = isSingleDexAcrossBothGames
+    ? ownedGameLabels[getOtherVersionKey(primaryGame)]
+    : getLinkedProgressMeta(activeSave, collaborators)
+  const secondaryProgressAriaLabel = secondaryProgressMeta
+    ? `${secondaryProgressLabel}: ${secondaryProgressMeta}`
+    : secondaryProgressLabel
   const tradeQueue = shouldShowTradeReadyCard
     ? buildTradeQueue(trackablePokemon, checkboxState, trackerState, {
         leftVersionKey: 'leaf-green',
@@ -535,7 +560,6 @@ function App() {
             <div className="hero-copy-top">
               <p className="eyebrow">FireRed + LeafGreen Tracker</p>
               <h1>Kanto Pokedex</h1>
-              {introCopy ? <p className="intro">{introCopy}</p> : null}
             </div>
 
             <div className="hero-stats">
@@ -865,17 +889,27 @@ function App() {
                 </select>
               </label>
 
-              {ownedGames === 'both' ? (
+              {hasToggleableSecondaryProgress ? (
                 <button
                   type="button"
-                  className={`trade-mode-toggle ${isCombinedView ? 'trade-mode-toggle-combined' : ''}`}
+                  className={`trade-mode-toggle ${
+                    showSecondaryProgress ? 'trade-mode-toggle-combined' : ''
+                  }`}
                   role="switch"
-                  aria-checked={isCombinedView}
-                  aria-label="View Partner Progress"
-                  onClick={() => setTradeMode(!isCombinedView)}
-                  disabled={!canUseSingleVersionView}
+                  aria-checked={showSecondaryProgress}
+                  aria-label={secondaryProgressAriaLabel}
+                  onClick={() => setShowSecondaryProgress(!showSecondaryProgress)}
                 >
-                  <span className="trade-mode-toggle-copy">View Partner Progress</span>
+                  <span className="trade-mode-toggle-copy">
+                    <span className="trade-mode-toggle-label">
+                      {secondaryProgressLabel}
+                    </span>
+                    {secondaryProgressMeta ? (
+                      <span className="trade-mode-toggle-meta">
+                        {secondaryProgressMeta}
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="trade-mode-toggle-track" aria-hidden="true">
                     <span className="trade-mode-toggle-thumb" />
                   </span>

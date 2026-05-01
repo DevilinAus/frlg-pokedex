@@ -56,6 +56,9 @@ function usePokedexState() {
     defaultAppState.onboardingComplete,
   )
   const [tradeMode, setTradeMode] = useState(defaultAppState.tradeMode)
+  const [showSecondaryProgress, setShowSecondaryProgress] = useState(
+    defaultAppState.showSecondaryProgress,
+  )
   const [unlockAll, setUnlockAll] = useState(defaultAppState.unlockAll)
   const [primaryGame, setPrimaryGame] = useState(defaultAppState.primaryGame)
   const [switchEventUnlocks, setSwitchEventUnlocks] = useState(
@@ -132,6 +135,7 @@ function usePokedexState() {
       trackerLayout,
       onboardingComplete,
       tradeMode,
+      showSecondaryProgress,
       unlockAll,
       primaryGame,
       switchEventUnlocks,
@@ -168,6 +172,10 @@ function usePokedexState() {
 
     if (nextState.tradeMode !== baseState.tradeMode) {
       patch.tradeMode = nextState.tradeMode
+    }
+
+    if (nextState.showSecondaryProgress !== baseState.showSecondaryProgress) {
+      patch.showSecondaryProgress = nextState.showSecondaryProgress
     }
 
     if (nextState.unlockAll !== baseState.unlockAll) {
@@ -299,6 +307,7 @@ function usePokedexState() {
     setTrackerLayout(state.trackerLayout)
     setOnboardingComplete(state.onboardingComplete)
     setTradeMode(state.tradeMode)
+    setShowSecondaryProgress(state.showSecondaryProgress)
     setUnlockAll(state.unlockAll)
     setPrimaryGame(state.primaryGame)
     setSwitchEventUnlocks(state.switchEventUnlocks)
@@ -594,6 +603,7 @@ function usePokedexState() {
     onboardingComplete,
     ownedHeldTradeItems,
     ownedGames,
+    showSecondaryProgress,
     unlockAll,
     switchEventUnlocks,
     trackerLayout,
@@ -675,6 +685,7 @@ function usePokedexState() {
     onboardingComplete,
     ownedHeldTradeItems,
     ownedGames,
+    showSecondaryProgress,
     unlockAll,
     switchEventUnlocks,
     trackerLayout,
@@ -788,6 +799,11 @@ function usePokedexState() {
     setTradeMode(nextValue)
   }
 
+  function updateShowSecondaryProgress(nextValue) {
+    markCloudStateDirty()
+    setShowSecondaryProgress(nextValue)
+  }
+
   function updateUnlockAll(nextValue) {
     markCloudStateDirty()
     setUnlockAll(nextValue)
@@ -897,6 +913,9 @@ function usePokedexState() {
     setOwnedGames(setup.ownedGames)
     setTrackerLayout(setup.trackerLayout)
     setTradeMode(setup.tradeMode)
+    setShowSecondaryProgress(
+      setup.showSecondaryProgress ?? defaultAppState.showSecondaryProgress,
+    )
     setUnlockAll(defaultAppState.unlockAll)
     setPrimaryGame(setup.primaryGame ?? defaultAppState.primaryGame)
     setSwitchEventUnlocks(setup.switchEventUnlocks)
@@ -1137,6 +1156,8 @@ function usePokedexState() {
     reopenOnboarding,
     tradeMode,
     setTradeMode: updateTradeMode,
+    showSecondaryProgress,
+    setShowSecondaryProgress: updateShowSecondaryProgress,
     unlockAll,
     setUnlockAll: updateUnlockAll,
     primaryGame,
