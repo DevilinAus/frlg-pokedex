@@ -1,4 +1,5 @@
 import { defaultAppState } from './pokedexOptions'
+import { normalizeOwnedHeldTradeItems } from './heldTradeItems'
 
 export const guestStateStorageKey = 'lgfr-guest-state'
 
@@ -138,7 +139,9 @@ export function sanitizeTrackerState(input) {
       input?.leafGreenHitmon,
       defaultAppState.leafGreenHitmon,
     ),
-    ownedHeldTradeItems: sanitizeBooleanMap(input?.ownedHeldTradeItems),
+    ownedHeldTradeItems: normalizeOwnedHeldTradeItems(
+      sanitizeBooleanMap(input?.ownedHeldTradeItems),
+    ),
     checkboxState: sanitizeBooleanMap(input?.checkboxState),
     celebrationState:
       input?.celebrationState &&

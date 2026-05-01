@@ -45,7 +45,11 @@ function TradeQueuePokemonCard({ token, tone, onUpdateHeldTradeItem }) {
                   type="checkbox"
                   checked={Boolean(token.heldItemOwned)}
                   onChange={(event) =>
-                    onUpdateHeldTradeItem?.(token.heldItemName, event.target.checked)
+                    onUpdateHeldTradeItem?.(
+                      token.versionKey,
+                      token.heldItemName,
+                      event.target.checked,
+                    )
                   }
                 />
                 <span>Item acquired</span>
@@ -133,9 +137,9 @@ function TradeQueueView({
     setPairOrder(visiblePairs.map(getTradePairKey))
   }
 
-  function handleUpdateHeldTradeItem(itemName, isOwned) {
+  function handleUpdateHeldTradeItem(versionKey, itemName, isOwned) {
     rememberVisiblePairOrder()
-    onUpdateHeldTradeItem?.(itemName, isOwned)
+    onUpdateHeldTradeItem?.(versionKey, itemName, isOwned)
   }
 
   return (
