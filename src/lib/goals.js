@@ -5,6 +5,13 @@ import {
 
 export const XP_SHARE_POKEDEX_REQUIREMENT = 50
 
+// Until we surface location guidance in the UI, avoid recommending Celadon prize
+// Pokemon as hunt targets when a regular catch is available first.
+const gameCornerPrizePokemonByVersion = {
+  'fire-red': new Set(['Abra', 'Clefairy', 'Dratini', 'Scyther', 'Porygon']),
+  'leaf-green': new Set(['Abra', 'Clefairy', 'Pinsir', 'Dratini', 'Porygon']),
+}
+
 function getCaughtKey(versionKey, pokemonId) {
   return `${versionKey}-${String(pokemonId).padStart(3, '0')}`
 }
@@ -90,6 +97,27 @@ function compareCandidates(leftCandidate, rightCandidate) {
   return leftCandidate.targetEntry.id - rightCandidate.targetEntry.id
 }
 
+function isGameCornerPrizePokemon(entry, versionKey) {
+  return Boolean(gameCornerPrizePokemonByVersion[versionKey]?.has(entry.name))
+}
+
+function compareHuntCandidates(leftCandidate, rightCandidate, versionKey) {
+  const leftIsGameCornerPrize = isGameCornerPrizePokemon(
+    leftCandidate.sourceEntry,
+    versionKey,
+  )
+  const rightIsGameCornerPrize = isGameCornerPrizePokemon(
+    rightCandidate.sourceEntry,
+    versionKey,
+  )
+
+  if (leftIsGameCornerPrize !== rightIsGameCornerPrize) {
+    return leftIsGameCornerPrize ? 1 : -1
+  }
+
+  return compareCandidates(leftCandidate, rightCandidate)
+}
+
 function buildTradeFollowUpCopy(goal) {
   if (goal.tradeFollowUp) {
     if (goal.tradeFollowUp.tradeEvolutionItem) {
@@ -157,7 +185,7 @@ function formatItemGoal(token) {
       spriteSlug: token.receivedSpriteSlug,
     },
     heldItemName: token.heldItemName,
-    badgeLabel: 'Trade item',
+    badgeLabel: '',
   }
 }
 
@@ -240,7 +268,9 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
   })
 
   partyCandidates.sort(compareCandidates)
-  huntCandidates.sort(compareCandidates)
+  huntCandidates.sort((leftCandidate, rightCandidate) =>
+    compareHuntCandidates(leftCandidate, rightCandidate, versionKey),
+  )
 
   return {
     partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party', versionKey) : null,
