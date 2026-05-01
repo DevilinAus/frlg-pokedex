@@ -35,6 +35,7 @@ const defaultTrackerState = {
   trackerLayout: 'dual',
   onboardingComplete: false,
   tradeMode: false,
+  showSecondaryProgress: false,
   unlockAll: false,
   primaryGame: '',
   switchEventUnlocks: false,
@@ -373,6 +374,7 @@ function hasMeaningfulTrackerData(state) {
     state.ownedGames !== defaultTrackerState.ownedGames ||
     state.trackerLayout !== defaultTrackerState.trackerLayout ||
     state.tradeMode ||
+    state.showSecondaryProgress !== defaultTrackerState.showSecondaryProgress ||
     state.unlockAll ||
     state.primaryGame !== defaultTrackerState.primaryGame ||
     state.switchEventUnlocks ||
@@ -391,26 +393,53 @@ function hasMeaningfulTrackerData(state) {
   )
 }
 
+function inferShowSecondaryProgress(input, ownedGames, trackerLayout, primaryGame) {
+  if (typeof input?.showSecondaryProgress === 'boolean') {
+    return input.showSecondaryProgress
+  }
+
+  if (ownedGames === 'both') {
+    if (primaryGame) {
+      return Boolean(input?.tradeMode)
+    }
+
+    return true
+  }
+
+  return trackerLayout === 'dual'
+}
+
 function sanitizeTrackerState(input) {
   const legacyBaseGameComplete = Boolean(input?.baseGameComplete)
+  const ownedGames = sanitizeEnum(
+    input?.ownedGames,
+    ownedGameValues,
+    defaultTrackerState.ownedGames,
+  )
+  const trackerLayout = sanitizeEnum(
+    input?.trackerLayout,
+    trackerLayoutValues,
+    defaultTrackerState.trackerLayout,
+  )
+  const primaryGame = sanitizeEnum(
+    input?.primaryGame,
+    primaryGameValues,
+    defaultTrackerState.primaryGame,
+  )
+  const showSecondaryProgress = inferShowSecondaryProgress(
+    input,
+    ownedGames,
+    trackerLayout,
+    primaryGame,
+  )
+  const tradeMode = ownedGames === 'both' && Boolean(primaryGame)
   const safeState = {
-    ownedGames: sanitizeEnum(
-      input?.ownedGames,
-      ownedGameValues,
-      defaultTrackerState.ownedGames,
-    ),
-    trackerLayout: sanitizeEnum(
-      input?.trackerLayout,
-      trackerLayoutValues,
-      defaultTrackerState.trackerLayout,
-    ),
-    tradeMode: Boolean(input?.tradeMode),
+    ownedGames,
+    trackerLayout,
+    tradeMode,
+    showSecondaryProgress,
     unlockAll: Boolean(input?.unlockAll),
-    primaryGame: sanitizeEnum(
-      input?.primaryGame,
-      primaryGameValues,
-      defaultTrackerState.primaryGame,
-    ),
+    primaryGame,
     switchEventUnlocks: Boolean(input?.switchEventUnlocks),
     fireRedBaseGameComplete:
       typeof input?.fireRedBaseGameComplete === 'boolean'
@@ -545,6 +574,10 @@ function sanitizeTrackerPatch(input) {
 
   if (Object.hasOwn(input, 'tradeMode')) {
     patch.tradeMode = Boolean(input.tradeMode)
+  }
+
+  if (Object.hasOwn(input, 'showSecondaryProgress')) {
+    patch.showSecondaryProgress = Boolean(input.showSecondaryProgress)
   }
 
   if (Object.hasOwn(input, 'unlockAll')) {

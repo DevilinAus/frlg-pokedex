@@ -221,6 +221,22 @@ test('hides version-exclusive extra-copy prompts once both saves own the species
   assert.equal(state.showExtraCopy, false)
 })
 
+test('keeps Poliwhirl extra-copy prompts visible for split evolutions', () => {
+  const poliwhirl = getPokemonByName('Poliwhirl')
+
+  const state = getVersionTrackerState(
+    poliwhirl,
+    'leaf-green',
+    createTrackerState({
+      checkboxState: {
+        [getCaughtKey('fire-red', poliwhirl.id)]: true,
+      },
+    }),
+  )
+
+  assert.equal(state.showExtraCopy, true)
+})
+
 test('prefers the Fire Red-specific base game flag over the generic fallback', () => {
   const trackerState = createTrackerState({
     baseGameComplete: true,
