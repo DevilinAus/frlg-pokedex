@@ -1,5 +1,5 @@
 import { getItemDbUrl, getPokemonDbUrl } from '../lib/pokedexHelpers'
-import { getOwnedHeldTradeItem } from '../lib/heldTradeItems'
+import { getOwnedHeldTradeItemForMode } from '../lib/heldTradeItems'
 import { getSpriteSrc } from '../lib/sprites'
 
 function GoalPokemonLink({ entry }) {
@@ -36,13 +36,19 @@ function GoalFocusCard({
   checkboxState,
   updateCheckboxState,
   ownedHeldTradeItems,
+  ownedGames,
   updateOwnedHeldTradeItem,
 }) {
   const actionChecked = goal
     ? goal.type === 'hunt'
       ? Boolean(checkboxState[goal.sourceCaughtKey])
       : goal.type === 'item'
-        ? getOwnedHeldTradeItem(ownedHeldTradeItems, goal.versionKey, goal.heldItemName)
+        ? getOwnedHeldTradeItemForMode(
+            ownedHeldTradeItems,
+            goal.versionKey,
+            goal.heldItemName,
+            ownedGames,
+          )
         : Boolean(checkboxState[goal.targetCaughtKey])
     : false
   const shouldShowBadge = Boolean(goal?.badgeLabel) && goal.type !== 'party'
@@ -58,7 +64,11 @@ function GoalFocusCard({
     }
 
     if (goal.type === 'item') {
-      updateOwnedHeldTradeItem(goal.versionKey, goal.heldItemName, nextChecked)
+      updateOwnedHeldTradeItem(
+        ownedGames === 'both' ? 'both' : goal.versionKey,
+        goal.heldItemName,
+        nextChecked,
+      )
       return
     }
 
@@ -147,6 +157,7 @@ function GoalsVersionCard({
   checkboxState,
   updateCheckboxState,
   ownedHeldTradeItems,
+  ownedGames,
   updateOwnedHeldTradeItem,
   showVersionLabel,
 }) {
@@ -167,6 +178,7 @@ function GoalsVersionCard({
           checkboxState={checkboxState}
           updateCheckboxState={updateCheckboxState}
           ownedHeldTradeItems={ownedHeldTradeItems}
+          ownedGames={ownedGames}
           updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
         />
 
@@ -179,6 +191,7 @@ function GoalsVersionCard({
             checkboxState={checkboxState}
             updateCheckboxState={updateCheckboxState}
             ownedHeldTradeItems={ownedHeldTradeItems}
+            ownedGames={ownedGames}
             updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
           />
         ) : null}
@@ -192,6 +205,7 @@ function GoalsVersionCard({
             checkboxState={checkboxState}
             updateCheckboxState={updateCheckboxState}
             ownedHeldTradeItems={ownedHeldTradeItems}
+            ownedGames={ownedGames}
             updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
           />
         ) : null}
@@ -206,6 +220,7 @@ function GoalsView({
   checkboxState,
   updateCheckboxState,
   ownedHeldTradeItems,
+  ownedGames,
   updateOwnedHeldTradeItem,
 }) {
   const showVersionLabel = panels.length > 1
@@ -224,6 +239,7 @@ function GoalsView({
             checkboxState={checkboxState}
             updateCheckboxState={updateCheckboxState}
             ownedHeldTradeItems={ownedHeldTradeItems}
+            ownedGames={ownedGames}
             updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
             showVersionLabel={showVersionLabel}
           />

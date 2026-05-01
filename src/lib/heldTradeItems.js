@@ -30,7 +30,58 @@ export function getOwnedHeldTradeItem(ownedHeldTradeItems, versionKey, itemName)
   return Boolean(ownedHeldTradeItems?.[itemName])
 }
 
-export function normalizeOwnedHeldTradeItems(ownedHeldTradeItems) {
+export function getOwnedHeldTradeItemForMode(
+  ownedHeldTradeItems,
+  versionKey,
+  itemName,
+  ownedGames,
+) {
+  if (ownedGames === 'both') {
+    if (Object.hasOwn(ownedHeldTradeItems ?? {}, itemName)) {
+      return Boolean(ownedHeldTradeItems[itemName])
+    }
+
+    return heldTradeItemVersionKeys.some((itemVersionKey) =>
+      getOwnedHeldTradeItem(ownedHeldTradeItems, itemVersionKey, itemName),
+    )
+  }
+
+  return getOwnedHeldTradeItem(ownedHeldTradeItems, versionKey, itemName)
+}
+
+export function buildLegacyOwnedHeldTradeItems(ownedHeldTradeItems, ownedGames = 'both') {
+  const normalizedItems = normalizeOwnedHeldTradeItems(ownedHeldTradeItems, ownedGames)
+  const itemNames = new Set()
+
+  Object.keys(normalizedItems).forEach((key) => {
+    const [versionKey, itemName] = key.split('::')
+
+    if (itemName && isHeldTradeItemVersionKey(versionKey)) {
+      itemNames.add(itemName)
+    }
+  })
+
+  return Object.fromEntries(
+    [...itemNames].sort().map((itemName) => [
+      itemName,
+      getOwnedHeldTradeItemForMode(normalizedItems, ownedGames, itemName, ownedGames),
+    ]),
+  )
+}
+
+export function withLegacyOwnedHeldTradeItemsCompatibility(
+  ownedHeldTradeItems,
+  ownedGames = 'both',
+) {
+  const normalizedItems = normalizeOwnedHeldTradeItems(ownedHeldTradeItems, ownedGames)
+
+  return {
+    ...buildLegacyOwnedHeldTradeItems(normalizedItems, ownedGames),
+    ...normalizedItems,
+  }
+}
+
+export function normalizeOwnedHeldTradeItems(ownedHeldTradeItems, ownedGames = 'both') {
   if (
     !ownedHeldTradeItems ||
     typeof ownedHeldTradeItems !== 'object' ||
@@ -58,7 +109,25 @@ export function normalizeOwnedHeldTradeItems(ownedHeldTradeItems) {
   })
 
   legacyItems.forEach(([itemName, value]) => {
-    if (!value) {
+    if (ownedGames === 'both') {
+      heldTradeItemVersionKeys.forEach((versionKey) => {
+        const ownershipKey = getHeldTradeItemOwnershipKey(versionKey, itemName)
+
+        if (!Object.hasOwn(normalizedItems, ownershipKey)) {
+          normalizedItems[ownershipKey] = value
+        }
+      })
+
+      return
+    }
+
+    if (isHeldTradeItemVersionKey(ownedGames)) {
+      const ownershipKey = getHeldTradeItemOwnershipKey(ownedGames, itemName)
+
+      if (!Object.hasOwn(normalizedItems, ownershipKey)) {
+        normalizedItems[ownershipKey] = value
+      }
+
       return
     }
 
@@ -66,7 +135,7 @@ export function normalizeOwnedHeldTradeItems(ownedHeldTradeItems) {
       const ownershipKey = getHeldTradeItemOwnershipKey(versionKey, itemName)
 
       if (!Object.hasOwn(normalizedItems, ownershipKey)) {
-        normalizedItems[ownershipKey] = true
+        normalizedItems[ownershipKey] = value
       }
     })
   })

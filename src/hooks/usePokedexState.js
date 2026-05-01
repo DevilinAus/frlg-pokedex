@@ -9,7 +9,10 @@ import {
   sanitizeTrackerState,
   saveGuestTrackerState,
 } from '../lib/guestStorage'
-import { getHeldTradeItemOwnershipKey } from '../lib/heldTradeItems'
+import {
+  getHeldTradeItemOwnershipKey,
+  heldTradeItemVersionKeys,
+} from '../lib/heldTradeItems'
 import { createFullDexCelebration } from '../lib/sprites'
 
 const starterPokemonIds = {
@@ -886,17 +889,31 @@ function usePokedexState() {
   }
 
   function updateOwnedHeldTradeItem(versionKey, itemName, checked) {
-    const ownershipKey = getHeldTradeItemOwnershipKey(versionKey, itemName)
+    if (versionKey !== 'both') {
+      const ownershipKey = getHeldTradeItemOwnershipKey(versionKey, itemName)
 
-    if (!ownershipKey) {
+      if (!ownershipKey) {
+        return
+      }
+
+      markCloudStateDirty()
+      setOwnedHeldTradeItems((currentState) => ({
+        ...currentState,
+        [ownershipKey]: Boolean(checked),
+      }))
       return
     }
 
     markCloudStateDirty()
-    setOwnedHeldTradeItems((currentState) => ({
-      ...currentState,
-      [ownershipKey]: Boolean(checked),
-    }))
+    setOwnedHeldTradeItems((currentState) =>
+      heldTradeItemVersionKeys.reduce(
+        (nextState, itemVersionKey) => ({
+          ...nextState,
+          [getHeldTradeItemOwnershipKey(itemVersionKey, itemName)]: Boolean(checked),
+        }),
+        { ...currentState },
+      ),
+    )
   }
 
   function completeOnboarding(setup) {

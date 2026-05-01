@@ -141,6 +141,7 @@ export function sanitizeTrackerState(input) {
     ),
     ownedHeldTradeItems: normalizeOwnedHeldTradeItems(
       sanitizeBooleanMap(input?.ownedHeldTradeItems),
+      ownedGames,
     ),
     checkboxState: sanitizeBooleanMap(input?.checkboxState),
     celebrationState:

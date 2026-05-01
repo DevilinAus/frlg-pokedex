@@ -4,7 +4,7 @@ import {
   hasTradeQueueExtraCopy,
 } from './pokedexHelpers.js'
 import { getPairedTradeFamilyState } from './pairedTradeFamilies.js'
-import { getOwnedHeldTradeItem } from './heldTradeItems.js'
+import { getOwnedHeldTradeItemForMode } from './heldTradeItems.js'
 
 function getTradeEvolutionTargetsBySource(pokemonList) {
   const targets = new Map()
@@ -42,7 +42,12 @@ function createTradeToken(entry, versionKey, type, receivedEntry, trackerState) 
     type === 'trade-evolution' ? receivedEntry.tradeEvolutionItem ?? null : null
   const heldItemUrl = heldItemName ? getItemDbUrl(heldItemName) : ''
   const heldItemOwned = heldItemName
-    ? getOwnedHeldTradeItem(trackerState.ownedHeldTradeItems, versionKey, heldItemName)
+    ? getOwnedHeldTradeItemForMode(
+        trackerState.ownedHeldTradeItems,
+        versionKey,
+        heldItemName,
+        trackerState.ownedGames,
+      )
     : true
 
   return {

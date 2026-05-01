@@ -9,7 +9,10 @@ import Database from 'better-sqlite3'
 import SQLiteStoreFactory from 'better-sqlite3-session-store'
 import express from 'express'
 import session from 'express-session'
-import { normalizeOwnedHeldTradeItems } from './src/lib/heldTradeItems.js'
+import {
+  normalizeOwnedHeldTradeItems,
+  withLegacyOwnedHeldTradeItemsCompatibility,
+} from './src/lib/heldTradeItems.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3001)
@@ -484,6 +487,7 @@ function sanitizeTrackerState(input) {
     ),
     ownedHeldTradeItems: normalizeOwnedHeldTradeItems(
       sanitizeBooleanMap(input?.ownedHeldTradeItems),
+      ownedGames,
     ),
     checkboxState: sanitizeBooleanMap(input?.checkboxState),
     celebrationState:
@@ -523,6 +527,8 @@ function parseStoredTrackerState(stateJson) {
 }
 
 const backfillOwnedHeldTradeItemsInSaveStates = db.transaction(() => {
+  let normalizedSaveCount = 0
+
   listSaveStates.all().forEach((row) => {
     let parsedState = null
 
@@ -532,23 +538,26 @@ const backfillOwnedHeldTradeItemsInSaveStates = db.transaction(() => {
       return
     }
 
-    if (
-      parsedState &&
-      typeof parsedState === 'object' &&
-      !Array.isArray(parsedState) &&
-      Object.hasOwn(parsedState, 'ownedHeldTradeItems')
-    ) {
+    const normalizedStateJson = JSON.stringify(sanitizeTrackerState(parsedState))
+
+    if (normalizedStateJson === row.stateJson) {
       return
     }
 
     overwriteSaveStateJson.run({
       saveId: row.saveId,
-      stateJson: JSON.stringify(sanitizeTrackerState(parsedState)),
+      stateJson: normalizedStateJson,
     })
+    normalizedSaveCount += 1
   })
+
+  return normalizedSaveCount
 })
 
-function sanitizeTrackerPatch(input) {
+function sanitizeTrackerPatch(
+  input,
+  currentOwnedGames = defaultTrackerState.ownedGames,
+) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return null
   }
@@ -671,6 +680,7 @@ function sanitizeTrackerPatch(input) {
   if (Object.hasOwn(input, 'ownedHeldTradeItems')) {
     patch.ownedHeldTradeItems = normalizeOwnedHeldTradeItems(
       sanitizeBooleanMap(input.ownedHeldTradeItems),
+      input.ownedGames ?? currentOwnedGames,
     )
   }
 
@@ -755,6 +765,18 @@ function buildSaveSummary(save) {
   }
 }
 
+function serializeTrackerStateForClient(state) {
+  const sanitizedState = sanitizeTrackerState(state)
+
+  return {
+    ...sanitizedState,
+    ownedHeldTradeItems: withLegacyOwnedHeldTradeItemsCompatibility(
+      sanitizedState.ownedHeldTradeItems,
+      sanitizedState.ownedGames,
+    ),
+  }
+}
+
 function getSessionUser(req) {
   if (!req.session?.userId) {
     return null
@@ -798,7 +820,11 @@ function createSaveForUser(ownerUserId, name, initialState, updatedByUserId = ow
   return saveId
 }
 
-backfillOwnedHeldTradeItemsInSaveStates()
+const normalizedSaveCount = backfillOwnedHeldTradeItemsInSaveStates()
+
+if (normalizedSaveCount > 0) {
+  console.info(`Normalized ${normalizedSaveCount} saved tracker state(s).`)
+}
 
 function regenerateSession(req) {
   return new Promise((resolve, reject) => {
@@ -1016,7 +1042,9 @@ app.get('/api/saves/:saveId', requireAuth, (req, res) => {
       canManage: save.role === 'owner',
     },
     collaborators,
-    state: stateRow ? parseStoredTrackerState(stateRow.stateJson) : defaultTrackerState,
+    state: serializeTrackerStateForClient(
+      stateRow ? parseStoredTrackerState(stateRow.stateJson) : defaultTrackerState,
+    ),
   })
 })
 
@@ -1071,7 +1099,7 @@ app.put('/api/saves/:saveId/state', requireAuth, (req, res) => {
       ...buildSaveSummary(refreshedSave),
       canManage: refreshedSave.role === 'owner',
     },
-    state,
+    state: serializeTrackerStateForClient(state),
   })
 })
 
@@ -1084,11 +1112,11 @@ app.patch('/api/saves/:saveId/state', requireAuth, (req, res) => {
     return
   }
 
-  const patch = sanitizeTrackerPatch(req.body?.patch)
   const stateRow = findSaveState.get(saveId)
   const currentState = stateRow
     ? parseStoredTrackerState(stateRow.stateJson)
     : defaultTrackerState
+  const patch = sanitizeTrackerPatch(req.body?.patch, currentState.ownedGames)
   const nextState = mergeTrackerPatch(currentState, patch)
 
   updateSaveState.run({
@@ -1105,7 +1133,7 @@ app.patch('/api/saves/:saveId/state', requireAuth, (req, res) => {
       ...buildSaveSummary(refreshedSave),
       canManage: refreshedSave.role === 'owner',
     },
-    state: nextState,
+    state: serializeTrackerStateForClient(nextState),
   })
 })
 
@@ -1159,10 +1187,28 @@ app.delete('/api/saves/:saveId/collaborators/:userId', requireAuth, (req, res) =
 })
 
 if (fs.existsSync(distDir)) {
-  app.use(express.static(distDir))
+  app.use(
+    '/assets',
+    express.static(path.join(distDir, 'assets'), {
+      immutable: true,
+      maxAge: '1y',
+    }),
+  )
+
+  app.use(
+    express.static(distDir, {
+      index: false,
+      maxAge: 0,
+    }),
+  )
 
   app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
-    res.sendFile(path.join(distDir, 'index.html'))
+    res.sendFile(path.join(distDir, 'index.html'), {
+      cacheControl: false,
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    })
   })
 }
 
