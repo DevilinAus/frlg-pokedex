@@ -266,6 +266,7 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
   return {
     locked,
     showExtraCopy,
+    unlockedByOwnedPreEvolution,
     versionAvailability,
   }
 }

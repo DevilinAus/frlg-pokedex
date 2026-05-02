@@ -200,6 +200,21 @@ test('returns a hunt goal when the line is available but not yet owned', () => {
   assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Machamp')
 })
 
+test('does not recommend a later-stage evolution as a hunt target when it is only unlocked by an owned pre-evolution', () => {
+  const charmanderLine = pokemonList.filter((entry) =>
+    ['Charmander', 'Charmeleon', 'Charizard'].includes(entry.name),
+  )
+  const goals = getVersionGoals(
+    charmanderLine,
+    'fire-red',
+    createTrackerState({
+      [getCaughtKey('fire-red', 4)]: true,
+    }),
+  )
+
+  assert.equal(goals.huntGoal, null)
+})
+
 test('adds an item goal when a blocked held-item trade exists', () => {
   const checkboxState = {
     [getCaughtKey('fire-red', 117)]: true,

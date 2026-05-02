@@ -262,7 +262,11 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
       return
     }
 
-    if (!sourceState.locked && sourceState.versionAvailability === 'native') {
+    if (
+      !sourceState.locked &&
+      !sourceState.unlockedByOwnedPreEvolution &&
+      sourceState.versionAvailability === 'native'
+    ) {
       huntCandidates.push(candidate)
     }
   })
