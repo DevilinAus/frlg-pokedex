@@ -148,6 +148,34 @@ test('still returns a Game Corner hunt target when it is the only hunt option le
   assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Alakazam')
 })
 
+test('considers direct native catches as hunt targets when no leveling line starter is available', () => {
+  const directCatchOnlyPokemon = pokemonList.filter((entry) =>
+    ['Exeggcute', 'Chansey', 'Kangaskhan', 'Tauros'].includes(entry.name),
+  )
+  const goals = getVersionGoals(
+    directCatchOnlyPokemon,
+    'leaf-green',
+    createTrackerState(),
+  )
+
+  assert.equal(goals.huntGoal.sourceEntry.name, 'Exeggcute')
+  assert.equal(goals.huntGoal.targetEntry.name, 'Exeggcute')
+})
+
+test('prefers a direct native catch before a Game Corner hunt line', () => {
+  const safariBeforeGameCornerPokemon = pokemonList.filter((entry) =>
+    ['Exeggcute', 'Dratini', 'Dragonair', 'Dragonite'].includes(entry.name),
+  )
+  const goals = getVersionGoals(
+    safariBeforeGameCornerPokemon,
+    'leaf-green',
+    createTrackerState(),
+  )
+
+  assert.equal(goals.huntGoal.sourceEntry.name, 'Exeggcute')
+  assert.equal(goals.huntGoal.targetEntry.name, 'Exeggcute')
+})
+
 test('starts an unowned Game Corner family from its earliest stage instead of skipping ahead', () => {
   const dratiniFamily = pokemonList.filter((entry) =>
     ['Dratini', 'Dragonair', 'Dragonite'].includes(entry.name),
