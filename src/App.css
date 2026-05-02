@@ -804,15 +804,6 @@
   color: var(--text-muted);
 }
 
-.goal-focus-badge {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
-  color: var(--text-strong);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
 .goal-focus-main {
   position: relative;
   z-index: 1;
@@ -2672,11 +2663,6 @@ button,
 
 .app-theme-dark .goal-focus-card-item::after {
   background: radial-gradient(circle, rgba(79, 209, 197, 0.48), transparent 68%);
-}
-
-.app-theme-dark .goal-focus-badge {
-  background: rgba(2, 6, 23, 0.32);
-  color: #e5edf7;
 }
 
 .app-theme-dark .goal-focus-sprite-shell {

@@ -51,7 +51,6 @@ function GoalFocusCard({
           )
         : Boolean(checkboxState[goal.targetCaughtKey])
     : false
-  const shouldShowBadge = Boolean(goal?.badgeLabel) && goal.type !== 'party'
 
   function handleActionChange(nextChecked) {
     if (!goal) {
@@ -79,7 +78,6 @@ function GoalFocusCard({
     <section className={`goal-focus-card goal-focus-card-${tone}`}>
       <div className="goal-focus-header">
         <span className="goal-focus-title">{title}</span>
-        {shouldShowBadge ? <span className="goal-focus-badge">{goal.badgeLabel}</span> : null}
       </div>
 
       {goal ? (
