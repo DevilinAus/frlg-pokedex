@@ -147,12 +147,6 @@ function formatGoal(goal, type, versionKey) {
     sourceCaughtKey: getCaughtKey(versionKey, goal.sourceEntry.id),
     targetCaughtKey: getCaughtKey(versionKey, goal.targetEntry.id),
     levelLabel: `Lv. ${goal.targetEntry.levelEvolution}`,
-    badgeLabel:
-      getPriorityBand(goal) === 1
-        ? 'Trade item'
-        : getPriorityBand(goal) === 3
-          ? 'Level evo'
-          : '',
     tradeFollowUpCopy: buildTradeFollowUpCopy(goal),
   }
 }
@@ -185,7 +179,6 @@ function formatItemGoal(token) {
       spriteSlug: token.receivedSpriteSlug,
     },
     heldItemName: token.heldItemName,
-    badgeLabel: '',
   }
 }
 
@@ -263,6 +256,7 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
     }
 
     if (
+      !sourceEntry.evolvesFrom &&
       !sourceState.locked &&
       !sourceState.unlockedByOwnedPreEvolution &&
       sourceState.versionAvailability === 'native'

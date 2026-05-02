@@ -51,7 +51,6 @@ test('prefers an owned trade-unlock leveling line for the party goal', () => {
   assert.equal(goals.partyGoal.sourceEntry.name, 'Abra')
   assert.equal(goals.partyGoal.targetEntry.name, 'Kadabra')
   assert.equal(goals.partyGoal.tradeFollowUp?.name, 'Alakazam')
-  assert.equal(goals.partyGoal.badgeLabel, '')
 })
 
 test('waits to show the XP Share target until 50 Pokemon are registered', () => {
@@ -149,6 +148,20 @@ test('still returns a Game Corner hunt target when it is the only hunt option le
   assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Alakazam')
 })
 
+test('starts an unowned Game Corner family from its earliest stage instead of skipping ahead', () => {
+  const dratiniFamily = pokemonList.filter((entry) =>
+    ['Dratini', 'Dragonair', 'Dragonite'].includes(entry.name),
+  )
+  const goals = getVersionGoals(
+    dratiniFamily,
+    'fire-red',
+    createTrackerState(),
+  )
+
+  assert.equal(goals.huntGoal.sourceEntry.name, 'Dratini')
+  assert.equal(goals.huntGoal.targetEntry.name, 'Dragonair')
+})
+
 test('uses the same leveling logic for Leaf Green goals', () => {
   const goals = getVersionGoals(
     pokemonList,
@@ -180,7 +193,6 @@ test('omits the chain-evo badge and extra follow-up copy for plain level chains'
 
   assert.equal(goals.partyGoal.sourceEntry.name, 'Hoppip')
   assert.equal(goals.partyGoal.targetEntry.name, 'Skiploom')
-  assert.equal(goals.partyGoal.badgeLabel, '')
   assert.equal(goals.partyGoal.tradeFollowUpCopy, '')
 })
 
