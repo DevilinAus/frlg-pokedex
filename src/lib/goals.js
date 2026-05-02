@@ -146,7 +146,9 @@ function formatGoal(goal, type, versionKey) {
     levelFollowUp: goal.levelFollowUp,
     sourceCaughtKey: getCaughtKey(versionKey, goal.sourceEntry.id),
     targetCaughtKey: getCaughtKey(versionKey, goal.targetEntry.id),
-    levelLabel: `Lv. ${goal.targetEntry.levelEvolution}`,
+    levelLabel: goal.targetEntry.levelEvolution
+      ? `Lv. ${goal.targetEntry.levelEvolution}`
+      : '',
     tradeFollowUpCopy: buildTradeFollowUpCopy(goal),
   }
 }
@@ -215,6 +217,7 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
     createPokemonIndexes(pokemonList)
   const partyCandidates = []
   const huntCandidates = []
+  const huntCandidateSourceNames = new Set()
 
   pokemonList.forEach((targetEntry) => {
     if (!targetEntry.levelEvolution || !targetEntry.evolvesFrom) {
@@ -262,7 +265,38 @@ export function getVersionGoals(pokemonList, versionKey, trackerState) {
       sourceState.versionAvailability === 'native'
     ) {
       huntCandidates.push(candidate)
+      huntCandidateSourceNames.add(sourceEntry.name)
     }
+  })
+
+  pokemonList.forEach((entry) => {
+    if (
+      entry.evolvesFrom ||
+      entry.inGameTrade ||
+      entry.specialComment ||
+      isCaught(entry, versionKey, checkboxState) ||
+      huntCandidateSourceNames.has(entry.name)
+    ) {
+      return
+    }
+
+    const entryState = getVersionTrackerState(entry, versionKey, localTrackerState)
+
+    if (entryState.locked || entryState.versionAvailability !== 'native') {
+      return
+    }
+
+    huntCandidates.push({
+      sourceEntry: entry,
+      targetEntry: entry,
+      tradeFollowUp: null,
+      levelFollowUp: getMissingLevelFollowUp(
+        levelFollowUpsBySource,
+        entry.name,
+        versionKey,
+        checkboxState,
+      ),
+    })
   })
 
   partyCandidates.sort(compareCandidates)
