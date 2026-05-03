@@ -194,6 +194,58 @@ function getPriorityBand(candidate) {
   return 3
 }
 
+function getEvolutionFamilyKey(entry) {
+  return entry.evolutionBaseName ?? entry.name
+}
+
+function buildEvolutionFamiliesByKey(pokemonList) {
+  const familiesByKey = new Map()
+
+  pokemonList.forEach((entry) => {
+    const familyKey = getEvolutionFamilyKey(entry)
+    const existing = familiesByKey.get(familyKey) ?? []
+
+    existing.push(entry)
+    familiesByKey.set(familyKey, existing)
+  })
+
+  familiesByKey.forEach((entries) => {
+    entries.sort((leftEntry, rightEntry) => leftEntry.id - rightEntry.id)
+  })
+
+  return familiesByKey
+}
+
+function getPartyCandidateFamilyStats(
+  candidate,
+  familyEntriesByKey,
+  versionKey,
+  checkboxState,
+) {
+  const familyEntries =
+    familyEntriesByKey.get(getEvolutionFamilyKey(candidate.sourceEntry)) ?? [
+      candidate.sourceEntry,
+      candidate.targetEntry,
+    ]
+  const familyCaughtCount = familyEntries.reduce(
+    (count, entry) => count + Number(isCaught(entry, versionKey, checkboxState)),
+    0,
+  )
+  const familyLevelCeiling = familyEntries.reduce((highestLevel, entry) => {
+    if (isCaught(entry, versionKey, checkboxState) || !entry.levelEvolution) {
+      return highestLevel
+    }
+
+    return Math.max(highestLevel, entry.levelEvolution)
+  }, candidate.targetEntry.levelEvolution ?? 0)
+
+  return {
+    familyCaughtCount,
+    familyTotalCount: familyEntries.length,
+    familyLevelCeiling,
+  }
+}
+
 function compareCandidates(leftCandidate, rightCandidate) {
   const leftBand = getPriorityBand(leftCandidate)
   const rightBand = getPriorityBand(rightCandidate)
@@ -225,6 +277,26 @@ function compareHuntCandidates(leftCandidate, rightCandidate, versionKey) {
 
   if (leftIsGameCornerPrize !== rightIsGameCornerPrize) {
     return leftIsGameCornerPrize ? 1 : -1
+  }
+
+  return compareCandidates(leftCandidate, rightCandidate)
+}
+
+function comparePartyCandidates(leftCandidate, rightCandidate) {
+  const progressDelta =
+    rightCandidate.familyCaughtCount * leftCandidate.familyTotalCount -
+    leftCandidate.familyCaughtCount * rightCandidate.familyTotalCount
+
+  if (progressDelta !== 0) {
+    return progressDelta
+  }
+
+  if (leftCandidate.familyCaughtCount !== rightCandidate.familyCaughtCount) {
+    return rightCandidate.familyCaughtCount - leftCandidate.familyCaughtCount
+  }
+
+  if (leftCandidate.familyLevelCeiling !== rightCandidate.familyLevelCeiling) {
+    return leftCandidate.familyLevelCeiling - rightCandidate.familyLevelCeiling
   }
 
   return compareCandidates(leftCandidate, rightCandidate)
@@ -896,6 +968,7 @@ export function getVersionGoals(pokemonList, versionKey, trackerState, options =
   }
   const { byName, tradeFollowUpsBySource, levelFollowUpsBySource } =
     createPokemonIndexes(pokemonList)
+  const familyEntriesByKey = buildEvolutionFamiliesByKey(pokemonList)
   const partyCandidates = []
   const huntCandidates = []
   const huntCandidateSourceNames = new Set()
@@ -932,6 +1005,15 @@ export function getVersionGoals(pokemonList, versionKey, trackerState, options =
           ? tradeFollowUp
           : null,
       levelFollowUp,
+      ...getPartyCandidateFamilyStats(
+        {
+          sourceEntry,
+          targetEntry,
+        },
+        familyEntriesByKey,
+        versionKey,
+        checkboxState,
+      ),
     }
 
     if (sourceCaught) {
@@ -980,7 +1062,7 @@ export function getVersionGoals(pokemonList, versionKey, trackerState, options =
     })
   })
 
-  partyCandidates.sort(compareCandidates)
+  partyCandidates.sort(comparePartyCandidates)
   huntCandidates.sort((leftCandidate, rightCandidate) =>
     compareHuntCandidates(leftCandidate, rightCandidate, versionKey),
   )
