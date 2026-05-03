@@ -670,6 +670,31 @@
   line-height: 1.5;
 }
 
+.trade-queue-overflow-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trade-queue-overflow-toggle:focus-visible {
+  outline: 2px solid var(--border-soft);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.trade-queue-overflow-accent {
+  color: var(--text-strong);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border-soft);
+  text-underline-offset: 0.18em;
+}
+
 .goals-grid {
   margin-top: 18px;
   display: grid;

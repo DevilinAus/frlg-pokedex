@@ -9,6 +9,7 @@ import Database from 'better-sqlite3'
 import SQLiteStoreFactory from 'better-sqlite3-session-store'
 import express from 'express'
 import session from 'express-session'
+import { normalizeCheckboxState } from './src/lib/checkboxState.js'
 import {
   normalizeOwnedHeldTradeItems,
   withLegacyOwnedHeldTradeItemsCompatibility,
@@ -437,6 +438,7 @@ function sanitizeTrackerState(input) {
     primaryGame,
   )
   const tradeMode = ownedGames === 'both' && Boolean(primaryGame)
+  const checkboxState = normalizeCheckboxState(sanitizeBooleanMap(input?.checkboxState))
   const safeState = {
     ownedGames,
     trackerLayout,
@@ -489,7 +491,7 @@ function sanitizeTrackerState(input) {
       sanitizeBooleanMap(input?.ownedHeldTradeItems),
       ownedGames,
     ),
-    checkboxState: sanitizeBooleanMap(input?.checkboxState),
+    checkboxState,
     celebrationState:
       input?.celebrationState &&
       typeof input.celebrationState === 'object' &&

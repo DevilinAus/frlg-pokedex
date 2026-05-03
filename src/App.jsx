@@ -341,8 +341,8 @@ function App() {
     : secondaryProgressLabel
   const tradeQueue = shouldShowTradeReadyCard
     ? buildTradeQueue(trackablePokemon, checkboxState, trackerState, {
-        leftVersionKey: 'leaf-green',
-        rightVersionKey: 'fire-red',
+        leftVersionKey: 'fire-red',
+        rightVersionKey: 'leaf-green',
       })
     : {
         pairs: [],

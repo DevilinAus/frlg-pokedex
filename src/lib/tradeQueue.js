@@ -176,9 +176,11 @@ function buildTradeReadyTokensForVersion(
 
   pokemonList.forEach((entry) => {
     const pokemonId = String(entry.id).padStart(3, '0')
+    const hasBaseCatch = checkboxState[`${versionKey}-${pokemonId}`]
 
     if (
       hasTradeQueueExtraCopy(entry, versionKey, trackerState) &&
+      hasBaseCatch &&
       checkboxState[`${versionKey}-extra-${pokemonId}`]
     ) {
       tokens.push(createTradeToken(entry, versionKey, 'extra-copy', entry, trackerState))

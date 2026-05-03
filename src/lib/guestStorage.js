@@ -1,4 +1,5 @@
 import { defaultAppState } from './pokedexOptions'
+import { normalizeCheckboxState } from './checkboxState'
 import { normalizeOwnedHeldTradeItems } from './heldTradeItems'
 
 export const guestStateStorageKey = 'lgfr-guest-state'
@@ -91,6 +92,7 @@ export function sanitizeTrackerState(input) {
     primaryGame,
   )
   const tradeMode = ownedGames === 'both' && Boolean(primaryGame)
+  const checkboxState = normalizeCheckboxState(sanitizeBooleanMap(input?.checkboxState))
   const safeState = {
     ownedGames,
     trackerLayout,
@@ -143,7 +145,7 @@ export function sanitizeTrackerState(input) {
       sanitizeBooleanMap(input?.ownedHeldTradeItems),
       ownedGames,
     ),
-    checkboxState: sanitizeBooleanMap(input?.checkboxState),
+    checkboxState,
     celebrationState:
       input?.celebrationState &&
       typeof input.celebrationState === 'object' &&
