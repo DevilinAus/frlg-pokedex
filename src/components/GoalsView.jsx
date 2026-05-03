@@ -2,7 +2,7 @@ import { getItemDbUrl, getPokemonDbUrl } from '../lib/pokedexHelpers'
 import { getOwnedHeldTradeItemForMode } from '../lib/heldTradeItems'
 import { getSpriteSrc } from '../lib/sprites'
 
-function GoalPokemonLink({ entry }) {
+function GoalPokemonLink({ entry, label = entry.name }) {
   return (
     <a
       className="goal-focus-link"
@@ -10,7 +10,7 @@ function GoalPokemonLink({ entry }) {
       target="_blank"
       rel="noreferrer"
     >
-      {entry.name}
+      {label}
     </a>
   )
 }
@@ -40,7 +40,17 @@ function GoalFocusCard({
   updateOwnedHeldTradeItem,
   incrementBreedingProgress,
 }) {
-  const displayEntry = goal?.sourceEntry ?? null
+  const displayEntry =
+    goal?.type === 'stone'
+      ? goal.targetEntry
+      : (goal?.sourceEntry ?? null)
+  const displaySpriteEntry =
+    goal?.type === 'breed' || goal?.type === 'hatch' || goal?.type === 'stone'
+      ? goal?.targetEntry ?? displayEntry
+      : displayEntry
+  const displayEntryLabel = goal?.type === 'hatch'
+    ? goal.sourceLabel ?? displayEntry?.name ?? ''
+    : displayEntry?.name ?? ''
   const actionChecked = goal
     ? goal.type === 'hunt'
       ? Boolean(checkboxState[goal.sourceCaughtKey])
@@ -51,6 +61,8 @@ function GoalFocusCard({
             goal.heldItemName,
             ownedGames,
           )
+        : goal.type === 'breed'
+          ? false
         : Boolean(checkboxState[goal.targetCaughtKey])
     : false
 
@@ -70,6 +82,11 @@ function GoalFocusCard({
         goal.heldItemName,
         nextChecked,
       )
+      return
+    }
+
+    if (goal.type === 'hatch') {
+      updateCheckboxState(goal.targetCaughtKey, nextChecked)
       return
     }
 
@@ -100,7 +117,7 @@ function GoalFocusCard({
             <div className="goal-focus-sprite-shell">
               <img
                 className="goal-focus-sprite"
-                src={getSpriteSrc(displayEntry.spriteSlug)}
+                src={getSpriteSrc(displaySpriteEntry.spriteSlug)}
                 alt=""
                 loading="lazy"
               />
@@ -112,7 +129,7 @@ function GoalFocusCard({
                   {goal.type === 'item' ? (
                     <GoalItemLink itemName={goal.heldItemName} />
                   ) : (
-                    <GoalPokemonLink entry={displayEntry} />
+                    <GoalPokemonLink entry={displayEntry} label={displayEntryLabel} />
                   )}
                 </strong>
               )}
@@ -150,9 +167,30 @@ function GoalFocusCard({
                   </div>
 
                   <div className="goal-focus-evolution">
-                    <span className="goal-focus-evolution-label">Breed with Ditto</span>
+                    <span className="goal-focus-evolution-label">Leave at daycare</span>
                     <div className="goal-focus-evolution-copy">
                       <span>{goal.pairingLabel}</span>
+                    </div>
+                  </div>
+
+                  {goal.instructionCopy ? (
+                    <p className="goal-focus-breed-note">{goal.instructionCopy}</p>
+                  ) : null}
+                </>
+              ) : goal.type === 'hatch' ? (
+                <>
+                  {goal.instructionCopy ? (
+                    <p className="goal-focus-breed-note">{goal.instructionCopy}</p>
+                  ) : null}
+                </>
+              ) : goal.type === 'stone' ? (
+                <>
+                  <div className="goal-focus-evolution">
+                    <span className="goal-focus-evolution-label">Stone Evolution</span>
+                    <div className="goal-focus-evolution-copy goal-focus-evolution-copy-tight">
+                      <GoalItemLink itemName={goal.stoneItemName} />
+                      <span>on</span>
+                      <GoalPokemonLink entry={goal.sourceEntry} />
                     </div>
                   </div>
                 </>
@@ -178,7 +216,13 @@ function GoalFocusCard({
               />
               <span>
                 {goal.type === 'hunt'
-                  ? 'Caught'
+                  ? goal.isGameCornerPrize
+                    ? 'Purchased'
+                    : 'Caught'
+                  : goal.type === 'hatch'
+                    ? 'Egg Hatched'
+                  : goal.type === 'stone'
+                    ? 'Stone Used'
                   : goal.type === 'item'
                     ? 'Owned'
                     : 'Evolved'}
@@ -203,6 +247,8 @@ function GoalsVersionCard({
   incrementBreedingProgress,
   showVersionLabel,
 }) {
+  const huntTitle = panel.huntGoal?.isGameCornerPrize ? 'Next Purchase' : 'Next Hunt'
+
   return (
     <section
       className={`goals-version-card ${
@@ -213,7 +259,7 @@ function GoalsVersionCard({
 
       <div className="goal-focus-grid">
         <GoalFocusCard
-          title="Hunt Next"
+          title={huntTitle}
           goal={panel.huntGoal}
           emptyCopy="No strong hunt target right now."
           tone="hunt"
@@ -225,7 +271,7 @@ function GoalsVersionCard({
           incrementBreedingProgress={incrementBreedingProgress}
         />
 
-        {panel.baseGameComplete ? (
+        {panel.baseGameComplete && panel.breedGoal ? (
           <GoalFocusCard
             title="Four Island Day Care Breeding"
             goal={panel.breedGoal}
@@ -237,6 +283,34 @@ function GoalsVersionCard({
             ownedGames={ownedGames}
             updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
             incrementBreedingProgress={incrementBreedingProgress}
+          />
+        ) : null}
+
+        {panel.baseGameComplete && panel.hatchGoal ? (
+          <GoalFocusCard
+            title="Egg Hatching"
+            goal={panel.hatchGoal}
+            emptyCopy="No eggs are waiting to hatch right now."
+            tone="hatch"
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            ownedGames={ownedGames}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+          />
+        ) : null}
+
+        {panel.stoneGoal ? (
+          <GoalFocusCard
+            title="Use Stone"
+            goal={panel.stoneGoal}
+            emptyCopy="No stone evolution is ready right now."
+            tone={`stone-${panel.stoneGoal.stoneToneKey}`}
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            ownedGames={ownedGames}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
           />
         ) : null}
 

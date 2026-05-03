@@ -29,6 +29,11 @@ const starterBasePokemonIds = {
 }
 
 const duplicateEvolutionSourceSpecies = new Set(['Poliwhirl'])
+const pendingChoiceLabels = {
+  starter: 'starter',
+  fossil: 'fossil',
+  hitmon: 'Hitmon',
+}
 
 const pokemonIdByName = new Map(
   pokemon.map((entry) => [entry.name, String(entry.id).padStart(3, '0')]),
@@ -128,6 +133,53 @@ function getVersionChoices(versionKey, trackerState) {
     fossil: trackerState[config.fossilKey],
     hitmon: trackerState[config.hitmonKey],
   }
+}
+
+function getPendingChoiceType(entry, versionKey, trackerState) {
+  if (trackerState.tradeMode || trackerState.unlockAll) {
+    return ''
+  }
+
+  const versionChoices = getVersionChoices(versionKey, trackerState)
+
+  if (
+    entry.starterFamily &&
+    !versionChoices.starter &&
+    isLockedByStarterChoice(
+      entry,
+      versionChoices.starter,
+      versionKey,
+      trackerState.checkboxState,
+    )
+  ) {
+    return 'starter'
+  }
+
+  if (
+    entry.fossilFamily &&
+    !versionChoices.fossil &&
+    isLockedByChoice(entry.fossilFamily, versionChoices.fossil)
+  ) {
+    return 'fossil'
+  }
+
+  if (
+    entry.hitmonFamily &&
+    !versionChoices.hitmon &&
+    isLockedByChoice(entry.hitmonFamily, versionChoices.hitmon)
+  ) {
+    return 'hitmon'
+  }
+
+  return ''
+}
+
+function getPendingChoiceLockHint(pendingChoiceType) {
+  if (!pendingChoiceType) {
+    return ''
+  }
+
+  return `Choose a ${pendingChoiceLabels[pendingChoiceType]} in Pokedex Decisions to unlock this box.`
 }
 
 export function isBaseGameCompleteForVersion(versionKey, trackerState = {}) {
@@ -255,6 +307,7 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
     !switchEventLegendaryUnlocked &&
     versionAvailability !== 'native' &&
     !(trackerState.tradeMode && versionAvailability === 'trade')
+  const pendingChoiceType = getPendingChoiceType(entry, versionKey, trackerState)
   const locked = trackerState.unlockAll || caughtInVersion
     ? false
     : baseGameLocked ||
@@ -268,6 +321,8 @@ export function getVersionTrackerState(entry, versionKey, trackerState) {
     showExtraCopy,
     unlockedByOwnedPreEvolution,
     versionAvailability,
+    pendingChoiceType,
+    lockHint: locked ? getPendingChoiceLockHint(pendingChoiceType) : '',
   }
 }
 
