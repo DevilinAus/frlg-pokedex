@@ -8,6 +8,7 @@
     "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
     "dev:client": "vite --force",
     "dev:server": "node server.js",
+    "reset:demo": "node scripts/reset-demo-save.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

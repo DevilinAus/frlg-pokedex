@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 
 import { getSpriteSrc } from '../lib/sprites'
 
@@ -65,12 +65,19 @@ function TradeQueuePokemonCard({ token, tone, onUpdateHeldTradeItem }) {
   )
 }
 
-function getOverflowCopy(versionLabel, count) {
-  if (count <= 0) {
-    return ''
-  }
-
-  return `${versionLabel} has ${count} more Pokemon waiting for a match.`
+function getOverflowSections(tradeQueue) {
+  return [
+    {
+      versionKey: 'fire-red',
+      versionLabel: 'Fire Red',
+      tokens: tradeQueue.unpairedByVersion['fire-red'] ?? [],
+    },
+    {
+      versionKey: 'leaf-green',
+      versionLabel: 'Leaf Green',
+      tokens: tradeQueue.unpairedByVersion['leaf-green'] ?? [],
+    },
+  ].filter(({ tokens }) => tokens.length > 0)
 }
 
 function getTradePairKey(pair) {
@@ -125,13 +132,10 @@ function TradeQueueView({
   onUpdateHeldTradeItem,
 }) {
   const [pairOrder, setPairOrder] = useState(() => tradeQueue.pairs.map(getTradePairKey))
-  const leafGreenOverflow = tradeQueue.unpairedByVersion['leaf-green'].length
-  const fireRedOverflow = tradeQueue.unpairedByVersion['fire-red'].length
+  const [expandedOverflowByVersion, setExpandedOverflowByVersion] = useState({})
   const stablePairOrder = getStablePairOrder(pairOrder, tradeQueue.pairs)
   const visiblePairs = orderTradePairs(tradeQueue.pairs, stablePairOrder)
-  const overflowCopy =
-    getOverflowCopy('Leaf Green', leafGreenOverflow) ||
-    getOverflowCopy('Fire Red', fireRedOverflow)
+  const overflowSections = getOverflowSections(tradeQueue)
 
   function rememberVisiblePairOrder() {
     setPairOrder(visiblePairs.map(getTradePairKey))
@@ -142,6 +146,13 @@ function TradeQueueView({
     onUpdateHeldTradeItem?.(versionKey, itemName, isOwned)
   }
 
+  function handleToggleOverflow(versionKey) {
+    setExpandedOverflowByVersion((currentState) => ({
+      ...currentState,
+      [versionKey]: !currentState[versionKey],
+    }))
+  }
+
   return (
     <section className={`trade-view-panel ${className}`.trim()}>
       <div className="trade-view-header">
@@ -149,10 +160,10 @@ function TradeQueueView({
       </div>
 
       <div className="trade-queue-column-labels" aria-hidden="true">
+        <span className="fire-red-heading">Fire Red</span>
+        <span />
         <span className="leaf-green-heading">Leaf Green</span>
         <span />
-        <span className="fire-red-heading">Fire Red</span>
-        <span className="trade-queue-done-heading">Done</span>
       </div>
 
       <ol className="trade-queue-list">
@@ -174,7 +185,7 @@ function TradeQueueView({
 
             <TradeQueuePokemonCard
               token={pair.left}
-              tone="leaf-green"
+              tone="fire-red"
               onUpdateHeldTradeItem={handleUpdateHeldTradeItem}
             />
 
@@ -184,7 +195,7 @@ function TradeQueueView({
 
             <TradeQueuePokemonCard
               token={pair.right}
-              tone="fire-red"
+              tone="leaf-green"
               onUpdateHeldTradeItem={handleUpdateHeldTradeItem}
             />
 
@@ -205,7 +216,41 @@ function TradeQueueView({
         ))}
       </ol>
 
-      {overflowCopy ? <p className="trade-queue-overflow">{overflowCopy}</p> : null}
+      {overflowSections.length > 0
+        ? overflowSections.map(({ versionKey, versionLabel, tokens }) => {
+            const isExpanded = Boolean(expandedOverflowByVersion[versionKey])
+
+            return (
+              <p key={versionKey} className="trade-queue-overflow">
+                <button
+                  type="button"
+                  className="trade-queue-overflow-toggle"
+                  onClick={() => handleToggleOverflow(versionKey)}
+                  aria-expanded={isExpanded}
+                >
+                  <span>{versionLabel} has </span>
+                  <span className="trade-queue-overflow-accent">
+                    {tokens.length} more Pokemon
+                  </span>
+                  <span> waiting for a match.</span>
+                </button>
+
+                {isExpanded ? (
+                  <>
+                    <br />
+                    {tokens.map((token, index) => (
+                      <Fragment key={token.key}>
+                        {index > 0 ? <br /> : null}
+                        {'\u2022 '}
+                        {token.name}
+                      </Fragment>
+                    ))}
+                  </>
+                ) : null}
+              </p>
+            )
+          })
+        : null}
     </section>
   )
 }

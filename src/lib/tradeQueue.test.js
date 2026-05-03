@@ -66,6 +66,8 @@ function getRowComment(name, checkboxState = {}) {
 
 test('queues only the default Magmar seed trade when both family extras are prepared', () => {
   const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
+    [getOwnedKey('leaf-green', 'Magmar')]: true,
+    [getOwnedKey('leaf-green', 'Magby')]: true,
     [getExtraKey('leaf-green', 'Magmar')]: true,
     [getExtraKey('leaf-green', 'Magby')]: true,
   })
@@ -76,6 +78,7 @@ test('queues only the default Magmar seed trade when both family extras are prep
 
 test('lets Magby seed the family when it is the only prepared extra', () => {
   const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
+    [getOwnedKey('leaf-green', 'Magby')]: true,
     [getExtraKey('leaf-green', 'Magby')]: true,
   })
 
@@ -86,6 +89,8 @@ test('lets Magby seed the family when it is the only prepared extra', () => {
 test('keeps only the missing family member as an optional shortcut once Fire Red has one', () => {
   const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
     [getOwnedKey('fire-red', 'Magmar')]: true,
+    [getOwnedKey('leaf-green', 'Magmar')]: true,
+    [getOwnedKey('leaf-green', 'Magby')]: true,
     [getExtraKey('leaf-green', 'Magmar')]: true,
     [getExtraKey('leaf-green', 'Magby')]: true,
   })
@@ -98,6 +103,8 @@ test('drops extra-copy family tokens once Fire Red already has both members', ()
   const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
     [getOwnedKey('fire-red', 'Magmar')]: true,
     [getOwnedKey('fire-red', 'Magby')]: true,
+    [getOwnedKey('leaf-green', 'Magmar')]: true,
+    [getOwnedKey('leaf-green', 'Magby')]: true,
     [getExtraKey('leaf-green', 'Magmar')]: true,
     [getExtraKey('leaf-green', 'Magby')]: true,
   })
@@ -124,6 +131,8 @@ test('drops the family note once Fire Red already has both Magmar and Magby', ()
 
 test('queues only the default Electabuzz seed trade when both Fire Red family extras are prepared', () => {
   const tokens = getVersionFamilyTokens('fire-red', ['Electabuzz', 'Elekid'], {
+    [getOwnedKey('fire-red', 'Electabuzz')]: true,
+    [getOwnedKey('fire-red', 'Elekid')]: true,
     [getExtraKey('fire-red', 'Electabuzz')]: true,
     [getExtraKey('fire-red', 'Elekid')]: true,
   })
@@ -135,6 +144,8 @@ test('queues only the default Electabuzz seed trade when both Fire Red family ex
 test('treats Azumarill as a seeded adult for the Azurill family', () => {
   const tokens = getVersionFamilyTokens('leaf-green', ['Marill', 'Azurill'], {
     [getOwnedKey('fire-red', 'Azumarill')]: true,
+    [getOwnedKey('leaf-green', 'Marill')]: true,
+    [getOwnedKey('leaf-green', 'Azurill')]: true,
     [getExtraKey('leaf-green', 'Marill')]: true,
     [getExtraKey('leaf-green', 'Azurill')]: true,
   })
@@ -149,6 +160,15 @@ test('adds the Sea Incense family note to Azurill without losing the breeding gu
   assert.match(comment, /Requires breeding Marill or Azumarill holding Sea Incense/)
   assert.match(comment, /only needs one Marill\/Azurill handoff/)
   assert.match(comment, /bred one with Sea Incense/)
+})
+
+test('ignores extra-copy trades when the base catch is unchecked', () => {
+  const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
+    [getExtraKey('leaf-green', 'Magmar')]: true,
+    [getExtraKey('leaf-green', 'Magby')]: true,
+  })
+
+  assert.deepEqual(tokens.map((token) => token.name), [])
 })
 
 test('adds held-item metadata for item-based trade evolutions', () => {
@@ -281,16 +301,20 @@ test('matches vanilla trades with each other before held-item trades', () => {
     {
       [getOwnedKey('leaf-green', 'Graveler')]: true,
       [getOwnedKey('leaf-green', 'Slowpoke')]: true,
+      [getOwnedKey('leaf-green', 'Staryu')]: true,
       [getExtraKey('leaf-green', 'Staryu')]: true,
       [getOwnedKey('fire-red', 'Machoke')]: true,
+      [getOwnedKey('fire-red', 'Psyduck')]: true,
       [getOwnedKey('fire-red', 'Scyther')]: true,
       [getExtraKey('fire-red', 'Psyduck')]: true,
     },
     createTrackerState({
       [getOwnedKey('leaf-green', 'Graveler')]: true,
       [getOwnedKey('leaf-green', 'Slowpoke')]: true,
+      [getOwnedKey('leaf-green', 'Staryu')]: true,
       [getExtraKey('leaf-green', 'Staryu')]: true,
       [getOwnedKey('fire-red', 'Machoke')]: true,
+      [getOwnedKey('fire-red', 'Psyduck')]: true,
       [getOwnedKey('fire-red', 'Scyther')]: true,
       [getExtraKey('fire-red', 'Psyduck')]: true,
     }),

@@ -1,4 +1,8 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import {
+  applyCheckboxStateUpdate,
+  applyCheckboxStateUpdates,
+} from '../lib/checkboxState'
 import { hasCompletedDex } from '../lib/pokedexHelpers'
 import { defaultAppState, defaultCelebrationState } from '../lib/pokedexOptions'
 import {
@@ -732,10 +736,7 @@ function usePokedexState() {
   function updateCheckboxState(key, checked) {
     markCloudStateDirty()
 
-    setCheckboxState((currentState) => ({
-      ...currentState,
-      [key]: checked,
-    }))
+    setCheckboxState((currentState) => applyCheckboxStateUpdate(currentState, key, checked))
 
     if (!checked) {
       return
@@ -764,17 +765,7 @@ function usePokedexState() {
 
     markCloudStateDirty()
 
-    setCheckboxState((currentState) => {
-      const nextState = { ...currentState }
-
-      updates.forEach(({ key, checked }) => {
-        if (typeof key === 'string') {
-          nextState[key] = Boolean(checked)
-        }
-      })
-
-      return nextState
-    })
+    setCheckboxState((currentState) => applyCheckboxStateUpdates(currentState, updates))
 
     updates.forEach(({ key, checked }) => {
       if (!checked || typeof key !== 'string') {
