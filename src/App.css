@@ -811,6 +811,18 @@
   background: radial-gradient(circle, rgba(52, 211, 153, 0.7), transparent 66%);
 }
 
+.goal-focus-card-breed {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 84%, #fbcfe8 16%),
+    color-mix(in srgb, var(--surface) 90%, #ec4899 10%)
+  );
+}
+
+.goal-focus-card-breed::after {
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.72), transparent 66%);
+}
+
 .goal-focus-header {
   position: relative;
   z-index: 1;
@@ -915,6 +927,21 @@
     background-color 160ms ease;
 }
 
+.goal-focus-action-button {
+  appearance: none;
+  font-family: inherit;
+}
+
+.goal-focus-action-indicator {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  flex: 0 0 auto;
+}
+
 .goal-focus-action-hunt {
   background: rgba(146, 64, 14, 0.12);
 }
@@ -925,6 +952,10 @@
 
 .goal-focus-action-item {
   background: rgba(5, 150, 105, 0.12);
+}
+
+.goal-focus-action-breed {
+  background: rgba(190, 24, 93, 0.1);
 }
 
 .goal-focus-action input {
@@ -938,6 +969,11 @@
 .goal-focus-action:hover {
   transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.24);
+}
+
+.goal-focus-action-button:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 2px;
 }
 
 .goal-focus-action:has(input:focus-visible) {
@@ -955,6 +991,10 @@
 
 .goal-focus-action-item:has(input:checked) {
   background: rgba(5, 150, 105, 0.2);
+}
+
+.goal-focus-action-breed:has(input:checked) {
+  background: rgba(190, 24, 93, 0.18);
 }
 
 .goal-focus-evolution {
@@ -995,12 +1035,8 @@
   font-weight: 700;
 }
 
-.goal-focus-followup {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.goal-focus-breed-note {
+  margin: -2px 0 0;
   color: var(--text-muted);
   font-size: 0.87rem;
   line-height: 1.45;
@@ -2690,6 +2726,20 @@ button,
   background: radial-gradient(circle, rgba(79, 209, 197, 0.48), transparent 68%);
 }
 
+.app-theme-dark .goal-focus-card-breed {
+  background: linear-gradient(
+    135deg,
+    rgba(244, 114, 182, 0.22),
+    rgba(190, 24, 93, 0.16) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(244, 114, 182, 0.28);
+}
+
+.app-theme-dark .goal-focus-card-breed::after {
+  background: radial-gradient(circle, rgba(251, 182, 206, 0.46), transparent 68%);
+}
+
 .app-theme-dark .goal-focus-sprite-shell {
   background: rgba(15, 23, 42, 0.72);
   border-color: rgba(148, 163, 184, 0.2);
@@ -2725,6 +2775,17 @@ button,
   color: #9ef4ec;
 }
 
+.app-theme-dark .goal-focus-action-breed {
+  background: rgba(244, 114, 182, 0.14);
+  border-color: rgba(244, 114, 182, 0.28);
+  color: #ffd4e6;
+}
+
+.app-theme-dark .goal-focus-action-indicator {
+  border-color: rgba(226, 232, 240, 0.6);
+  background: rgba(15, 23, 42, 0.28);
+}
+
 .app-theme-dark .goal-focus-action-hunt:has(input:checked) {
   background: rgba(249, 115, 22, 0.22);
 }
@@ -2737,9 +2798,12 @@ button,
   background: rgba(45, 212, 191, 0.22);
 }
 
-.app-theme-dark .goal-focus-followup {
-  background: rgba(2, 6, 23, 0.32);
-  border-color: rgba(148, 163, 184, 0.14);
+.app-theme-dark .goal-focus-action-breed:has(input:checked) {
+  background: rgba(244, 114, 182, 0.22);
+}
+
+.app-theme-dark .goal-focus-breed-note {
+  color: #d6bdd0;
 }
 
 .app-theme-dark .pokemon-row:hover {
@@ -3282,9 +3346,7 @@ button,
     gap: 8px;
   }
 
-  .goal-focus-followup {
-    padding: 9px 10px;
-    border-radius: 12px;
+  .goal-focus-breed-note {
     font-size: 0.84rem;
   }
 

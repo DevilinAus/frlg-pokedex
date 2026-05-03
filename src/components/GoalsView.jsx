@@ -38,7 +38,9 @@ function GoalFocusCard({
   ownedHeldTradeItems,
   ownedGames,
   updateOwnedHeldTradeItem,
+  incrementBreedingProgress,
 }) {
+  const displayEntry = goal?.sourceEntry ?? null
   const actionChecked = goal
     ? goal.type === 'hunt'
       ? Boolean(checkboxState[goal.sourceCaughtKey])
@@ -74,6 +76,18 @@ function GoalFocusCard({
     updateCheckboxState(goal.targetCaughtKey, nextChecked)
   }
 
+  function handleBreedProgress() {
+    if (!goal || goal.type !== 'breed') {
+      return
+    }
+
+    incrementBreedingProgress(
+      goal.versionKey,
+      goal.progressKey,
+      goal.progressCurrentCount + 1,
+    )
+  }
+
   return (
     <section className={`goal-focus-card goal-focus-card-${tone}`}>
       <div className="goal-focus-header">
@@ -86,20 +100,22 @@ function GoalFocusCard({
             <div className="goal-focus-sprite-shell">
               <img
                 className="goal-focus-sprite"
-                src={getSpriteSrc(goal.sourceEntry.spriteSlug)}
+                src={getSpriteSrc(displayEntry.spriteSlug)}
                 alt=""
                 loading="lazy"
               />
             </div>
 
             <div className="goal-focus-copy">
-              <strong>
-                {goal.type === 'item' ? (
-                  <GoalItemLink itemName={goal.heldItemName} />
-                ) : (
-                  <GoalPokemonLink entry={goal.sourceEntry} />
-                )}
-              </strong>
+              {goal.type === 'breed' ? null : (
+                <strong>
+                  {goal.type === 'item' ? (
+                    <GoalItemLink itemName={goal.heldItemName} />
+                  ) : (
+                    <GoalPokemonLink entry={displayEntry} />
+                  )}
+                </strong>
+              )}
 
               {goal.type === 'party' ? (
                 <>
@@ -124,28 +140,55 @@ function GoalFocusCard({
                     </div>
                   </div>
                 </>
+              ) : goal.type === 'breed' ? (
+                <>
+                  <div className="goal-focus-evolution">
+                    <span className="goal-focus-evolution-label">Breed for</span>
+                    <div className="goal-focus-evolution-copy">
+                      <GoalPokemonLink entry={goal.targetEntry} />
+                    </div>
+                  </div>
+
+                  <div className="goal-focus-evolution">
+                    <span className="goal-focus-evolution-label">Breed with Ditto</span>
+                    <div className="goal-focus-evolution-copy">
+                      <span>{goal.pairingLabel}</span>
+                    </div>
+                  </div>
+                </>
               ) : null}
             </div>
           </div>
 
-          <label className={`goal-focus-action goal-focus-action-${tone}`}>
-            <input
-              type="checkbox"
-              checked={actionChecked}
-              onChange={(event) => handleActionChange(event.target.checked)}
-            />
-            <span>
-              {goal.type === 'hunt'
-                ? 'Caught'
-                : goal.type === 'item'
-                  ? 'Owned'
-                  : 'Evolved'}
-            </span>
-          </label>
+          {goal.type === 'breed' ? (
+            <button
+              type="button"
+              className={`goal-focus-action goal-focus-action-${tone} goal-focus-action-button`}
+              onClick={handleBreedProgress}
+            >
+              <span className="goal-focus-action-indicator" aria-hidden="true" />
+              <span>Egg Obtained</span>
+            </button>
+          ) : (
+            <label className={`goal-focus-action goal-focus-action-${tone}`}>
+              <input
+                type="checkbox"
+                checked={actionChecked}
+                onChange={(event) => handleActionChange(event.target.checked)}
+              />
+              <span>
+                {goal.type === 'hunt'
+                  ? 'Caught'
+                  : goal.type === 'item'
+                    ? 'Owned'
+                    : 'Evolved'}
+              </span>
+            </label>
+          )}
         </div>
-      ) : (
-        <p className="goal-focus-empty">{emptyCopy}</p>
-      )}
+      ) : null}
+
+      {!goal ? <p className="goal-focus-empty">{emptyCopy}</p> : null}
     </section>
   )
 }
@@ -157,6 +200,7 @@ function GoalsVersionCard({
   ownedHeldTradeItems,
   ownedGames,
   updateOwnedHeldTradeItem,
+  incrementBreedingProgress,
   showVersionLabel,
 }) {
   return (
@@ -178,7 +222,23 @@ function GoalsVersionCard({
           ownedHeldTradeItems={ownedHeldTradeItems}
           ownedGames={ownedGames}
           updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+          incrementBreedingProgress={incrementBreedingProgress}
         />
+
+        {panel.baseGameComplete ? (
+          <GoalFocusCard
+            title="Four Island Day Care Breeding"
+            goal={panel.breedGoal}
+            emptyCopy="No breeding shortcut stands out right now."
+            tone="breed"
+            checkboxState={checkboxState}
+            updateCheckboxState={updateCheckboxState}
+            ownedHeldTradeItems={ownedHeldTradeItems}
+            ownedGames={ownedGames}
+            updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+            incrementBreedingProgress={incrementBreedingProgress}
+          />
+        ) : null}
 
         {panel.xpShareUnlocked ? (
           <GoalFocusCard
@@ -220,6 +280,7 @@ function GoalsView({
   ownedHeldTradeItems,
   ownedGames,
   updateOwnedHeldTradeItem,
+  incrementBreedingProgress,
 }) {
   const showVersionLabel = panels.length > 1
 
@@ -239,6 +300,7 @@ function GoalsView({
             ownedHeldTradeItems={ownedHeldTradeItems}
             ownedGames={ownedGames}
             updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+            incrementBreedingProgress={incrementBreedingProgress}
             showVersionLabel={showVersionLabel}
           />
         ))}
