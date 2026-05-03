@@ -5,6 +5,29 @@ import {
 } from '../lib/pokedexHelpers'
 
 const compactPostgameSpriteNames = new Set(['Deoxys', 'Ho-Oh', 'Lugia', 'Steelix'])
+const pendingChoiceLabels = {
+  starter: 'starter',
+  fossil: 'fossil',
+  hitmon: 'Hitmon',
+}
+
+function buildPendingChoiceComment(pendingChoiceTypes) {
+  if (!pendingChoiceTypes.length) {
+    return ''
+  }
+
+  const uniquePendingChoiceTypes = [...new Set(pendingChoiceTypes)]
+
+  if (uniquePendingChoiceTypes.length > 1) {
+    return 'Finish the pending Pokedex Decisions to unlock these greyed boxes.'
+  }
+
+  const choiceLabel = pendingChoiceLabels[uniquePendingChoiceTypes[0]]
+
+  return pendingChoiceTypes.length > 1
+    ? `Choose a ${choiceLabel} in Pokedex Decisions to unlock both greyed boxes.`
+    : `Choose a ${choiceLabel} in Pokedex Decisions to unlock the greyed box.`
+}
 
 function CheckboxGroup({
   versionKey,
@@ -13,12 +36,13 @@ function CheckboxGroup({
   extraChecked,
   showExtraCopy,
   locked,
+  lockHint,
   updateCheckboxState,
 }) {
   if (showExtraCopy) {
     return (
-      <div className="capture-boxes">
-        <label className="capture-box">
+      <div className="capture-boxes" title={lockHint || undefined}>
+        <label className="capture-box" title={lockHint || undefined}>
           <span className="capture-label">1</span>
           <input
             id={`${versionKey}-${pokemonId}`}
@@ -28,10 +52,11 @@ function CheckboxGroup({
               updateCheckboxState(`${versionKey}-${pokemonId}`, event.target.checked)
             }
             disabled={locked}
+            title={lockHint || undefined}
           />
         </label>
 
-        <label className="capture-box extra-copy-box">
+        <label className="capture-box extra-copy-box" title={lockHint || undefined}>
           <span className="capture-label">2</span>
           <input
             id={`${versionKey}-extra-${pokemonId}`}
@@ -44,6 +69,7 @@ function CheckboxGroup({
               )
             }
             disabled={locked}
+            title={lockHint || undefined}
           />
         </label>
       </div>
@@ -51,7 +77,7 @@ function CheckboxGroup({
   }
 
   return (
-    <div className="single-capture-box">
+    <div className="single-capture-box" title={lockHint || undefined}>
       <input
         id={`${versionKey}-${pokemonId}`}
         type="checkbox"
@@ -60,6 +86,7 @@ function CheckboxGroup({
           updateCheckboxState(`${versionKey}-${pokemonId}`, event.target.checked)
         }
         disabled={locked}
+        title={lockHint || undefined}
       />
     </div>
   )
@@ -120,6 +147,18 @@ function PokemonRow({
       : null
   const singleVersionCellClass =
     singleVersionKey === 'leaf-green' ? 'leaf-green-cell' : 'fire-red-cell'
+  const visibleStates =
+    singleVersionState
+      ? [singleVersionState]
+      : isPairedSingleVersionRow
+        ? [singleVersionKey === 'leaf-green' ? leafGreenState : fireRedState]
+        : [fireRedState, leafGreenState]
+  const pendingChoiceComment = buildPendingChoiceComment(
+    visibleStates
+      .map((state) => state.pendingChoiceType)
+      .filter(Boolean),
+  )
+  const displayComment = comment || pendingChoiceComment
 
   return (
     <li
@@ -174,6 +213,7 @@ function PokemonRow({
           className={`checkbox-cell ${singleVersionCellClass} ${
             singleVersionState.locked ? 'checkbox-cell-locked' : ''
           }`}
+          title={singleVersionState.lockHint || undefined}
         >
           <CheckboxGroup
             versionKey={singleVersionKey}
@@ -182,6 +222,7 @@ function PokemonRow({
             extraChecked={false}
             showExtraCopy={false}
             locked={singleVersionState.locked}
+            lockHint={singleVersionState.lockHint}
             updateCheckboxState={updateCheckboxState}
           />
         </div>
@@ -195,6 +236,11 @@ function PokemonRow({
                 ? 'checkbox-cell-locked'
                 : ''
             }`.trim()}
+            title={
+              singleVersionKey === 'fire-red'
+                ? fireRedState.lockHint || undefined
+                : undefined
+            }
           >
             {singleVersionKey === 'fire-red' ? (
               <CheckboxGroup
@@ -204,6 +250,7 @@ function PokemonRow({
                 extraChecked={false}
                 showExtraCopy={false}
                 locked={fireRedState.locked}
+                lockHint={fireRedState.lockHint}
                 updateCheckboxState={updateCheckboxState}
               />
             ) : null}
@@ -217,6 +264,11 @@ function PokemonRow({
                 ? 'checkbox-cell-locked'
                 : ''
             }`.trim()}
+            title={
+              singleVersionKey === 'leaf-green'
+                ? leafGreenState.lockHint || undefined
+                : undefined
+            }
           >
             {singleVersionKey === 'leaf-green' ? (
               <CheckboxGroup
@@ -226,6 +278,7 @@ function PokemonRow({
                 extraChecked={false}
                 showExtraCopy={false}
                 locked={leafGreenState.locked}
+                lockHint={leafGreenState.lockHint}
                 updateCheckboxState={updateCheckboxState}
               />
             ) : null}
@@ -237,6 +290,7 @@ function PokemonRow({
             className={`checkbox-cell fire-red-cell ${
               fireRedState.locked ? 'checkbox-cell-locked' : ''
             }`}
+            title={fireRedState.lockHint || undefined}
           >
             <CheckboxGroup
               versionKey="fire-red"
@@ -245,6 +299,7 @@ function PokemonRow({
               extraChecked={Boolean(checkboxState[`fire-red-extra-${pokemonId}`])}
               showExtraCopy={fireRedState.showExtraCopy}
               locked={fireRedState.locked}
+              lockHint={fireRedState.lockHint}
               updateCheckboxState={updateCheckboxState}
             />
           </div>
@@ -253,6 +308,7 @@ function PokemonRow({
             className={`checkbox-cell leaf-green-cell ${
               leafGreenState.locked ? 'checkbox-cell-locked' : ''
             }`}
+            title={leafGreenState.lockHint || undefined}
           >
             <CheckboxGroup
               versionKey="leaf-green"
@@ -261,6 +317,7 @@ function PokemonRow({
               extraChecked={Boolean(checkboxState[`leaf-green-extra-${pokemonId}`])}
               showExtraCopy={leafGreenState.showExtraCopy}
               locked={leafGreenState.locked}
+              lockHint={leafGreenState.lockHint}
               updateCheckboxState={updateCheckboxState}
             />
           </div>
@@ -268,7 +325,7 @@ function PokemonRow({
       )}
 
       <div className="comment-cell">
-        {comment ? <span className="comment-text">{comment}</span> : null}
+        {displayComment ? <span className="comment-text">{displayComment}</span> : null}
       </div>
     </li>
   )

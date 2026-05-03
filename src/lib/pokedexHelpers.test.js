@@ -273,3 +273,32 @@ test('keeps the other version locked when only one version has postgame unlocked
     true,
   )
 })
+
+test('adds a missing-choice lock hint when no Hitmon decision has been made yet', () => {
+  const hitmonlee = getPokemonByName('Hitmonlee')
+
+  const state = getVersionTrackerState(hitmonlee, 'fire-red', createTrackerState())
+
+  assert.equal(state.locked, true)
+  assert.equal(state.pendingChoiceType, 'hitmon')
+  assert.equal(
+    state.lockHint,
+    'Choose a Hitmon in Pokedex Decisions to unlock this box.',
+  )
+})
+
+test('does not show a missing-choice lock hint once a conflicting Hitmon decision exists', () => {
+  const hitmonlee = getPokemonByName('Hitmonlee')
+
+  const state = getVersionTrackerState(
+    hitmonlee,
+    'fire-red',
+    createTrackerState({
+      fireRedHitmon: 'hitmonchan',
+    }),
+  )
+
+  assert.equal(state.locked, true)
+  assert.equal(state.pendingChoiceType, '')
+  assert.equal(state.lockHint, '')
+})

@@ -399,7 +399,9 @@ function App() {
     (count, panel) =>
       count +
       Number(Boolean(panel.huntGoal)) +
-      Number(Boolean(panel.breedGoal)) +
+      Number(Boolean(panel.baseGameComplete && panel.breedGoal)) +
+      Number(Boolean(panel.baseGameComplete && panel.hatchGoal)) +
+      Number(Boolean(panel.stoneGoal)) +
       Number(Boolean(panel.partyGoal)) +
       Number(Boolean(panel.itemGoal)),
     0,

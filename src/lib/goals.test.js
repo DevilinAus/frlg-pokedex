@@ -156,6 +156,7 @@ test('still returns a Game Corner hunt target when it is the only hunt option le
   assert.equal(goals.huntGoal.sourceEntry.name, 'Abra')
   assert.equal(goals.huntGoal.targetEntry.name, 'Kadabra')
   assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Alakazam')
+  assert.equal(goals.huntGoal.isGameCornerPrize, true)
 })
 
 test('considers direct native catches as hunt targets when no leveling line starter is available', () => {
@@ -248,6 +249,34 @@ test('returns a hunt goal when the line is available but not yet owned', () => {
   assert.equal(goals.huntGoal.sourceEntry.name, 'Machop')
   assert.equal(goals.huntGoal.targetEntry.name, 'Machoke')
   assert.equal(goals.huntGoal.tradeFollowUp?.name, 'Machamp')
+})
+
+test('shows a stone goal when the immediate source is already owned', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState({
+      [getCaughtKey('fire-red', 120)]: true,
+    }),
+  )
+
+  assert.equal(goals.stoneGoal?.sourceEntry.name, 'Staryu')
+  assert.equal(goals.stoneGoal?.targetEntry.name, 'Starmie')
+  assert.equal(goals.stoneGoal?.stoneItemName, 'Water Stone')
+  assert.equal(goals.stoneGoal?.stoneToneKey, 'water')
+})
+
+test('clears the stone goal once the evolved form is already registered', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState({
+      [getCaughtKey('fire-red', 120)]: true,
+      [getCaughtKey('fire-red', 121)]: true,
+    }),
+  )
+
+  assert.equal(goals.stoneGoal, null)
 })
 
 test('does not recommend a later-stage evolution as a hunt target when it is only unlocked by an owned pre-evolution', () => {
@@ -387,10 +416,13 @@ test('uses Tyrogue breeding for missing Hitmon evolutions after Tyrogue is regis
     }),
   )
 
-  assert.equal(goals.breedGoal?.targetEntry.name, 'Hitmonchan')
+  assert.equal(goals.breedGoal?.targetEntry.name, 'Hitmontop')
   assert.equal(goals.breedGoal?.sourceEntry.name, 'Hitmonlee')
   assert.equal(goals.breedGoal?.breederLabel, 'Any Hitmon')
-  assert.match(goals.breedGoal?.instructionCopy ?? '', /Defense higher than Attack/)
+  assert.equal(goals.hatchGoal?.targetEntry.name, 'Hitmonchan')
+  assert.equal(goals.hatchGoal?.sourceLabel, 'Tyrogue')
+  assert.match(goals.hatchGoal?.instructionCopy ?? '', /Defense higher than Attack/)
+  assert.match(goals.breedGoal?.instructionCopy ?? '', /Keep Attack and Defense equal/)
 })
 
 test('hides a one-off breeding goal once an egg has been marked obtained', () => {
@@ -409,6 +441,146 @@ test('hides a one-off breeding goal once an egg has been marked obtained', () =>
   )
 
   assert.notEqual(goals.breedGoal?.targetEntry.name, 'Magby')
+})
+
+test('shows a hatch goal once a same-version egg is owned', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'leaf-green',
+    createTrackerState(
+      {
+        [getCaughtKey('leaf-green', 126)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('leaf-green', 'magby')]: 1,
+      },
+    ),
+  )
+
+  assert.equal(goals.hatchGoal?.sourceEntry.name, 'Magby')
+  assert.equal(goals.hatchGoal?.targetEntry.name, 'Magby')
+})
+
+test('numbers the first repeated Eevee hatch so multiple eggs do not look duplicated', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 133)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'eevee')]: 3,
+      },
+    ),
+  )
+
+  assert.equal(goals.hatchGoal?.sourceLabel, 'Eevee (2)')
+})
+
+test('clears a hatch goal once the baby is ticked in the planner', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'leaf-green',
+    createTrackerState(
+      {
+        [getCaughtKey('leaf-green', 126)]: true,
+        [getCaughtKey('leaf-green', 240)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('leaf-green', 'magby')]: 1,
+      },
+    ),
+  )
+
+  assert.equal(goals.hatchGoal, null)
+})
+
+test('does not retarget a consumed baby egg to the other version in shared goals', () => {
+  const goalsByVersion = buildGoalsByVersion(
+    pokemonList,
+    createTrackerState(
+      {
+        [getCaughtKey('leaf-green', 126)]: true,
+        [getCaughtKey('leaf-green', 240)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('leaf-green', 'magby')]: 1,
+      },
+    ),
+    ['fire-red', 'leaf-green'],
+  )
+
+  assert.equal(goalsByVersion['leaf-green'].hatchGoal, null)
+})
+
+test('shows an Eevee hatch goal for reserved eggs and advances after a planner tick', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 133)]: true,
+        [getCaughtKey('fire-red', 134)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'eevee')]: 3,
+      },
+    ),
+  )
+
+  assert.equal(goals.hatchGoal?.sourceEntry.name, 'Eevee')
+  assert.equal(goals.hatchGoal?.sourceLabel, 'Eevee (3)')
+  assert.equal(goals.hatchGoal?.targetEntry.name, 'Jolteon')
+  assert.equal(goals.hatchGoal?.instructionCopy ?? '', '')
+})
+
+test('shows a Tyrogue hatch goal until enough branch eggs have been consumed', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 236)]: true,
+        [getCaughtKey('fire-red', 106)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'hitmon')]: 3,
+      },
+    ),
+  )
+
+  assert.equal(goals.hatchGoal?.sourceEntry.name, 'Tyrogue')
+  assert.equal(goals.hatchGoal?.sourceLabel, 'Tyrogue')
+  assert.equal(goals.hatchGoal?.targetEntry.name, 'Hitmonchan')
+  assert.match(goals.hatchGoal?.instructionCopy ?? '', /Defense higher than Attack/)
+})
+
+test('shows the second Tyrogue hatch after one missing Hitmon is already filled', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 106)]: true,
+        [getCaughtKey('fire-red', 107)]: true,
+        [getCaughtKey('fire-red', 236)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'hitmon')]: 3,
+      },
+    ),
+  )
+
+  assert.equal(goals.hatchGoal?.sourceLabel, 'Tyrogue (2)')
+  assert.equal(goals.hatchGoal?.targetEntry.name, 'Hitmontop')
 })
 
 test('can breed a missing Hitmon choice for the other version', () => {

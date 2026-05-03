@@ -25,6 +25,15 @@ const versionGoalLabels = {
   'leaf-green': 'Leaf Green',
 }
 
+const stoneToneByItemName = {
+  'Moon Stone': 'moon',
+  'Leaf Stone': 'leaf',
+  'Thunder Stone': 'thunder',
+  'Water Stone': 'water',
+  'Fire Stone': 'fire',
+  'Sun Stone': 'sun',
+}
+
 const allPokemonByName = new Map(allPokemon.map((entry) => [entry.name, entry]))
 
 function getCaughtKey(versionKey, pokemonId) {
@@ -51,6 +60,7 @@ function createPokemonIndexes(pokemonList) {
   const byName = new Map()
   const tradeFollowUpsBySource = new Map()
   const levelFollowUpsBySource = new Map()
+  const stoneFollowUpsBySource = new Map()
 
   pokemonList.forEach((entry) => {
     byName.set(entry.name, entry)
@@ -68,9 +78,19 @@ function createPokemonIndexes(pokemonList) {
       existing.push(entry)
       levelFollowUpsBySource.set(entry.evolvesFrom, existing)
     }
+
+    if (entry.stoneEvolution) {
+      const existing = stoneFollowUpsBySource.get(entry.evolvesFrom) ?? []
+      existing.push(entry)
+      stoneFollowUpsBySource.set(entry.evolvesFrom, existing)
+    }
   })
 
   levelFollowUpsBySource.forEach((entries) => {
+    entries.sort((leftEntry, rightEntry) => leftEntry.id - rightEntry.id)
+  })
+
+  stoneFollowUpsBySource.forEach((entries) => {
     entries.sort((leftEntry, rightEntry) => leftEntry.id - rightEntry.id)
   })
 
@@ -78,6 +98,7 @@ function createPokemonIndexes(pokemonList) {
     byName,
     tradeFollowUpsBySource,
     levelFollowUpsBySource,
+    stoneFollowUpsBySource,
   }
 }
 
@@ -103,6 +124,58 @@ function getMissingLevelFollowUp(levelFollowUpsBySource, sourceName, versionKey,
   return (
     followUps.find((entry) => !isCaught(entry, versionKey, checkboxState)) ?? null
   )
+}
+
+function getMissingStoneFollowUp(stoneFollowUpsBySource, sourceName, versionKey, checkboxState) {
+  const followUps = stoneFollowUpsBySource.get(sourceName) ?? []
+
+  return (
+    followUps.find((entry) => !isCaught(entry, versionKey, checkboxState)) ?? null
+  )
+}
+
+function getBranchRuleProgress(rule, versionKey, checkboxState, breedingProgress) {
+  const progressKey = rule.progressKey ?? rule.familyKey
+  const progressStoredCount = getBreedingProgressCount(
+    breedingProgress,
+    versionKey,
+    progressKey,
+  )
+  const progressCountNames = rule.progressCountNames ?? rule.ownedMemberNames ?? rule.breederNames
+  const progressCaughtCount = getCaughtCountByNames(
+    progressCountNames,
+    versionKey,
+    checkboxState,
+  )
+  const availableCaughtStockRawCount = getCaughtCountByNames(
+    rule.availableCaughtStockNames ?? [],
+    versionKey,
+    checkboxState,
+  )
+  const availableCaughtStockBaselineCount = Math.max(
+    0,
+    Math.floor(Number(rule.availableCaughtStockBaselineCount ?? 0)),
+  )
+  const consumedCaughtStockCount = Math.max(
+    progressCaughtCount - availableCaughtStockBaselineCount,
+    0,
+  )
+  const availableCaughtStockCount = Math.max(
+    availableCaughtStockRawCount - consumedCaughtStockCount,
+    0,
+  )
+  const progressCurrentCount = Math.max(
+    progressStoredCount,
+    progressCaughtCount + availableCaughtStockCount,
+  )
+  const availableStockCount = Math.max(progressCurrentCount - progressCaughtCount, 0)
+
+  return {
+    progressKey,
+    progressCaughtCount,
+    progressCurrentCount,
+    availableStockCount,
+  }
 }
 
 function getPriorityBand(candidate) {
@@ -174,6 +247,10 @@ function formatGoal(goal, type, versionKey) {
     return null
   }
 
+  const isGameCornerPrize = type === 'hunt'
+    ? isGameCornerPrizePokemon(goal.sourceEntry, versionKey)
+    : false
+
   return {
     type,
     key: `${type}-${goal.sourceEntry.name}-${goal.targetEntry.name}`,
@@ -189,6 +266,7 @@ function formatGoal(goal, type, versionKey) {
       ? `Lv. ${goal.targetEntry.levelEvolution}`
       : '',
     tradeFollowUpCopy: buildTradeFollowUpCopy(goal),
+    isGameCornerPrize,
   }
 }
 
@@ -262,6 +340,23 @@ function buildBreedInstructionCopy(goal, sourceVersionKey) {
   return steps.join(' ')
 }
 
+function buildHatchInstructionCopy(goal, sourceVersionKey) {
+  return buildBreedInstructionCopy(goal, sourceVersionKey).replace(
+    /^Use a [^.]+ Stone on the hatched [^.]+\.\s*/,
+    '',
+  )
+}
+
+function buildHatchSourceLabel(goal) {
+  const baseLabel = goal.sourceEntry?.name ?? ''
+
+  if (!goal.hatchSequenceNumber || goal.hatchSequenceNumber <= 1) {
+    return baseLabel
+  }
+
+  return `${baseLabel} (${goal.hatchSequenceNumber})`
+}
+
 function formatBreedGoal(goal, versionKey) {
   if (!goal) {
     return null
@@ -299,6 +394,46 @@ function formatBreedGoal(goal, versionKey) {
   }
 }
 
+function formatHatchGoal(goal, versionKey) {
+  if (!goal) {
+    return null
+  }
+
+  return {
+    type: 'hatch',
+    key: `hatch-${versionKey}-${goal.destinationVersionKey}-${goal.sourceEntry.name}-${goal.targetEntry.name}`,
+    priorityBand: goal.priorityBand,
+    versionKey,
+    destinationVersionKey: goal.destinationVersionKey,
+    sourceEntry: goal.sourceEntry,
+    targetEntry: goal.targetEntry,
+    sourceCaughtKey: getCaughtKey(versionKey, goal.sourceEntry.id),
+    targetCaughtKey: getCaughtKey(goal.destinationVersionKey, goal.targetEntry.id),
+    sourceLabel: buildHatchSourceLabel(goal),
+    followUpHint: goal.followUpHint ?? '',
+    instructionCopy: buildHatchInstructionCopy(goal, versionKey),
+    unhatchedCount: Math.max(1, Math.floor(Number(goal.unhatchedCount ?? 1))),
+  }
+}
+
+function formatStoneGoal(goal, versionKey) {
+  if (!goal) {
+    return null
+  }
+
+  return {
+    type: 'stone',
+    key: `stone-${versionKey}-${goal.sourceEntry.name}-${goal.targetEntry.name}`,
+    versionKey,
+    sourceEntry: goal.sourceEntry,
+    targetEntry: goal.targetEntry,
+    sourceCaughtKey: getCaughtKey(versionKey, goal.sourceEntry.id),
+    targetCaughtKey: getCaughtKey(versionKey, goal.targetEntry.id),
+    stoneItemName: goal.stoneItemName,
+    stoneToneKey: goal.stoneToneKey,
+  }
+}
+
 function compareBreedCandidates(leftCandidate, rightCandidate) {
   if (leftCandidate.priorityBand !== rightCandidate.priorityBand) {
     return leftCandidate.priorityBand - rightCandidate.priorityBand
@@ -309,6 +444,27 @@ function compareBreedCandidates(leftCandidate, rightCandidate) {
   }
 
   return leftCandidate.sourceEntry.id - rightCandidate.sourceEntry.id
+}
+
+function compareStoneCandidates(leftCandidate, rightCandidate) {
+  if (leftCandidate.sourceEntry.id !== rightCandidate.sourceEntry.id) {
+    return leftCandidate.sourceEntry.id - rightCandidate.sourceEntry.id
+  }
+
+  return leftCandidate.targetEntry.id - rightCandidate.targetEntry.id
+}
+
+function getBranchHatchSequenceNumber(rule, progressCaughtCount) {
+  if (rule.hatchSequenceMode === 'target-progress') {
+    const baselineCount = Math.max(
+      0,
+      Math.floor(Number(rule.hatchSequenceBaselineCount ?? 0)),
+    )
+
+    return Math.max(progressCaughtCount - baselineCount + 1, 1)
+  }
+
+  return progressCaughtCount + 1
 }
 
 function buildBreedGoalCandidates(
@@ -442,18 +598,16 @@ function buildBreedGoalCandidates(
       return
     }
 
-    const progressKey = rule.progressKey ?? rule.familyKey
-    const progressStoredCount = getBreedingProgressCount(
-      breedingProgress,
-      versionKey,
+    const {
       progressKey,
-    )
-    const caughtMemberCount = getCaughtCountByNames(
-      rule.ownedMemberNames ?? rule.breederNames,
+      progressCurrentCount,
+      availableStockCount,
+    } = getBranchRuleProgress(
+      rule,
       versionKey,
       checkboxState,
+      breedingProgress,
     )
-    const progressCurrentCount = Math.max(progressStoredCount, caughtMemberCount)
     const progressTargetCount = Math.max(
       1,
       Math.floor(Number(rule.requiredCount ?? rule.targetNames.length ?? 1)),
@@ -476,7 +630,10 @@ function buildBreedGoalCandidates(
       return
     }
 
-    const [targetEntry] = missingTargetEntries
+    const targetIndex = rule.breedGoalSkipsAvailableStock
+      ? Math.min(availableStockCount, missingTargetEntries.length - 1)
+      : 0
+    const targetEntry = missingTargetEntries[targetIndex]
 
     candidates.push({
       priorityBand: 3,
@@ -488,6 +645,144 @@ function buildBreedGoalCandidates(
       progressKey,
       progressCurrentCount,
       progressTargetCount,
+    })
+  })
+
+  return candidates.sort(compareBreedCandidates)
+}
+
+function buildHatchGoalCandidates(
+  versionKey,
+  trackerState,
+  visibleVersionKeys,
+  trackableNameSetsByVersion,
+) {
+  const checkboxState = trackerState.checkboxState ?? {}
+  const breedingProgress = trackerState.breedingProgress ?? {}
+  const sourceTrackableNames = trackableNameSetsByVersion[versionKey] ?? new Set()
+  const otherVersionKey = getOtherVersionKey(versionKey)
+  const canTargetOtherVersion = visibleVersionKeys.includes(otherVersionKey)
+  const candidates = []
+
+  directBreedGoalRules.forEach((rule) => {
+    const targetEntry = allPokemonByName.get(rule.targetName)
+    const eggEntry = allPokemonByName.get(rule.eggName ?? rule.targetName)
+    const progressKey = rule.progressKey ?? rule.targetName.toLowerCase()
+    const progressStoredCount = getBreedingProgressCount(
+      breedingProgress,
+      versionKey,
+      progressKey,
+    )
+    const sameVersionCaught = targetEntry
+      ? isCaught(targetEntry, versionKey, checkboxState)
+      : false
+    const availableEggCount = Math.max(
+      progressStoredCount - Number(sameVersionCaught),
+      0,
+    )
+
+    if (!targetEntry || !eggEntry || availableEggCount < 1) {
+      return
+    }
+
+    if (sourceTrackableNames.has(rule.targetName) && !sameVersionCaught) {
+      candidates.push({
+        priorityBand: 0,
+        sourceEntry: eggEntry,
+        targetEntry,
+        destinationVersionKey: versionKey,
+        followUpHint: '',
+        unhatchedCount: availableEggCount,
+      })
+    }
+
+    if (
+      canTargetOtherVersion &&
+      trackableNameSetsByVersion[otherVersionKey]?.has(rule.targetName) &&
+      !isCaught(targetEntry, otherVersionKey, checkboxState)
+    ) {
+      candidates.push({
+        priorityBand: 1,
+        sourceEntry: eggEntry,
+        targetEntry,
+        destinationVersionKey: otherVersionKey,
+        followUpHint: '',
+        unhatchedCount: availableEggCount,
+      })
+    }
+  })
+
+  if (canTargetOtherVersion) {
+    crossVersionBreedGoalRules.forEach((rule) => {
+      const targetEntry = allPokemonByName.get(rule.targetName)
+      const eggEntry = allPokemonByName.get(rule.eggName ?? rule.targetName)
+      const progressKey = rule.progressKey ?? rule.targetName.toLowerCase()
+      const progressStoredCount = getBreedingProgressCount(
+        breedingProgress,
+        versionKey,
+        progressKey,
+      )
+
+      if (
+        !targetEntry ||
+        !eggEntry ||
+        progressStoredCount < 1 ||
+        !trackableNameSetsByVersion[otherVersionKey]?.has(rule.targetName) ||
+        isCaught(targetEntry, otherVersionKey, checkboxState)
+      ) {
+        return
+      }
+
+      candidates.push({
+        priorityBand: 2,
+        sourceEntry: eggEntry,
+        targetEntry,
+        destinationVersionKey: otherVersionKey,
+        followUpHint: rule.followUpHint ?? '',
+        unhatchedCount: progressStoredCount,
+      })
+    })
+  }
+
+  branchBreedGoalRules.forEach((rule) => {
+    const eggEntry = allPokemonByName.get(rule.eggName)
+    const {
+      progressCaughtCount,
+      availableStockCount,
+    } = getBranchRuleProgress(
+      rule,
+      versionKey,
+      checkboxState,
+      breedingProgress,
+    )
+
+    if (!eggEntry || availableStockCount < 1) {
+      return
+    }
+
+    const missingTargetEntries = rule.targetNames
+      .map((name) => allPokemonByName.get(name))
+      .filter(
+        (entry) =>
+          entry &&
+          sourceTrackableNames.has(entry.name) &&
+          !isCaught(entry, versionKey, checkboxState),
+      )
+
+    if (missingTargetEntries.length === 0) {
+      return
+    }
+
+    const [targetEntry] = missingTargetEntries
+
+    candidates.push({
+      priorityBand: 3,
+      sourceEntry: eggEntry,
+      targetEntry,
+      destinationVersionKey: versionKey,
+      followUpHint: rule.followUpHints?.[targetEntry.name] ?? '',
+      hatchSequenceNumber: getBranchHatchSequenceNumber(rule, progressCaughtCount),
+      unhatchedCount: availableStockCount,
     })
   })
 
@@ -513,6 +808,61 @@ function getVersionBreedGoal(
   )
 
   return formatBreedGoal(candidates[0] ?? null, versionKey)
+}
+
+function getVersionHatchGoal(
+  pokemonList,
+  versionKey,
+  trackerState,
+  {
+    visibleVersionKeys = [versionKey],
+    trackableNameSetsByVersion = {
+      [versionKey]: new Set(pokemonList.map((entry) => entry.name)),
+    },
+  } = {},
+) {
+  const candidates = buildHatchGoalCandidates(
+    versionKey,
+    trackerState,
+    visibleVersionKeys,
+    trackableNameSetsByVersion,
+  )
+
+  return formatHatchGoal(candidates[0] ?? null, versionKey)
+}
+
+function getVersionStoneGoal(pokemonList, versionKey, trackerState) {
+  const checkboxState = trackerState.checkboxState ?? {}
+  const { stoneFollowUpsBySource } = createPokemonIndexes(pokemonList)
+  const candidates = []
+
+  pokemonList.forEach((sourceEntry) => {
+    if (!isCaught(sourceEntry, versionKey, checkboxState)) {
+      return
+    }
+
+    const targetEntry = getMissingStoneFollowUp(
+      stoneFollowUpsBySource,
+      sourceEntry.name,
+      versionKey,
+      checkboxState,
+    )
+
+    if (!targetEntry?.stoneEvolution) {
+      return
+    }
+
+    candidates.push({
+      sourceEntry,
+      targetEntry,
+      stoneItemName: targetEntry.stoneEvolution,
+      stoneToneKey: stoneToneByItemName[targetEntry.stoneEvolution] ?? 'sun',
+    })
+  })
+
+  candidates.sort(compareStoneCandidates)
+
+  return formatStoneGoal(candidates[0] ?? null, versionKey)
 }
 
 export function buildItemGoalsByVersion(blockedByVersion, versionKeys) {
@@ -638,6 +988,8 @@ export function getVersionGoals(pokemonList, versionKey, trackerState, options =
   return {
     partyGoal: xpShareUnlocked ? formatGoal(partyCandidates[0] ?? null, 'party', versionKey) : null,
     breedGoal: getVersionBreedGoal(pokemonList, versionKey, trackerState, options),
+    hatchGoal: getVersionHatchGoal(pokemonList, versionKey, trackerState, options),
+    stoneGoal: getVersionStoneGoal(pokemonList, versionKey, trackerState),
     huntGoal: formatGoal(huntCandidates[0] ?? null, 'hunt', versionKey),
     caughtCount,
     xpShareUnlocked,
@@ -683,6 +1035,7 @@ export function buildGoalsByVersion(
           ...versionGoals,
           baseGameComplete,
           breedGoal: baseGameComplete ? versionGoals.breedGoal : null,
+          hatchGoal: baseGameComplete ? versionGoals.hatchGoal : null,
           itemGoal: itemGoalsByVersion[versionKey],
         },
       ]

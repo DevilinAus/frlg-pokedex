@@ -823,6 +823,90 @@
   background: radial-gradient(circle, rgba(244, 114, 182, 0.72), transparent 66%);
 }
 
+.goal-focus-card-hatch {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #f7fee7 18%),
+    color-mix(in srgb, var(--surface) 90%, #bef264 10%)
+  );
+}
+
+.goal-focus-card-hatch::after {
+  background: radial-gradient(circle, rgba(163, 230, 53, 0.56), transparent 68%);
+}
+
+.goal-focus-card-stone-moon {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #f8fbff 18%),
+    color-mix(in srgb, var(--surface) 90%, #bfdbfe 10%)
+  );
+}
+
+.goal-focus-card-stone-moon::after {
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.62), transparent 68%);
+}
+
+.goal-focus-card-stone-leaf {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #f0fdf4 18%),
+    color-mix(in srgb, var(--surface) 90%, #86efac 10%)
+  );
+}
+
+.goal-focus-card-stone-leaf::after {
+  background: radial-gradient(circle, rgba(134, 239, 172, 0.56), transparent 68%);
+}
+
+.goal-focus-card-stone-thunder {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #fffde7 18%),
+    color-mix(in srgb, var(--surface) 90%, #fde047 10%)
+  );
+}
+
+.goal-focus-card-stone-thunder::after {
+  background: radial-gradient(circle, rgba(253, 224, 71, 0.58), transparent 68%);
+}
+
+.goal-focus-card-stone-water {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #eff6ff 18%),
+    color-mix(in srgb, var(--surface) 90%, #93c5fd 10%)
+  );
+}
+
+.goal-focus-card-stone-water::after {
+  background: radial-gradient(circle, rgba(147, 197, 253, 0.58), transparent 68%);
+}
+
+.goal-focus-card-stone-fire {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #fff7ed 18%),
+    color-mix(in srgb, var(--surface) 90%, #fb7185 10%)
+  );
+}
+
+.goal-focus-card-stone-fire::after {
+  background: radial-gradient(circle, rgba(251, 113, 133, 0.56), transparent 68%);
+}
+
+.goal-focus-card-stone-sun {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface) 82%, #fffbeb 18%),
+    color-mix(in srgb, var(--surface) 90%, #fbbf24 10%)
+  );
+}
+
+.goal-focus-card-stone-sun::after {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.56), transparent 68%);
+}
+
 .goal-focus-header {
   position: relative;
   z-index: 1;
@@ -958,6 +1042,34 @@
   background: rgba(190, 24, 93, 0.1);
 }
 
+.goal-focus-action-hatch {
+  background: rgba(101, 163, 13, 0.12);
+}
+
+.goal-focus-action-stone-moon {
+  background: rgba(191, 219, 254, 0.2);
+}
+
+.goal-focus-action-stone-leaf {
+  background: rgba(134, 239, 172, 0.2);
+}
+
+.goal-focus-action-stone-thunder {
+  background: rgba(253, 224, 71, 0.2);
+}
+
+.goal-focus-action-stone-water {
+  background: rgba(147, 197, 253, 0.2);
+}
+
+.goal-focus-action-stone-fire {
+  background: rgba(251, 113, 133, 0.18);
+}
+
+.goal-focus-action-stone-sun {
+  background: rgba(251, 191, 36, 0.18);
+}
+
 .goal-focus-action input {
   width: 18px;
   height: 18px;
@@ -997,6 +1109,34 @@
   background: rgba(190, 24, 93, 0.18);
 }
 
+.goal-focus-action-hatch:has(input:checked) {
+  background: rgba(101, 163, 13, 0.2);
+}
+
+.goal-focus-action-stone-moon:has(input:checked) {
+  background: rgba(191, 219, 254, 0.3);
+}
+
+.goal-focus-action-stone-leaf:has(input:checked) {
+  background: rgba(134, 239, 172, 0.3);
+}
+
+.goal-focus-action-stone-thunder:has(input:checked) {
+  background: rgba(253, 224, 71, 0.3);
+}
+
+.goal-focus-action-stone-water:has(input:checked) {
+  background: rgba(147, 197, 253, 0.3);
+}
+
+.goal-focus-action-stone-fire:has(input:checked) {
+  background: rgba(251, 113, 133, 0.28);
+}
+
+.goal-focus-action-stone-sun:has(input:checked) {
+  background: rgba(251, 191, 36, 0.28);
+}
+
 .goal-focus-evolution {
   display: flex;
   flex-direction: column;
@@ -1020,6 +1160,10 @@
   color: var(--text-strong);
   font-size: 1rem;
   font-weight: 600;
+}
+
+.goal-focus-evolution-copy-tight {
+  gap: 5px;
 }
 
 .goal-focus-level {
@@ -2740,6 +2884,104 @@ button,
   background: radial-gradient(circle, rgba(251, 182, 206, 0.46), transparent 68%);
 }
 
+.app-theme-dark .goal-focus-card-hatch {
+  background: linear-gradient(
+    135deg,
+    rgba(190, 242, 100, 0.2),
+    rgba(132, 204, 22, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(190, 242, 100, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-hatch::after {
+  background: radial-gradient(circle, rgba(217, 249, 157, 0.4), transparent 68%);
+}
+
+.app-theme-dark .goal-focus-card-stone-moon {
+  background: linear-gradient(
+    135deg,
+    rgba(219, 234, 254, 0.2),
+    rgba(147, 197, 253, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(191, 219, 254, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-stone-moon::after {
+  background: radial-gradient(circle, rgba(219, 234, 254, 0.42), transparent 68%);
+}
+
+.app-theme-dark .goal-focus-card-stone-leaf {
+  background: linear-gradient(
+    135deg,
+    rgba(134, 239, 172, 0.18),
+    rgba(34, 197, 94, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(134, 239, 172, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-stone-leaf::after {
+  background: radial-gradient(circle, rgba(187, 247, 208, 0.38), transparent 68%);
+}
+
+.app-theme-dark .goal-focus-card-stone-thunder {
+  background: linear-gradient(
+    135deg,
+    rgba(253, 224, 71, 0.2),
+    rgba(234, 179, 8, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(253, 224, 71, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-stone-thunder::after {
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.38), transparent 68%);
+}
+
+.app-theme-dark .goal-focus-card-stone-water {
+  background: linear-gradient(
+    135deg,
+    rgba(147, 197, 253, 0.2),
+    rgba(59, 130, 246, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(147, 197, 253, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-stone-water::after {
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.4), transparent 68%);
+}
+
+.app-theme-dark .goal-focus-card-stone-fire {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.18),
+    rgba(239, 68, 68, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(251, 113, 133, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-stone-fire::after {
+  background: radial-gradient(circle, rgba(254, 205, 211, 0.36), transparent 68%);
+}
+
+.app-theme-dark .goal-focus-card-stone-sun {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.18),
+    rgba(245, 158, 11, 0.14) 42%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  border-color: rgba(251, 191, 36, 0.26);
+}
+
+.app-theme-dark .goal-focus-card-stone-sun::after {
+  background: radial-gradient(circle, rgba(253, 230, 138, 0.34), transparent 68%);
+}
+
 .app-theme-dark .goal-focus-sprite-shell {
   background: rgba(15, 23, 42, 0.72);
   border-color: rgba(148, 163, 184, 0.2);
@@ -2781,6 +3023,48 @@ button,
   color: #ffd4e6;
 }
 
+.app-theme-dark .goal-focus-action-hatch {
+  background: rgba(163, 230, 53, 0.14);
+  border-color: rgba(190, 242, 100, 0.26);
+  color: #e7ffc7;
+}
+
+.app-theme-dark .goal-focus-action-stone-moon {
+  background: rgba(191, 219, 254, 0.14);
+  border-color: rgba(191, 219, 254, 0.24);
+  color: #e9f3ff;
+}
+
+.app-theme-dark .goal-focus-action-stone-leaf {
+  background: rgba(134, 239, 172, 0.14);
+  border-color: rgba(134, 239, 172, 0.24);
+  color: #dfffe9;
+}
+
+.app-theme-dark .goal-focus-action-stone-thunder {
+  background: rgba(253, 224, 71, 0.14);
+  border-color: rgba(253, 224, 71, 0.24);
+  color: #fff6bf;
+}
+
+.app-theme-dark .goal-focus-action-stone-water {
+  background: rgba(147, 197, 253, 0.14);
+  border-color: rgba(147, 197, 253, 0.24);
+  color: #d8ebff;
+}
+
+.app-theme-dark .goal-focus-action-stone-fire {
+  background: rgba(251, 113, 133, 0.14);
+  border-color: rgba(251, 113, 133, 0.24);
+  color: #ffe0e6;
+}
+
+.app-theme-dark .goal-focus-action-stone-sun {
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.24);
+  color: #ffeab4;
+}
+
 .app-theme-dark .goal-focus-action-indicator {
   border-color: rgba(226, 232, 240, 0.6);
   background: rgba(15, 23, 42, 0.28);
@@ -2802,8 +3086,36 @@ button,
   background: rgba(244, 114, 182, 0.22);
 }
 
+.app-theme-dark .goal-focus-action-hatch:has(input:checked) {
+  background: rgba(163, 230, 53, 0.22);
+}
+
+.app-theme-dark .goal-focus-action-stone-moon:has(input:checked) {
+  background: rgba(191, 219, 254, 0.22);
+}
+
+.app-theme-dark .goal-focus-action-stone-leaf:has(input:checked) {
+  background: rgba(134, 239, 172, 0.22);
+}
+
+.app-theme-dark .goal-focus-action-stone-thunder:has(input:checked) {
+  background: rgba(253, 224, 71, 0.22);
+}
+
+.app-theme-dark .goal-focus-action-stone-water:has(input:checked) {
+  background: rgba(147, 197, 253, 0.22);
+}
+
+.app-theme-dark .goal-focus-action-stone-fire:has(input:checked) {
+  background: rgba(251, 113, 133, 0.22);
+}
+
+.app-theme-dark .goal-focus-action-stone-sun:has(input:checked) {
+  background: rgba(251, 191, 36, 0.22);
+}
+
 .app-theme-dark .goal-focus-breed-note {
-  color: #d6bdd0;
+  color: #d8e2d1;
 }
 
 .app-theme-dark .pokemon-row:hover {
