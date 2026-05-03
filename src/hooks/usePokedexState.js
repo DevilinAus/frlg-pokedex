@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { getBreedingProgressStateKey } from '../lib/breedingProgress'
 import {
   applyCheckboxStateUpdate,
   applyCheckboxStateUpdates,
@@ -93,6 +94,7 @@ function usePokedexState() {
   const [ownedHeldTradeItems, setOwnedHeldTradeItems] = useState(
     defaultAppState.ownedHeldTradeItems,
   )
+  const [breedingProgress, setBreedingProgress] = useState(defaultAppState.breedingProgress)
   const [checkboxState, setCheckboxState] = useState(defaultAppState.checkboxState)
   const [celebrationState, setCelebrationState] = useState(defaultCelebrationState)
   const [jumpingSprites, setJumpingSprites] = useState({})
@@ -158,6 +160,7 @@ function usePokedexState() {
       fireRedHitmon,
       leafGreenHitmon,
       ownedHeldTradeItems,
+      breedingProgress,
       checkboxState,
       celebrationState,
     }),
@@ -257,6 +260,25 @@ function usePokedexState() {
       patch.ownedHeldTradeItems = ownedHeldTradeItemsPatch
     }
 
+    const breedingProgressPatch = {}
+    const breedingProgressKeys = new Set([
+      ...Object.keys(baseState.breedingProgress),
+      ...Object.keys(nextState.breedingProgress),
+    ])
+
+    breedingProgressKeys.forEach((key) => {
+      const nextValue = Math.max(0, Math.floor(Number(nextState.breedingProgress[key] ?? 0)))
+      const baseValue = Math.max(0, Math.floor(Number(baseState.breedingProgress[key] ?? 0)))
+
+      if (nextValue !== baseValue) {
+        breedingProgressPatch[key] = nextValue
+      }
+    })
+
+    if (Object.keys(breedingProgressPatch).length > 0) {
+      patch.breedingProgress = breedingProgressPatch
+    }
+
     const checkboxPatch = {}
     const checkboxKeys = new Set([
       ...Object.keys(baseState.checkboxState),
@@ -330,6 +352,7 @@ function usePokedexState() {
     setFireRedHitmon(state.fireRedHitmon)
     setLeafGreenHitmon(state.leafGreenHitmon)
     setOwnedHeldTradeItems(state.ownedHeldTradeItems)
+    setBreedingProgress(state.breedingProgress)
     setCheckboxState(state.checkboxState)
     setCelebrationState(state.celebrationState)
 
@@ -610,6 +633,7 @@ function usePokedexState() {
     mode,
     onboardingComplete,
     ownedHeldTradeItems,
+    breedingProgress,
     ownedGames,
     showSecondaryProgress,
     unlockAll,
@@ -692,6 +716,7 @@ function usePokedexState() {
     mode,
     onboardingComplete,
     ownedHeldTradeItems,
+    breedingProgress,
     ownedGames,
     showSecondaryProgress,
     unlockAll,
@@ -905,6 +930,27 @@ function usePokedexState() {
         { ...currentState },
       ),
     )
+  }
+
+  function incrementBreedingProgress(versionKey, progressKey, nextCount) {
+    const stateKey = getBreedingProgressStateKey(versionKey, progressKey)
+
+    if (!stateKey) {
+      return
+    }
+
+    markCloudStateDirty()
+    setBreedingProgress((currentState) => {
+      const currentValue = Math.max(0, Math.floor(Number(currentState[stateKey] ?? 0)))
+      const requestedValue = Number.isFinite(Number(nextCount))
+        ? Math.max(0, Math.floor(Number(nextCount)))
+        : currentValue + 1
+
+      return {
+        ...currentState,
+        [stateKey]: Math.max(currentValue + 1, requestedValue),
+      }
+    })
   }
 
   function completeOnboarding(setup) {
@@ -1196,7 +1242,9 @@ function usePokedexState() {
     leafGreenHitmon,
     setLeafGreenHitmon: updateLeafGreenHitmon,
     ownedHeldTradeItems,
+    breedingProgress,
     updateOwnedHeldTradeItem,
+    incrementBreedingProgress,
     checkboxState,
     updateCheckboxState,
     updateCheckboxStates,

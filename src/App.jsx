@@ -192,7 +192,9 @@ function App() {
     leafGreenHitmon,
     setLeafGreenHitmon,
     ownedHeldTradeItems,
+    breedingProgress,
     updateOwnedHeldTradeItem,
+    incrementBreedingProgress,
     checkboxState,
     updateCheckboxState,
     updateCheckboxStates,
@@ -230,6 +232,7 @@ function App() {
     fireRedHitmon,
     leafGreenHitmon,
     ownedHeldTradeItems,
+    breedingProgress,
     checkboxState,
   }
   const baseGameComplete = getViewerBaseGameComplete(ownedGames, primaryGame, trackerState)
@@ -396,6 +399,7 @@ function App() {
     (count, panel) =>
       count +
       Number(Boolean(panel.huntGoal)) +
+      Number(Boolean(panel.breedGoal)) +
       Number(Boolean(panel.partyGoal)) +
       Number(Boolean(panel.itemGoal)),
     0,
@@ -971,6 +975,7 @@ function App() {
             ownedHeldTradeItems={ownedHeldTradeItems}
             ownedGames={ownedGames}
             updateOwnedHeldTradeItem={updateOwnedHeldTradeItem}
+            incrementBreedingProgress={incrementBreedingProgress}
           />
         ) : (
           <div className={`tracker ${isSoloSingleVersionView ? 'tracker-single' : ''}`}>

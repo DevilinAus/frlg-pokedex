@@ -10,6 +10,7 @@ import SQLiteStoreFactory from 'better-sqlite3-session-store'
 import express from 'express'
 import session from 'express-session'
 import { normalizeCheckboxState } from './src/lib/checkboxState.js'
+import { sanitizeBreedingProgress } from './src/lib/breedingProgress.js'
 import {
   normalizeOwnedHeldTradeItems,
   withLegacyOwnedHeldTradeItemsCompatibility,
@@ -55,6 +56,7 @@ const defaultTrackerState = {
   fireRedHitmon: '',
   leafGreenHitmon: '',
   ownedHeldTradeItems: {},
+  breedingProgress: {},
   checkboxState: {},
   celebrationState: {
     fireRedCompleteCelebrated: false,
@@ -394,6 +396,7 @@ function hasMeaningfulTrackerData(state) {
     state.fireRedHitmon !== defaultTrackerState.fireRedHitmon ||
     state.leafGreenHitmon !== defaultTrackerState.leafGreenHitmon ||
     Object.values(state.ownedHeldTradeItems).some(Boolean) ||
+    Object.values(state.breedingProgress).some((value) => value > 0) ||
     Object.values(state.checkboxState).some(Boolean)
   )
 }
@@ -491,6 +494,7 @@ function sanitizeTrackerState(input) {
       sanitizeBooleanMap(input?.ownedHeldTradeItems),
       ownedGames,
     ),
+    breedingProgress: sanitizeBreedingProgress(input?.breedingProgress),
     checkboxState,
     celebrationState:
       input?.celebrationState &&
@@ -687,6 +691,15 @@ function sanitizeTrackerPatch(
   }
 
   if (
+    Object.hasOwn(input, 'breedingProgress') &&
+    input.breedingProgress &&
+    typeof input.breedingProgress === 'object' &&
+    !Array.isArray(input.breedingProgress)
+  ) {
+    patch.breedingProgress = sanitizeBreedingProgress(input.breedingProgress)
+  }
+
+  if (
     Object.hasOwn(input, 'checkboxState') &&
     input.checkboxState &&
     typeof input.checkboxState === 'object' &&
@@ -733,6 +746,12 @@ function mergeTrackerPatch(currentState, patch) {
           ...patch.ownedHeldTradeItems,
         }
       : currentState.ownedHeldTradeItems,
+    breedingProgress: patch.breedingProgress
+      ? {
+          ...currentState.breedingProgress,
+          ...patch.breedingProgress,
+        }
+      : currentState.breedingProgress,
     checkboxState: patch.checkboxState
       ? {
           ...currentState.checkboxState,

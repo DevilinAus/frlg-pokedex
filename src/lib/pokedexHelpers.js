@@ -544,7 +544,10 @@ export function getComment(
     entry.hitmonFamily !== fireRedHitmon &&
     entry.hitmonFamily !== leafGreenHitmon
   ) {
-    return combineComments('Requires trade from fresh game on new profile', familyComment)
+    return combineComments(
+      `Requires breeding Tyrogue with a Hitmon and Ditto at the Four Island Day Care postgame, then evolving it into ${entry.name}`,
+      familyComment,
+    )
   }
 
   if (entry.levelEvolution) {

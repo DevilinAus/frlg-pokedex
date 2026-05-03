@@ -1,4 +1,5 @@
 import { defaultAppState } from './pokedexOptions'
+import { sanitizeBreedingProgress } from './breedingProgress'
 import { normalizeCheckboxState } from './checkboxState'
 import { normalizeOwnedHeldTradeItems } from './heldTradeItems'
 
@@ -48,6 +49,7 @@ function hasMeaningfulTrackerData(state) {
     state.fireRedHitmon !== defaultAppState.fireRedHitmon ||
     state.leafGreenHitmon !== defaultAppState.leafGreenHitmon ||
     Object.values(state.ownedHeldTradeItems).some(Boolean) ||
+    Object.values(state.breedingProgress).some((value) => value > 0) ||
     Object.values(state.checkboxState).some(Boolean)
   )
 }
@@ -145,6 +147,7 @@ export function sanitizeTrackerState(input) {
       sanitizeBooleanMap(input?.ownedHeldTradeItems),
       ownedGames,
     ),
+    breedingProgress: sanitizeBreedingProgress(input?.breedingProgress),
     checkboxState,
     celebrationState:
       input?.celebrationState &&

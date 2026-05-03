@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import { getTrackablePokemon } from '../data/pokemon.js'
 import { buildTradeQueue } from './tradeQueue.js'
+import { getBreedingProgressStateKey } from './breedingProgress.js'
 import {
   buildGoalsByVersion,
   getVersionGoals,
@@ -15,17 +16,26 @@ function getCaughtKey(versionKey, pokemonId) {
   return `${versionKey}-${String(pokemonId).padStart(3, '0')}`
 }
 
-function createTrackerState(checkboxState = {}, ownedHeldTradeItems = {}) {
+function createTrackerState(
+  checkboxState = {},
+  ownedHeldTradeItems = {},
+  breedingProgress = {},
+) {
   return {
     tradeMode: false,
     switchEventUnlocks: false,
+    fireRedBaseGameComplete: true,
+    leafGreenBaseGameComplete: true,
     fireRedStarter: '',
     leafGreenStarter: '',
     fireRedFossil: '',
     leafGreenFossil: '',
+    fireRedEeveelution: '',
+    leafGreenEeveelution: '',
     fireRedHitmon: '',
     leafGreenHitmon: '',
     ownedHeldTradeItems,
+    breedingProgress,
     checkboxState,
   }
 }
@@ -253,6 +263,210 @@ test('does not recommend a later-stage evolution as a hunt target when it is onl
   )
 
   assert.equal(goals.huntGoal, null)
+})
+
+test('shows a same-version baby breeding goal once the parent is caught', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'leaf-green',
+    createTrackerState({
+      [getCaughtKey('leaf-green', 126)]: true,
+    }),
+  )
+
+  assert.equal(goals.breedGoal?.targetEntry.name, 'Magby')
+  assert.equal(goals.breedGoal?.sourceEntry.name, 'Magmar')
+  assert.equal(goals.breedGoal?.pairingLabel, 'Magmar + Ditto')
+  assert.equal(goals.breedGoal?.instructionCopy, '')
+})
+
+test('uses breeding to cover a fossil the other version cannot catch', () => {
+  const goalsByVersion = buildGoalsByVersion(
+    pokemonList,
+    {
+      ...createTrackerState({
+        [getCaughtKey('leaf-green', 140)]: true,
+      }),
+      fireRedFossil: 'omanyte',
+      leafGreenFossil: 'kabuto',
+    },
+    ['fire-red', 'leaf-green'],
+  )
+
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.targetEntry.name, 'Kabuto')
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.sourceEntry.name, 'Kabuto')
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.destinationVersionKey, 'fire-red')
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.breederLabel, 'Kabuto / Kabutops')
+  assert.match(goalsByVersion['leaf-green'].breedGoal?.instructionCopy ?? '', /Trade it to Fire Red/)
+})
+
+test('can keep an Eeveelution plan alive from any owned Eeveelution', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState({
+      [getCaughtKey('fire-red', 134)]: true,
+    }),
+  )
+
+  assert.equal(goals.breedGoal?.targetEntry.name, 'Jolteon')
+  assert.equal(goals.breedGoal?.sourceEntry.name, 'Vaporeon')
+  assert.equal(goals.breedGoal?.breederLabel, 'Eevee / Any Eeveelution')
+  assert.equal(goals.breedGoal?.pairingLabel, 'Eevee / Any Eeveelution + Ditto')
+  assert.equal(goals.breedGoal?.progressCurrentCount, 1)
+  assert.equal(goals.breedGoal?.progressTargetCount, 3)
+  assert.match(goals.breedGoal?.instructionCopy ?? '', /Use a Thunder Stone on the hatched Eevee/)
+  assert.doesNotMatch(goals.breedGoal?.instructionCopy ?? '', /Flareon/)
+})
+
+test('keeps Eevee breeding active until three total family members or eggs are ready', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 133)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'eevee')]: 2,
+      },
+    ),
+  )
+
+  assert.equal(goals.breedGoal?.targetEntry.name, 'Vaporeon')
+  assert.equal(goals.breedGoal?.progressCurrentCount, 2)
+  assert.equal(goals.breedGoal?.progressTargetCount, 3)
+})
+
+test('does not double count caught Eeveelutions and reserved breeding stock', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 134)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'eevee')]: 2,
+      },
+    ),
+  )
+
+  assert.equal(goals.breedGoal?.targetEntry.name, 'Jolteon')
+  assert.equal(goals.breedGoal?.progressCurrentCount, 2)
+  assert.equal(goals.breedGoal?.progressTargetCount, 3)
+})
+
+test('hides Eevee breeding once three total family members or eggs are ready', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      {
+        [getCaughtKey('fire-red', 133)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('fire-red', 'eevee')]: 3,
+      },
+    ),
+  )
+
+  assert.notEqual(goals.breedGoal?.progressKey, 'eevee')
+})
+
+test('uses Tyrogue breeding for missing Hitmon evolutions after Tyrogue is registered', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState({
+      [getCaughtKey('fire-red', 106)]: true,
+      [getCaughtKey('fire-red', 236)]: true,
+    }),
+  )
+
+  assert.equal(goals.breedGoal?.targetEntry.name, 'Hitmonchan')
+  assert.equal(goals.breedGoal?.sourceEntry.name, 'Hitmonlee')
+  assert.equal(goals.breedGoal?.breederLabel, 'Any Hitmon')
+  assert.match(goals.breedGoal?.instructionCopy ?? '', /Defense higher than Attack/)
+})
+
+test('hides a one-off breeding goal once an egg has been marked obtained', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'leaf-green',
+    createTrackerState(
+      {
+        [getCaughtKey('leaf-green', 126)]: true,
+      },
+      {},
+      {
+        [getBreedingProgressStateKey('leaf-green', 'magby')]: 1,
+      },
+    ),
+  )
+
+  assert.notEqual(goals.breedGoal?.targetEntry.name, 'Magby')
+})
+
+test('can breed a missing Hitmon choice for the other version', () => {
+  const goalsByVersion = buildGoalsByVersion(
+    pokemonList,
+    {
+      ...createTrackerState({
+        [getCaughtKey('fire-red', 236)]: true,
+        [getCaughtKey('leaf-green', 106)]: true,
+        [getCaughtKey('leaf-green', 107)]: true,
+        [getCaughtKey('leaf-green', 236)]: true,
+        [getCaughtKey('leaf-green', 237)]: true,
+      }),
+      fireRedHitmon: 'hitmonlee',
+      leafGreenHitmon: 'hitmonlee',
+    },
+    ['fire-red', 'leaf-green'],
+  )
+
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.targetEntry.name, 'Hitmonchan')
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.sourceEntry.name, 'Hitmonlee')
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.destinationVersionKey, 'fire-red')
+  assert.equal(goalsByVersion['leaf-green'].breedGoal?.pairingLabel, 'Any Hitmon + Ditto')
+  assert.match(
+    goalsByVersion['leaf-green'].breedGoal?.instructionCopy ?? '',
+    /Defense higher than Attack/,
+  )
+})
+
+test('hides the breeding goal until that save is marked base game complete', () => {
+  const goalsByVersion = buildGoalsByVersion(
+    pokemonList,
+    {
+      ...createTrackerState({
+        [getCaughtKey('leaf-green', 126)]: true,
+      }),
+      leafGreenBaseGameComplete: false,
+    },
+    ['leaf-green'],
+  )
+
+  assert.equal(goalsByVersion['leaf-green'].baseGameComplete, false)
+  assert.equal(goalsByVersion['leaf-green'].breedGoal, null)
+})
+
+test('does not offer a breeding goal for legendary-only lists', () => {
+  const legendaryPokemon = pokemonList.filter((entry) =>
+    ['Raikou', 'Entei', 'Suicune'].includes(entry.name),
+  )
+  const goals = getVersionGoals(
+    legendaryPokemon,
+    'fire-red',
+    createTrackerState({
+      [getCaughtKey('fire-red', 244)]: true,
+    }),
+  )
+
+  assert.equal(goals.breedGoal, null)
 })
 
 test('adds an item goal when a blocked held-item trade exists', () => {

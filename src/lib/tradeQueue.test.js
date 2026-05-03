@@ -162,6 +162,23 @@ test('adds the Sea Incense family note to Azurill without losing the breeding gu
   assert.match(comment, /bred one with Sea Incense/)
 })
 
+test('explains the Hitmon breeding workaround instead of asking for a fresh save', () => {
+  const comment = getComment(
+    getPokemonByName('Hitmonchan'),
+    false,
+    '',
+    '',
+    '',
+    '',
+    'hitmonlee',
+    'hitmonlee',
+    {},
+  )
+
+  assert.match(comment, /breeding Tyrogue/)
+  assert.doesNotMatch(comment, /fresh game/)
+})
+
 test('ignores extra-copy trades when the base catch is unchecked', () => {
   const tokens = getVersionFamilyTokens('leaf-green', ['Magmar', 'Magby'], {
     [getExtraKey('leaf-green', 'Magmar')]: true,
