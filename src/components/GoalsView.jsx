@@ -51,6 +51,10 @@ function GoalFocusCard({
   const displayEntryLabel = goal?.type === 'hatch'
     ? goal.sourceLabel ?? displayEntry?.name ?? ''
     : displayEntry?.name ?? ''
+  const contextualOverline =
+    goal?.type === 'hunt' && goal.isGameCornerPrize
+      ? 'Purchase from Game Corner'
+      : ''
   const actionChecked = goal
     ? goal.type === 'hunt'
       ? Boolean(checkboxState[goal.sourceCaughtKey])
@@ -124,6 +128,10 @@ function GoalFocusCard({
             </div>
 
             <div className="goal-focus-copy">
+              {contextualOverline ? (
+                <span className="goal-focus-evolution-label">{contextualOverline}</span>
+              ) : null}
+
               {goal.type === 'breed' ? null : (
                 <strong>
                   {goal.type === 'item' ? (
@@ -247,8 +255,6 @@ function GoalsVersionCard({
   incrementBreedingProgress,
   showVersionLabel,
 }) {
-  const huntTitle = panel.huntGoal?.isGameCornerPrize ? 'Next Purchase' : 'Next Hunt'
-
   return (
     <section
       className={`goals-version-card ${
@@ -259,7 +265,7 @@ function GoalsVersionCard({
 
       <div className="goal-focus-grid">
         <GoalFocusCard
-          title={huntTitle}
+          title="Next Hunt"
           goal={panel.huntGoal}
           emptyCopy="No strong hunt target right now."
           tone="hunt"

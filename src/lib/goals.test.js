@@ -99,7 +99,7 @@ test('shows the XP Share target once 50 Pokemon are registered', () => {
   assert.equal(goals.partyGoal?.sourceEntry.name, 'Abra')
 })
 
-test('falls back to the next owned trade-unlock line once an earlier one is complete', () => {
+test('prefers the quickest nearly-finished family once an earlier XP Share line is complete', () => {
   const goals = getVersionGoals(
     pokemonList,
     'fire-red',
@@ -114,9 +114,47 @@ test('falls back to the next owned trade-unlock line once an earlier one is comp
     ),
   )
 
-  assert.equal(goals.partyGoal.sourceEntry.name, 'Geodude')
-  assert.equal(goals.partyGoal.targetEntry.name, 'Graveler')
-  assert.equal(goals.partyGoal.tradeFollowUp?.name, 'Golem')
+  assert.equal(goals.partyGoal.sourceEntry.name, 'Paras')
+  assert.equal(goals.partyGoal.targetEntry.name, 'Parasect')
+  assert.equal(goals.partyGoal.tradeFollowUp, null)
+})
+
+test('keeps the XP Share target on the same family after an evolution is marked complete', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      createCaughtState('fire-red', [
+        ...Array.from({ length: 49 }, (_, index) => index + 1).filter((id) => id !== 6),
+        74,
+        75,
+        147,
+      ]),
+    ),
+  )
+
+  assert.equal(goals.partyGoal.sourceEntry.name, 'Charmeleon')
+  assert.equal(goals.partyGoal.targetEntry.name, 'Charizard')
+})
+
+test('deprioritizes long leveling lines like Dratini when a shorter family is at the same progress point', () => {
+  const goals = getVersionGoals(
+    pokemonList,
+    'fire-red',
+    createTrackerState(
+      createCaughtState('fire-red', [
+        ...Array.from({ length: 49 }, (_, index) => index + 1).filter(
+          (id) => id !== 5 && id !== 6,
+        ),
+        74,
+        75,
+        147,
+      ]),
+    ),
+  )
+
+  assert.equal(goals.partyGoal.sourceEntry.name, 'Charmander')
+  assert.equal(goals.partyGoal.targetEntry.name, 'Charmeleon')
 })
 
 test('prefers a non-Game Corner hunt target before prize Pokemon', () => {
